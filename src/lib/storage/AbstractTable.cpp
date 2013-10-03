@@ -148,6 +148,40 @@ void AbstractTable::copyRowFrom(const hyrise::storage::c_atable_ptr_t& source, c
  }
 }
 
+void AbstractTable::copyRowFromJSONVector(const std::vector<Json::Value>& source, size_t dst_row) {
+  /// source must match the table layout! [no checks]
+  for (size_t column = 0; column < columnCount(); column++) {
+    switch(typeOfColumn(column)) {
+      case IntegerType:
+        setValue<hyrise_int_t>(column, dst_row, source[column].asInt());
+        break;
+      case FloatType:
+        setValue<hyrise_float_t>(column, dst_row, source[column].asFloat());
+        break;
+      case StringType:
+        setValue<hyrise_string_t>(column, dst_row, source[column].asString());
+        break;
+    }
+  }
+}
+
+void AbstractTable::copyRowFromStringVector(const std::vector<std::string>& source, size_t dst_row) {
+  /// source must match the table layout! [no checks]
+  for (size_t column = 0; column < columnCount(); column++) {
+    switch(typeOfColumn(column)) {
+      case IntegerType:
+        setValue<hyrise_int_t>(column, dst_row, atoi(source[column].c_str()));
+        break;
+      case FloatType:
+        setValue<hyrise_float_t>(column, dst_row, atof(source[column].c_str()));
+        break;
+      case StringType:
+        setValue<hyrise_string_t>(column, dst_row, source[column].c_str());
+        break;
+    }
+  }
+}
+
 void AbstractTable::setValueId(const size_t column, const size_t row, const ValueId valueId) {
   throw std::runtime_error("Setting valueIds not supported");
 }

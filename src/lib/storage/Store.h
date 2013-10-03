@@ -18,6 +18,8 @@
 
 #include <helper/types.h>
 
+#include <json.h>
+
 namespace hyrise {
 namespace storage {
 
@@ -58,6 +60,8 @@ public:
   /// Copies a new row to the delta table, sets the validity and the
   /// tx id accordingly. May need to resize delta.
   void copyRowToDelta(const c_atable_ptr_t& source, size_t src_row, size_t dst_row, tx::transaction_id_t tid);
+  void copyRowToDeltaFromJSONVector(const std::vector<Json::Value>& source, size_t dst_row, tx::transaction_id_t tid);
+  void copyRowToDeltaFromStringVector(const std::vector<std::string>& source, size_t dst_row, tx::transaction_id_t tid);
 
   tx::TX_CODE commitPositions(const pos_list_t& pos, const tx::transaction_cid_t cid, bool valid);
 
