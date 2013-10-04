@@ -80,11 +80,65 @@ void InsertScan::executePlanOperation() {
   // Cast the constness away
   auto store = std::const_pointer_cast<storage::Store>(c_store);
 
-  if (!_data)
-    _data = buildFromJson();
+  if (!_data) {
+    //_data = buildFromJson(); // nope!
+
+    // ==================
+    // TODO: refactor me!
+    // ==================
+    const size_t beforeSize = store->size();
+    const size_t columnCount = store->columnCount();
+    const size_t rowCount = _raw_data.size();
+    const auto &writeArea = store->appendToDelta(rowCount);
+    auto &mods = tx::TransactionManager::getInstance()[_txContext.tid];
+
+    // determine serial [=autoincrement] fields in store
+    auto &resMgr = io::ResourceManager::getInstance();
+    std::set<field_t> serialFields;
+    for(size_t c=0; c<columnCount; ++c) {
+      auto serial_name = std::to_string(store->getUuid()) + "_" + store->nameOfColumn(c);
+      if (resMgr.exists(serial_name)) {
+        serialFields.insert(c);
+      }
+    }
+
+    // extend _raw_data with serial fields (if any)
+    if(!serialFields.empty()) {
+      std::vector<std::vector<Json::Value>> extended_raw_data(rowCount, std::vector<Json::Value>(columnCount));
+      for(size_t r=0; r<rowCount; ++r) {
+        size_t columnOffset = 0;
+        for(size_t c=0; c<columnCount; ++c) {
+          if(serialFields.count(c) != 0) {
+            std::string serialName = std::to_string(store->getUuid()) + "_" + store->nameOfColumn(c);
+            Json::Value v(resMgr.get<Serial>(serialName)->next());
+            extended_raw_data[r][c] = v;
+            ++columnOffset;
+          } else {
+            extended_raw_data[r][c] = _raw_data[r][c-columnOffset];
+          }
+        }
+      }
+      _raw_data = extended_raw_data;
+    }
+
+    for(size_t i=0; i<rowCount; ++i) {
+      store->copyRowToDeltaFromJSONVector(_raw_data[i], writeArea.first+i, _txContext.tid);
+      mods.insertPos(store, beforeSize+i);
+
+      uint64_t bitmask = (1 << (_raw_data[0].size() + 1)) - 1;
+      std::vector<ValueId> vids = store->copyValueIds(beforeSize+i);
+      io::Logger::getInstance().logValue(mods.tid, reinterpret_cast<uintptr_t>(store.get()), beforeSize+i, 0, bitmask, &vids);
+    }
+
+    auto rsp = getResponseTask();
+    if (rsp != nullptr)
+      rsp->incAffectedRows(_raw_data.size());
+    addResult(input.getTable(0));
+    return;
+  }
 
   // Delta Table Size
-  const auto& beforSize = store->size();
+  const auto& beforeSize = store->size();
 
   auto writeArea = store->appendToDelta(_data->size());
 
@@ -92,7 +146,11 @@ void InsertScan::executePlanOperation() {
   auto& mods = tx::TransactionManager::getInstance()[_txContext.tid];
   for(size_t i=0, upper = _data->size(); i < upper; ++i) {
     store->copyRowToDelta(_data, i, writeArea.first+i, _txContext.tid);
-    mods.insertPos(store, beforSize+i);
+    mods.insertPos(store, beforeSize+i);
+
+    uint64_t bitmask = (1 << (_data->columnCount() + 1)) - 1;
+    std::vector<ValueId> vids = _data.get()->copyValueIds(i);
+    io::Logger::getInstance().logValue(mods.tid, reinterpret_cast<uintptr_t>(store.get()), beforeSize+i, 0, bitmask, &vids);
   }
 
   auto rsp = getResponseTask();
