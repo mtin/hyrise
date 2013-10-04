@@ -83,6 +83,7 @@ __attribute__((noinline, unused)) static void ndelay_rdtscp(const uint64_t nsecs
 	asm volatile(".align 32":::"memory");
 	asm volatile("nop");
 	static uint64_t freq = (uint64_t)cpufreq_get_freq_kernel(sched_getcpu()) * 1000;
+	assert(freq > 0); // if this fails, make sure that cpufreq can read the cpu freq
 	// register uint64_t target asm("a5") = rdtscp() + (nsecs * freq / 1000000000)
 		// this would make sure that we only operate on registers
 	uint64_t target = rdtscp() + (nsecs * freq / 1000000000) - 69;
