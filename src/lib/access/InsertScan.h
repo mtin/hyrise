@@ -10,19 +10,12 @@ namespace access {
 class InsertScan : public PlanOperation {
 public:
   virtual ~InsertScan();
-
   void executePlanOperation();
-
   void setInputData(const storage::atable_ptr_t &c);
-
   static std::shared_ptr<PlanOperation> parse(Json::Value &data);
 
 private:
-  
-	storage::atable_ptr_t buildFromJson();
-
   storage::atable_ptr_t _data;
-
   std::vector<std::vector<Json::Value>> _raw_data;
 };
 
