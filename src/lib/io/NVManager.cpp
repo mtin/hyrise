@@ -1,6 +1,7 @@
 #ifdef PERSISTENCY_NVRAM
 
 #include "NVManager.h"
+#include "NVSimulator.h"
 
 #include <cassert>
 #include <cerrno>
@@ -82,6 +83,7 @@ NVVectorInfo* NVManager::resizeVectorSpace(NVVectorInfo* vi,
 
 void NVManager::persistMemoryArea(void* start,
                                   size_t len) {
+  NVSimulator::persist();
   assert(start >= _pmp);
   assert((uintptr_t)start + len - (uintptr_t) _pmp < NVM_FILESIZE);
   pmem_persist(start, len, 0);

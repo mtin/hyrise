@@ -10,6 +10,7 @@
 #include <stdexcept>
 
 #include "io/NVManager.h"
+#include "io/NVSimulator.h"
 
 namespace hyrise {
 namespace storage {
@@ -83,10 +84,12 @@ public:
     }
   }
   reference operator[](size_type pos) {
+    NVSimulator::write();
     assert(pos < size());
     return _data[pos];
   }
   const_reference operator[](size_type pos) const {
+    NVSimulator::read();
     assert(pos < size());
     return _data[pos];
   }
