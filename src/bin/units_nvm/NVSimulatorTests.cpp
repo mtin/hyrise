@@ -89,7 +89,7 @@ TEST_F(NVSimulatorTests, delay_rt_measure_rdtscp) {
     samples++;
   }
 
-  ASSERT_TRUE(uinaccuracy / samples < 20) << "When verifying with rdtscp, the rt delay method had an average absolute inaccuracy of " << (uinaccuracy / samples) << " per sample with a arithmetic mean inaccuracy of " << (inaccuracy / samples) << ".";
+  ASSERT_TRUE(uinaccuracy / samples < 50) << "When verifying with rdtscp, the rt delay method had an average absolute inaccuracy of " << (uinaccuracy / samples) << " per sample with a arithmetic mean inaccuracy of " << (inaccuracy / samples) << ".";
   ASSERT_TRUE(samples > 950);
 }
 
@@ -114,7 +114,7 @@ TEST_F(NVSimulatorTests, delay_rt_measure_rt) {
     samples++;
   }
 
-  ASSERT_TRUE(uinaccuracy / samples < 20) << "When verifying with the realtime clock, the rt delay method had an average absolute inaccuracy of " << (uinaccuracy / samples) << " per sample with a arithmetic mean inaccuracy of " << (inaccuracy / samples) << ".";
+  ASSERT_TRUE(uinaccuracy / samples < 50) << "When verifying with the realtime clock, the rt delay method had an average absolute inaccuracy of " << (uinaccuracy / samples) << " per sample with a arithmetic mean inaccuracy of " << (inaccuracy / samples) << ".";
   ASSERT_TRUE(samples > 950);
 }
 

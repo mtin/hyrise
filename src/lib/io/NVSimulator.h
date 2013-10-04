@@ -49,8 +49,8 @@
 
 	Testing
 		For testing, all combinations are executed with a reasonable delay
-		(currently 150). The expected average error is below 20 which is the
-		pass condition for the test.
+		(currently 150). The expected average error is below 20 for rdtscp and
+		50 for rt which is the pass condition for the test.
 */
 
 #include <cpufreq.h>
