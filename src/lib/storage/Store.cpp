@@ -328,6 +328,24 @@ void Store::copyRowToDelta(const c_atable_ptr_t& source, const size_t src_row, c
   delta->copyRowFrom(source, src_row, dst_row, true);
 }
 
+void Store::copyRowToDeltaFromJSONVector(const std::vector<Json::Value>& source, size_t dst_row, tx::transaction_id_t tid) {
+  auto main_tables_size = functional::sum(main_tables, 0ul, [](atable_ptr_t& t){return t->size();});
+
+  // Update the validity
+  _tidVector[main_tables_size + dst_row] = tid;
+
+  delta->copyRowFromJSONVector(source, dst_row);
+}
+
+void Store::copyRowToDeltaFromStringVector(const std::vector<std::string>& source, size_t dst_row, tx::transaction_id_t tid) {
+  auto main_tables_size = functional::sum(main_tables, 0ul, [](atable_ptr_t& t){return t->size();});
+
+  // Update the validity
+  _tidVector[main_tables_size + dst_row] = tid;
+
+  delta->copyRowFromStringVector(source, dst_row);
+}
+
 tx::TX_CODE Store::commitPositions(const pos_list_t& pos, const tx::transaction_cid_t cid, bool valid) {
   for(const auto& p : pos) {
     if(valid) {

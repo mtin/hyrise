@@ -24,6 +24,8 @@
 #include "storage/BaseDictionary.h"
 #include "storage/storage_types.h"
 
+#include <json.h>
+
 class ColumnMetadata;
 class AbstractDictionary;
 class AbstractAttributeVector;
@@ -489,6 +491,9 @@ public:
    */
   void copyRowFrom(const hyrise::storage::c_atable_ptr_t& source, size_t src_row, size_t dst_row, bool copy_values = true, bool use_memcpy = true);
 
+  void copyRowFromJSONVector(const std::vector<Json::Value>& source, size_t dst_row);
+
+  void copyRowFromStringVector(const std::vector<std::string>& source, size_t dst_row);
 
   /**
    * Write the table data into a file as-is.
