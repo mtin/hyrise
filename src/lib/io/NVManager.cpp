@@ -26,10 +26,10 @@
 namespace hyrise {
 namespace io {
 
-constexpr char NVM_MOUNTPOINT[] = "/mnt/pmfs";
-constexpr char NVM_TESTFILENAME[] = "/mnt/pmfs/hyrise_test";
-constexpr char NVM_FILENAME[] = "/mnt/pmfs/hyrise";
-constexpr size_t NVM_FILESIZE = 100 * 1024 * 1024;
+constexpr char   NVM_MOUNTPOINT[]   = NVRAM_MOUNTPOINT;
+constexpr char   NVM_TESTFILENAME[] = NVRAM_MOUNTPOINT "/" NVRAM_FILENAME "_test";
+constexpr char   NVM_FILENAME[]     = NVRAM_MOUNTPOINT "/" NVRAM_FILENAME;
+constexpr size_t NVM_FILESIZE       = 1024ul * 1024ul * NVRAM_FILESIZE;
 
 typedef struct _NVNode {
 #ifndef NDEBUG
@@ -124,7 +124,7 @@ void NVManager::reset() {
 
 void NVManager::_initialize() {
   if(!_pmfsMounted()) {
-    throw std::runtime_error("PMFS not mounted");
+    throw std::runtime_error("PMFS not mounted at " NVRAM_MOUNTPOINT);
   }
   if(!_pmfsWritable()) {
     throw std::runtime_error("no write permission for PMFS");
