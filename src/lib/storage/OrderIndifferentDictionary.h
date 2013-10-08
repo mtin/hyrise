@@ -7,6 +7,7 @@
 #include <map>
 #include <memory>
 #include <limits.h>
+#include <mutex>
 
 #include <map>
 
@@ -59,7 +60,7 @@ class OrderIndifferentDictionary : public BaseDictionary<T> {
 
   // This is the main index
   index_type _index;
-
+  std::mutex _writeLock;
 
 public:
 
@@ -108,9 +109,12 @@ public:
   }
 
   virtual value_id_t addValue(T value) {
+    _writeLock.lock();
     _value_list.push_back(value);
     addValueToIndex(value);
-    return _value_list.size() - 1;
+    size_t new_size = _value_list.size() - 1;
+    _writeLock.unlock();
+    return new_size;
   }
 
   inline void addValueToIndex(T value) {
