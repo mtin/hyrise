@@ -13,6 +13,7 @@
 #include "taskscheduler/SharedScheduler.h"
 #include "access/system/RequestParseTask.h"
 
+
 namespace hyrise {
 namespace net {
 
@@ -24,7 +25,7 @@ ebb_connection *new_connection(ebb_server *server, struct sockaddr_in *addr) {
 
   AsyncConnection *connection_data = new AsyncConnection();
   connection_data->addr = *addr;
-
+  
   // Initializes the connection
   ebb_connection_init(connection);
   connection->data = connection_data;
@@ -34,14 +35,13 @@ ebb_connection *new_connection(ebb_server *server, struct sockaddr_in *addr) {
 
   connection_data->ev_loop = server->loop;
   connection_data->ev_write.data = connection_data;
-  ev_async_init(&connection_data->ev_write, write_cb);
-  ev_async_start(server->loop, &connection_data->ev_write);
 
   return connection;
 }
 
 int on_timeout(ebb_connection *connection) {
-  return EBB_AGAIN;
+  // return STOP so that connection is closed after 30 seconds
+  return EBB_STOP;
 }
 
 ebb_request *new_request(ebb_connection *connection) {
@@ -55,11 +55,20 @@ ebb_request *new_request(ebb_connection *connection) {
 }
 
 void request_complete(ebb_request *request) {
+
   ebb_connection *connection = (ebb_connection *)request->data;
   AsyncConnection *connection_data = (AsyncConnection *)connection->data;
   connection_data->connection = connection;
   connection_data->request = request;
   gettimeofday(&connection_data->starttime, nullptr);
+
+  if(ebb_request_should_keep_alive(request))
+    connection_data->keep_alive_flag = true;
+  else
+    connection_data->keep_alive_flag = false;
+
+  ev_async_init(&connection_data->ev_write, write_cb);
+  ev_async_start(connection_data->ev_loop, &connection_data->ev_write);
 
   // Try to route to appropriate handler based on path
   const AbstractRequestHandlerFactory *handler_factory;
@@ -71,12 +80,21 @@ void request_complete(ebb_request *request) {
                              + exception_message);
     return;
   }
+
   std::shared_ptr<Task> task = handler_factory->create(connection_data);
   // Always map the first task to the first core
   // task->setPreferredCore(0);
   // give RequestParseTask high priority
   task->setPriority(Task::HIGH_PRIORITY);
   SharedScheduler::getInstance().getScheduler()->schedule(task);
+}
+
+void continue_responding(ebb_connection *connection) {
+
+  AsyncConnection *connection_data = (AsyncConnection *)connection->data;
+  if (connection_data->keep_alive_flag == false) {
+    ebb_connection_schedule_close(connection);
+  }
 }
 
 void request_path(ebb_request *request, const char *at, size_t length) {
@@ -89,6 +107,20 @@ void request_path(ebb_request *request, const char *at, size_t length) {
 }
 
 void request_body(ebb_request *request, const char *at, size_t length) {
+  ebb_connection *connection = (ebb_connection *)request->data;
+  AsyncConnection *connection_data = (AsyncConnection *)connection->data;
+
+  if (!connection_data->body) {
+    connection_data->body = (char *)malloc(length);
+    connection_data->body_len = 0;
+  } else {
+    connection_data->body = (char *)realloc(connection_data->body, connection_data->body_len + length);
+  }
+  memcpy(connection_data->body + connection_data->body_len, at, length);
+  connection_data->body_len += length;
+}
+
+void request_header(ebb_request *request, const char *at, size_t length) {
   ebb_connection *connection = (ebb_connection *)request->data;
   AsyncConnection *connection_data = (AsyncConnection *)connection->data;
 
@@ -135,18 +167,19 @@ void write_cb(struct ev_loop *loop, struct ev_async *w, int revents) {
     conn->code = conn->code == 0 ? 200 : conn->code;
     conn->contentType = conn->contentType.size() == 0 ? "application/json" : conn->contentType;
     conn->write_buffer_len += snprintf((char *)conn->write_buffer, max_header_length, 
-      "HTTP/1.1 %lu OK\r\nContent-Type: %s\r\nContent-Length: %lu\r\nConnection: close\r\n\r\n", 
+      "HTTP/1.1 %lu OK\r\nContent-Type: %s\r\nContent-Length: %lu\r\nConnection: %s\r\n\r\n", 
       conn->code, 
       conn->contentType.c_str(),
-      conn->response_length);
+      conn->response_length,
+      conn->keep_alive_flag == true ? "Keep-Alive" : "Close");
 
     // Append the response
     memcpy(conn->write_buffer + conn->write_buffer_len, conn->response, conn->response_length);
     conn->write_buffer_len += conn->response_length;
+
     ebb_connection_write(conn->connection, conn->write_buffer, conn->write_buffer_len, continue_responding);
-    // We need to wait for `continue_responding` to fire to be sure the client has been sent all the data
     printf("%s [%s] %s %s (%f s)\n", inet_ntoa(conn->addr.sin_addr), timestr, method, conn->path, duration);
-  } else {
+   } else {
     printf("%s [%s] %s %s (%f s) not sent\n", inet_ntoa(conn->addr.sin_addr), timestr, method, conn->path, duration);
   }
   ev_async_stop(conn->ev_loop, &conn->ev_write);
@@ -155,15 +188,11 @@ void write_cb(struct ev_loop *loop, struct ev_async *w, int revents) {
   if (conn->connection == nullptr) delete conn;
 }
 
-void continue_responding(ebb_connection *connection) {
-  delete(AsyncConnection *) connection->data;
-  connection->data = nullptr;
-  ebb_connection_schedule_close(connection);
-}
-
 void on_close(ebb_connection *connection) {
   AsyncConnection *connection_data = (AsyncConnection *)connection->data;
   if (connection_data != nullptr)
+    delete(AsyncConnection *) connection_data;
+    connection->data = nullptr;
     connection_data->connection = nullptr;
   free(connection);
 }
