@@ -42,6 +42,8 @@ class AsyncConnection : public AbstractConnection {
   // HTPP Code used to send to the client
   size_t code;
 
+  bool keep_alive_flag;
+
   std::string contentType;
 
   AsyncConnection();
