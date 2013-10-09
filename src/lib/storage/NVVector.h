@@ -29,8 +29,8 @@ public:
 
   // constructors and assignment
   NVVector(size_type count = 0, const_reference value = value_type()) {
-    _info = io::NVManager::getInstance().getOrCreateVectorSpace(0, (count > 0 ? count : 1) * sizeof(value_type));
-    _info->capacity = count > 0 ? count : 1;
+    _info = io::NVManager::getInstance().getOrCreateVectorSpace(0, (count > 100000 ? count : 100000) * sizeof(value_type));
+    _info->capacity = count > 100000 ? count : 100000;
     _info->size = count;
     _data = (value_type*) (_info + 1);
     for(iterator it=begin(); it!=end(); ++it)
@@ -84,12 +84,16 @@ public:
     }
   }
   reference operator[](size_type pos) {
+#if NVSIMULATOR_WRITE_NS > 0
     NVSimulator::write();
+#endif
     assert(pos < size());
     return _data[pos];
   }
   const_reference operator[](size_type pos) const {
+#if NVSIMULATOR_READ_NS > 0
     NVSimulator::read();
+#endif
     assert(pos < size());
     return _data[pos];
   }

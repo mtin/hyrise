@@ -83,7 +83,9 @@ NVVectorInfo* NVManager::resizeVectorSpace(NVVectorInfo* vi,
 
 void NVManager::persistMemoryArea(void* start,
                                   size_t len) {
+#if NVSIMULATOR_FLUSH_NS > 0
   NVSimulator::persist();
+#endif
   assert(start >= _pmp);
   assert((uintptr_t)start + len - (uintptr_t) _pmp < NVM_FILESIZE);
   pmem_persist(start, len, 0);
