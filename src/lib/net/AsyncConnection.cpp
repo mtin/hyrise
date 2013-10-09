@@ -95,6 +95,14 @@ void continue_responding(ebb_connection *connection) {
   if (connection_data->keep_alive_flag == false) {
     ebb_connection_schedule_close(connection);
   }
+  else {
+    // clear data buffer of connection
+    free(connection_data->path);
+    free(connection_data->body);
+    connection_data->body_len = 0;
+    connection_data->path = nullptr;
+    connection_data->body = nullptr;
+  }
 }
 
 void request_path(ebb_request *request, const char *at, size_t length) {
