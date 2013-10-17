@@ -29,8 +29,8 @@ public:
 
   // constructors and assignment
   NVVector(size_type count = 0, const_reference value = value_type()) {
-    _info = io::NVManager::getInstance().getOrCreateVectorSpace(0, (count > 100000 ? count : 100000) * sizeof(value_type));
-    _info->capacity = count > 100000 ? count : 100000;
+    _info = io::NVManager::getInstance().getOrCreateVectorSpace(0, (count > 500000 ? count : 500000) * sizeof(value_type));
+    _info->capacity = count > 500000 ? count : 500000;
     _info->size = count;
     _data = (value_type*) (_info + 1);
     for(iterator it=begin(); it!=end(); ++it)
