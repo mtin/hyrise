@@ -66,11 +66,11 @@ class ResourceManager {
 
   /// Test for resource existance
   /// @param[in] name Resource name
-  bool exists(const std::string& name) const;
+  bool exists(const std::string& name, const bool thread_safe=true) const;
 
   /// Test for resource existance, throws ResourceManagerException
   /// @param[in] name Resource name
-  void assureExists(const std::string& name) const;
+  void assureExists(const std::string& name, const bool thread_safe=true, const bool release_lock_on_exception=false) const;
 
   /// Return number of elements in storage
   size_t size() const;
@@ -83,11 +83,14 @@ class ResourceManager {
   /// The actual schema
   mutable resource_map _resources;
   /// Mutex protecting the _schema map
-  mutable std::recursive_mutex _resource_mutex;
+  // mutable std::recursive_mutex _resource_mutex;
+  mutable pthread_rwlock_t _rw_lock;
 
-  ResourceManager() = default;
+  ResourceManager() { pthread_rwlock_init(&_rw_lock, NULL); };
   ResourceManager(const ResourceManager &) = delete;
   ResourceManager &operator= (const ResourceManager &) = delete;
+
+  ~ResourceManager() { pthread_rwlock_destroy(&_rw_lock); };
 
 };
 
