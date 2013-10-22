@@ -74,18 +74,14 @@ void InsertScan::executePlanOperation() {
       store->copyRowToDeltaFromJSONVector(_raw_data[i], writeArea.first+i, _txContext.tid);
       mods.insertPos(store, beforeSize+i);
 
-      uint64_t bitmask = (1 << (columnCount + 1)) - 1;
       std::vector<ValueId> vids = store->copyValueIds(beforeSize+i);
-      io::Logger::getInstance().logValue(mods.tid, reinterpret_cast<uintptr_t>(store.get()), beforeSize+i, 0, bitmask, &vids);
     }
   } else {
     for(size_t i=0; i<rowCount; ++i) {
       store->copyRowToDelta(_data, i, writeArea.first+i, _txContext.tid);
       mods.insertPos(store, beforeSize+i);
 
-      uint64_t bitmask = (1 << (columnCount + 1)) - 1;
       std::vector<ValueId> vids = _data.get()->copyValueIds(i);
-      io::Logger::getInstance().logValue(mods.tid, reinterpret_cast<uintptr_t>(store.get()), beforeSize+i, 0, bitmask, &vids);
     }
   }
 
