@@ -186,10 +186,15 @@ void write_cb(struct ev_loop *loop, struct ev_async *w, int revents) {
     conn->write_buffer_len += conn->response_length;
 
     ebb_connection_write(conn->connection, conn->write_buffer, conn->write_buffer_len, continue_responding);
+#ifndef NDEBUG
     printf("%s [%s] %s %s (%f s)\n", inet_ntoa(conn->addr.sin_addr), timestr, method, conn->path, duration);
-   } else {
+#endif
+   }
+#ifndef NDEBUG
+   else {
     printf("%s [%s] %s %s (%f s) not sent\n", inet_ntoa(conn->addr.sin_addr), timestr, method, conn->path, duration);
   }
+#endif
   ev_async_stop(conn->ev_loop, &conn->ev_write);
   // When connection is nullptr, `continue_responding` won't fire since we never sent data to the client,
   // thus, we'll need to clean up manually here, while connection has already been cleaned up in on `on_response`

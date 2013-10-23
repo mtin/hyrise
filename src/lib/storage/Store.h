@@ -97,6 +97,9 @@ public:
   void persist_scattered(const pos_list_t& elements, bool new_elements = true) const override;
 
  private:
+  // RW-lock protecting store data structures
+  mutable pthread_rwlock_t _rw_lock;
+
   //* Vector containing the main tables
   std::vector< atable_ptr_t > main_tables;
 
