@@ -9,7 +9,7 @@ using boost::assign::push_back;
 
 class MySQLTests : public ::hyrise::Test {};
 
-TEST_F(MySQLTests, load_test) {
+TEST_F(MySQLTests, DISABLED_load_test) {
   hyrise::storage::atable_ptr_t  t = Loader::load(
       Loader::params().setInput(
           MySQLInput(
@@ -22,7 +22,7 @@ TEST_F(MySQLTests, load_test) {
 }
 
 
-TEST_F(MySQLTests, load_sap_schema) {
+TEST_F(MySQLTests, DISABLED_load_sap_schema) {
   // Load SAP base schema, import KNA1, VBAP, VBAK into MySQL
   system("sh -ex test/sap_data/load.sh");
 
@@ -43,7 +43,7 @@ TEST_F(MySQLTests, load_sap_schema) {
   }
 }
 
-TEST_F(MySQLTests, convert_date_to_int) {
+TEST_F(MySQLTests, DISABLED_convert_date_to_int) {
   // Load SAP base schema, import KNA1, VBAP, VBAK into MySQL
   system("sh -ex test/sap_data/load.sh");
 
