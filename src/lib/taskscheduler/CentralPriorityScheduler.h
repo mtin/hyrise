@@ -11,7 +11,6 @@
 #include "AbstractTaskScheduler.h"
 #include "helper/HwlocHelper.h"
 #include <memory>
-#include <mutex>
 #include <thread>
 #include <queue>
 #include <vector>
@@ -39,11 +38,11 @@ class CentralPriorityScheduler : public AbstractTaskScheduler, public TaskReadyO
   // set for tasks with open dependencies
   waiting_tasks_t _waitSet;
   // mutex to protect waitset
-  std::mutex _setMutex;
+  lock_t _setMutex;
   // queue of tasks that are ready to run
   std::priority_queue<std::shared_ptr<Task>, std::vector<std::shared_ptr<Task>>, CompareTaskPtr> _runQueue;
   // mutex to protect ready queue
-  std::mutex _queueMutex;
+  lock_t _queueMutex;
   // vector of worker threads
   std::vector<std::thread *> _worker_threads;
   // condition variable to wake up workers
@@ -51,7 +50,7 @@ class CentralPriorityScheduler : public AbstractTaskScheduler, public TaskReadyO
   // scheduler status
   scheduler_status_t _status;
   // mutex to protect status
-  std::mutex _statusMutex;
+  lock_t _statusMutex;
 
   static log4cxx::LoggerPtr _logger;
 

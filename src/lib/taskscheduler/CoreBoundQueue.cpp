@@ -19,12 +19,12 @@ void CoreBoundQueue::executeTask() {
   while (1) {
     //block protected by _threadStatusMutex
     {
-      std::lock_guard<std::mutex> lk1(_threadStatusMutex);
+      std::lock_guard<lock_t> lk1(_threadStatusMutex);
       if (_status == TO_STOP)
         break;
     }
     // lock queue to get task
-    std::unique_lock<std::mutex> ul(_queueMutex);
+    std::unique_lock<lock_t> ul(_queueMutex);
     // get task and execute
     if (_runQueue.size() > 0) {
       std::shared_ptr<Task> task = _runQueue.front();
@@ -46,12 +46,14 @@ void CoreBoundQueue::executeTask() {
     }
     // no task in runQueue -> sleep and wait for new tasks
     else {
+      ul.unlock();
       //if queue still empty go to sleep and wait until new tasks have been arrived
       if (_runQueue.size() < 1) {
         // if thread is about to stop, break execution loop
         if(_status != RUN)
           break;
-        _condition.wait(ul);
+        //_condition.wait(ul);
+        std::this_thread::yield();
       }
     }
   }
@@ -64,7 +66,7 @@ CoreBoundQueue::CoreBoundQueue(int core): AbstractCoreBoundQueue(), _blocked(fal
 
 void CoreBoundQueue::push(std::shared_ptr<Task> task) {
   //std::cout << "TASKQUEUE: task: "  << std::hex << (void * )task.get() << std::dec << " pushed to queue " << _core << std::endl;
-  std::lock_guard<std::mutex> lk(_queueMutex);
+  std::lock_guard<lock_t> lk(_queueMutex);
   _runQueue.push(task);
   _condition.notify_one();
 }
@@ -74,9 +76,9 @@ std::vector<std::shared_ptr<Task> > CoreBoundQueue::stopQueue() {
     // the thread to be stopped is either executing a task, or waits for the condition variable
     // set status to "TO_STOP" so that the thread either quits after executing the task, or after having been notified by the condition variable
     {
-      std::lock_guard<std::mutex> lk(_queueMutex);
+      std::lock_guard<lock_t> lk(_queueMutex);
       {
-        std::lock_guard<std::mutex> lk(_threadStatusMutex);
+        std::lock_guard<lock_t> lk(_threadStatusMutex);
         _status = TO_STOP;
       }
       //wake up thread in case thread is sleeping
@@ -96,7 +98,7 @@ std::vector<std::shared_ptr<Task> > CoreBoundQueue::stopQueue() {
 std::vector<std::shared_ptr<Task> > CoreBoundQueue::emptyQueue() {
   // create empty queue
   std::vector<std::shared_ptr<Task> > tmp;
-  std::lock_guard<std::mutex> lk(_queueMutex);
+  std::lock_guard<lock_t> lk(_queueMutex);
 
   //move all elements to vector
   for(size_t i = 0, size = _runQueue.size(); i < size; i++){
