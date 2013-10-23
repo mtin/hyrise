@@ -92,6 +92,9 @@ public:
   void debugStructure(size_t level=0) const override;
 
  private:
+  // RW-lock protecting store data structures
+  mutable pthread_rwlock_t _rw_lock;
+
   //* Vector containing the main tables
   std::vector< atable_ptr_t > main_tables;
 
