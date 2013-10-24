@@ -80,7 +80,6 @@ void WorkerThread::operator()(){
     }
     // no task in runQueue -> sleep and wait for new tasks
     else {
-      ul.unlock();
       //if queue still empty go to sleep and wait until new tasks have been arrived
       if (scheduler._runQueue.size() < 1) {
         // if thread is about to stop, break execution loop
@@ -88,8 +87,8 @@ void WorkerThread::operator()(){
         if (scheduler._status != scheduler.RUN)
           continue;
 
-        std::this_thread::yield();
-       // scheduler._condition.wait(ul);
+        
+        scheduler._condition.wait(ul);
       }
     }
   }

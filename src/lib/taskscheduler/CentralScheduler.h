@@ -48,7 +48,7 @@ class CentralScheduler : public AbstractTaskScheduler, public TaskReadyObserver 
   // vector of worker threads
   std::vector<std::thread *> _worker_threads;
   // condition variable to wake up workers
-  std::condition_variable _condition;
+  std::condition_variable_any _condition;
   // scheduler status
   scheduler_status_t _status;
   // mutex to protect status

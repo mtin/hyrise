@@ -66,8 +66,7 @@ void PriorityWorkerThread::operator()(){
       break;
 
     // lock queue to get task
-    //std::unique_lock<lock_t> ul(scheduler._queueMutex);
-    scheduler._queueMutex.lock();
+    std::unique_lock<lock_t> ul(scheduler._queueMutex);
     
     // get task and execute
     if (scheduler._runQueue.size() > 0) {
@@ -75,9 +74,8 @@ void PriorityWorkerThread::operator()(){
       // get first task
       scheduler._runQueue.pop();
 
-      //ul.unlock();
-      scheduler._queueMutex.unlock();
-
+      ul.unlock();
+      
       if (task) {
         (*task)();
         LOG4CXX_DEBUG(scheduler._logger, "Executed task " << task->vname() << "; hex " << std::hex << &task << std::dec);
@@ -87,15 +85,13 @@ void PriorityWorkerThread::operator()(){
     }
     // no task in runQueue -> sleep and wait for new tasks
     else {
-      scheduler._queueMutex.unlock();
       //if queue still empty go to sleep and wait until new tasks have been arrived
       if (scheduler._runQueue.size() < 1) {
         // if thread is about to stop, break execution loop
         if (scheduler._status != scheduler.RUN)
           continue;
 
-        std::this_thread::yield();
-        //scheduler._condition.wait(ul);
+        scheduler._condition.wait(ul);
       }
     }
   }
@@ -113,7 +109,7 @@ void CentralPriorityScheduler::schedule(std::shared_ptr<Task> task){
   if (task->isReady()){
     std::lock_guard<lock_t> lk(_queueMutex);
     _runQueue.push(task);
-    //_condition.notify_one();
+    _condition.notify_one();
   }
   else {
     task->addReadyObserver(this);
@@ -134,7 +130,7 @@ void CentralPriorityScheduler::shutdown(){
       _status = TO_STOP;
     }
     //wake up thread in case thread is sleeping
-    //_condition.notify_all();
+    _condition.notify_all();
   }
   for(size_t i = 0; i < _worker_threads.size(); i++){
     _worker_threads[i]->join();
@@ -163,7 +159,7 @@ void CentralPriorityScheduler::notifyReady(std::shared_ptr<Task> task) {
     LOG4CXX_DEBUG(_logger, "Task " << std::hex << (void *)task.get() << std::dec << " ready to run");
     std::lock_guard<lock_t> lk(_queueMutex);
     _runQueue.push(task);
-    //_condition.notify_one();
+    _condition.notify_one();
   } else
     // should never happen, but check to identify potential race conditions
     LOG4CXX_ERROR(_logger, "Task that notified to be ready to run was not found / found more than once in waitSet! " << std::to_string(tmp));

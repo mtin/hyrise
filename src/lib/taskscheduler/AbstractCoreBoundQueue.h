@@ -25,7 +25,7 @@ protected:
   // mutext to protect the thread status
   lock_t _threadStatusMutex;
   // condition variable to wake up thread
-  std::condition_variable _condition;
+  std::condition_variable_any _condition;
 
   static log4cxx::LoggerPtr logger;
   /*

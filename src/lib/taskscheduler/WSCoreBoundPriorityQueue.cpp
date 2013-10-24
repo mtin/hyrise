@@ -32,14 +32,13 @@ void WSCoreBoundPriorityQueue::executeTask() {
       task = stealTasks();
       if (!task){
         //if queue still empty go to sleep and wait until new tasks have been arrived
-        //std::unique_lock<lock_t> ul(_queueMutex);
+        std::unique_lock<lock_t> ul(_queueMutex);
         if (_runQueue.size() < 1) {
           {
             // if thread is about to stop, break execution loop
             if(_status != RUN)
               break;
-            //_condition.wait(ul);
-            std::this_thread::yield();
+            _condition.wait(ul);            
           }
         }
       }

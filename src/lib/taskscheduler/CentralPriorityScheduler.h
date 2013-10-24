@@ -24,6 +24,9 @@ class PriorityWorkerThread {
 private:
     CentralPriorityScheduler &scheduler;
 public:
+
+  typedef AbstractTaskScheduler::lock_t lock_t;
+
     PriorityWorkerThread(CentralPriorityScheduler &s) : scheduler(s) { }
     void operator()();
 };
@@ -46,7 +49,7 @@ class CentralPriorityScheduler : public AbstractTaskScheduler, public TaskReadyO
   // vector of worker threads
   std::vector<std::thread *> _worker_threads;
   // condition variable to wake up workers
-  std::condition_variable _condition;
+  std::condition_variable_any _condition;
   // scheduler status
   scheduler_status_t _status;
   // mutex to protect status

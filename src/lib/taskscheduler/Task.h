@@ -200,8 +200,8 @@ class CompareTaskPtr {
 class WaitTask : public Task {
 private:
   bool _finished;
-  std::mutex _mut;
-  std::condition_variable _cond;
+  hyrise::locking::Spinlock _mut;
+  std::condition_variable_any _cond;
 public:
   WaitTask();
   virtual ~WaitTask() {};

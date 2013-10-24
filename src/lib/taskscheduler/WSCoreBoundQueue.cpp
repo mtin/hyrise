@@ -37,19 +37,18 @@ void WSCoreBoundQueue::executeTask() {
 
       // no task in runQueue -> try to steal task from other queue, otherwise sleep and wait for new tasks
     } else {
-      // try to steal work
       ul.unlock();
+      // try to steal work
       task = stealTasks();
       if (!task){
-        //ul.lock();
+        ul.lock();
         //if queue still empty go to sleep and wait until new tasks have been arrived
         if (_runQueue.size() < 1) {
           {
             // if thread is about to stop, break execution loop
             if(_status != RUN)
               break;
-            //_condition.wait(ul);
-            std::this_thread::yield();
+            _condition.wait(ul);           
           }
         }
       }

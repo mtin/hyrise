@@ -46,14 +46,12 @@ void CoreBoundQueue::executeTask() {
     }
     // no task in runQueue -> sleep and wait for new tasks
     else {
-      ul.unlock();
       //if queue still empty go to sleep and wait until new tasks have been arrived
       if (_runQueue.size() < 1) {
         // if thread is about to stop, break execution loop
         if(_status != RUN)
           break;
-        //_condition.wait(ul);
-        std::this_thread::yield();
+        _condition.wait(ul);      
       }
     }
   }

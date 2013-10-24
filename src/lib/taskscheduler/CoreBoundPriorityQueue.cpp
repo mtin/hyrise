@@ -42,9 +42,8 @@ void CoreBoundPriorityQueue::executeTask() {
         if(_status != RUN)
           break;
         //std::cout << "queue " << _core << " sleeping " << std::endl;
-        // std::unique_lock<lock_t> ul(_queueMutex);
-        // _condition.wait(ul);
-        std::this_thread::yield();
+        std::unique_lock<lock_t> ul(_queueMutex);
+        _condition.wait(ul);        
       }
     }
   }
