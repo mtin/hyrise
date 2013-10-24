@@ -23,13 +23,13 @@ Store::Store(atable_ptr_t main_table) :
   _cidBeginVector(main_table->size(), 0),
   _cidEndVector(main_table->size(), tx::INF_CID),
   _tidVector(main_table->size(), tx::UNKNOWN) {
-  pthread_rwlock_init(&_rw_lock, NULL);
+  //pthread_rwlock_init(&_rw_lock, NULL);
   setUuid();
   main_tables.push_back(main_table);
 }
 
 Store::~Store() {
-  pthread_rwlock_destroy(&_rw_lock); 
+  //pthread_rwlock_destroy(&_rw_lock); 
   delete merger;
 }
 
@@ -38,7 +38,7 @@ void Store::merge() {
     throw std::runtime_error("No Merger set.");
   }
 
-  pthread_rwlock_wrlock(&_rw_lock);
+  //pthread_rwlock_wrlock(&_rw_lock);
 
   // Create new delta and merge
   atable_ptr_t new_delta = delta->copy_structure_modifiable();
@@ -64,7 +64,16 @@ void Store::merge() {
   // Replace the delta partition
   delta = new_delta;
 
-  pthread_rwlock_unlock(&_rw_lock);
+  // hotfix !!
+  size_t num = 100000;
+  size_t start = delta->size();
+  delta->reserve(start + num);
+  auto main_tables_size = functional::sum(main_tables, 0ul, [](atable_ptr_t& t){return t->size();});
+  _cidBeginVector.reserve(main_tables_size + start + num);
+  _cidEndVector.reserve(main_tables_size + start + num);
+  _tidVector.reserve(main_tables_size + start + num);
+
+  //pthread_rwlock_unlock(&_rw_lock);
 }
 
 
@@ -79,10 +88,10 @@ atable_ptr_t Store::getDeltaTable() const {
 const ColumnMetadata *Store::metadataAt(const size_t column_index, const size_t row_index, const table_id_t table_id) const {
   size_t offset = 0;
 
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   for (size_t main = 0; main < main_tables.size(); main++)
     if (main_tables[main]->size() + offset > row_index) {
-      pthread_rwlock_unlock(&_rw_lock);
+      //pthread_rwlock_unlock(&_rw_lock);
       return main_tables[main]->metadataAt(column_index, row_index - offset, table_id);
     } else {
       offset += main_tables[main]->size();
@@ -90,18 +99,18 @@ const ColumnMetadata *Store::metadataAt(const size_t column_index, const size_t 
 
   // row is not in main tables. return metadata from delta
   auto res = delta->metadataAt(column_index, row_index - offset, table_id);
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
   return res;
 }
 
 void Store::setDictionaryAt(AbstractTable::SharedDictionaryPtr dict, const size_t column, const size_t row, const table_id_t table_id) {
   size_t offset = 0;
 
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   for (size_t main = 0; main < main_tables.size(); main++)
     if (main_tables[main]->size() + offset > row) {
       main_tables[main]->setDictionaryAt(dict, column, row - offset, table_id);
-      pthread_rwlock_unlock(&_rw_lock);
+      //pthread_rwlock_unlock(&_rw_lock);
       return;
     } else {
       offset += main_tables[main]->size();
@@ -109,7 +118,7 @@ void Store::setDictionaryAt(AbstractTable::SharedDictionaryPtr dict, const size_
 
   // row is not in main tables. set dict in delta
   delta->setDictionaryAt(dict, column, row - offset, table_id);
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
 }
 
 const AbstractTable::SharedDictionaryPtr& Store::dictionaryAt(const size_t column, const size_t row, const table_id_t table_id) const {
@@ -127,16 +136,16 @@ const AbstractTable::SharedDictionaryPtr& Store::dictionaryAt(const size_t colum
 
   size_t offset = 0;
 
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   for (size_t main = 0; main < main_tables.size(); main++)
     if (main_tables[main]->size() + offset > row) {
-      pthread_rwlock_unlock(&_rw_lock);
+      //pthread_rwlock_unlock(&_rw_lock);
       return main_tables[main]->dictionaryAt(column, row - offset);
     } else {
       offset += main_tables[main]->size();
     }
 
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
   // row is not in main tables. return row from delta
   return delta->dictionaryAt(column, row - offset);
 }
@@ -145,10 +154,10 @@ const AbstractTable::SharedDictionaryPtr& Store::dictionaryByTableId(const size_
   assert(table_id <= main_tables.size());
 
   if (table_id < main_tables.size()) {
-    pthread_rwlock_unlock(&_rw_lock);
+    //pthread_rwlock_unlock(&_rw_lock);
     return main_tables[table_id]->dictionaryByTableId(column, table_id);
   } else {
-    pthread_rwlock_unlock(&_rw_lock);
+    //pthread_rwlock_unlock(&_rw_lock);
     return delta->dictionaryByTableId(column, table_id);
   }
 }
@@ -157,11 +166,11 @@ inline Store::table_offset_idx_t Store::responsibleTable(const size_t row) const
   size_t offset = 0;
   size_t tableIdx = 0;
 
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   for (const auto& table: main_tables) {
     size_t sz = table->size();
     if ((sz + offset) > row) {
-      pthread_rwlock_unlock(&_rw_lock);
+      //pthread_rwlock_unlock(&_rw_lock);
       return {table, row - offset, tableIdx};
     } else {
       offset += sz;
@@ -170,36 +179,36 @@ inline Store::table_offset_idx_t Store::responsibleTable(const size_t row) const
   }
 
   if ((delta->size() + offset) > row) {
-    pthread_rwlock_unlock(&_rw_lock);
+    //pthread_rwlock_unlock(&_rw_lock);
     return {delta, row - offset, tableIdx};
   }
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
   throw std::out_of_range("Requested row is located beyond store boundaries");
 }
 
 void Store::setValueId(const size_t column, const size_t row, ValueId vid) {
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   auto location = responsibleTable(row);
   location.table->setValueId(column, location.offset_in_table, vid);
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
 }
 
 ValueId Store::getValueId(const size_t column, const size_t row) const {
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   auto location = responsibleTable(row);
   ValueId valueId = location.table->getValueId(column, location.offset_in_table);
   valueId.table = location.table_index;
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
   return valueId;
 }
 
 
 size_t Store::size() const {
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   size_t main_tables_size = functional::foldLeft(main_tables, 0ul,
     [](size_t s, const atable_ptr_t& t){return s + t->size();});
   auto res = main_tables_size + delta->size();
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
   return res;
 }
 
@@ -231,13 +240,13 @@ void Store::setMerger(TableMerger *_merger) {
 }
 
 void Store::setDelta(atable_ptr_t _delta) {
-  pthread_rwlock_wrlock(&_rw_lock);
+  //pthread_rwlock_wrlock(&_rw_lock);
   delta = _delta;
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
 }
 
 atable_ptr_t Store::copy() const {
-  pthread_rwlock_wrlock(&_rw_lock);
+  //pthread_rwlock_wrlock(&_rw_lock);
   std::shared_ptr<Store> new_store = std::make_shared<Store>(main_tables[0]);
 
   new_store->delta = delta->copy();
@@ -248,7 +257,7 @@ atable_ptr_t Store::copy() const {
     new_store->merger = merger->copy();
   }
 
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
   return new_store;
 }
 
@@ -265,7 +274,7 @@ const attr_vectors_t Store::getAttributeVectors(size_t column) const {
 }
 
 void Store::debugStructure(size_t level) const {
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   std::cout << std::string(level, '\t') << "Store " << this << std::endl;
   std::cout << std::string(level, '\t') << "(main) " << this << std::endl;
   for (const auto& m: main_tables) {
@@ -273,7 +282,7 @@ void Store::debugStructure(size_t level) const {
   }
   std::cout << std::string(level, '\t') << "(delta) " << this << std::endl;
   delta->debugStructure(level+1);
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
 }
 
 bool Store::isVisibleForTransaction(pos_t pos, tx::transaction_cid_t last_commit_id, tx::transaction_id_t tid) const {
@@ -311,7 +320,7 @@ void Store::validatePositions(pos_list_t& pos, tx::transaction_cid_t last_commit
   // Make sure we captured all rows
   assert(_cidBeginVector.size() == size() && _cidEndVector.size() == size() && _tidVector.size() == size());
 
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
 
   // Pos is nullptr, we should circumvent
   auto end = std::remove_if(std::begin(pos), std::end(pos), [&](const pos_t& v){
@@ -321,16 +330,16 @@ void Store::validatePositions(pos_list_t& pos, tx::transaction_cid_t last_commit
   } );
   if (end != pos.end())
     pos.erase(end, pos.end());
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
 }
 
 pos_list_t Store::buildValidPositions(tx::transaction_cid_t last_commit_id, tx::transaction_id_t tid) const {
   pos_list_t result;
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   functional::forEachWithIndex(_cidBeginVector, [&](size_t i, tx::transaction_cid_t v){
     if(isVisibleForTransaction(i, last_commit_id, tid)) result.push_back(i);
   });
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
   return std::move(result);
 }
 
@@ -342,8 +351,11 @@ std::pair<size_t, size_t> Store::resizeDelta(size_t num) {
 std::pair<size_t, size_t> Store::appendToDelta(size_t num) {
   pthread_rwlock_wrlock(&_rw_lock);
 
+
   size_t start = delta->size();
   std::pair<size_t, size_t> result = {start, start + num};
+
+  // std::cout << "WARNING: Be careful, appendToDelta not threadsafe! Resizing to " << start + num << std::endl;
 
   // Update Delta
   delta->resize(start + num);
@@ -360,40 +372,40 @@ std::pair<size_t, size_t> Store::appendToDelta(size_t num) {
 }
 
 void Store::copyRowToDelta(const c_atable_ptr_t& source, const size_t src_row, const size_t dst_row, tx::transaction_id_t tid) {
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   auto main_tables_size = functional::sum(main_tables, 0ul, [](atable_ptr_t& t){return t->size();});
 
   // Update the validity
   _tidVector[main_tables_size + dst_row] = tid;
 
   delta->copyRowFrom(source, src_row, dst_row, true);
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
 }
 
 void Store::copyRowToDeltaFromJSONVector(const std::vector<Json::Value>& source, size_t dst_row, tx::transaction_id_t tid) {
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   auto main_tables_size = functional::sum(main_tables, 0ul, [](atable_ptr_t& t){return t->size();});
 
   // Update the validity
   _tidVector[main_tables_size + dst_row] = tid;
 
   delta->copyRowFromJSONVector(source, dst_row);
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
 }
 
 void Store::copyRowToDeltaFromStringVector(const std::vector<std::string>& source, size_t dst_row, tx::transaction_id_t tid) {
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   auto main_tables_size = functional::sum(main_tables, 0ul, [](atable_ptr_t& t){return t->size();});
 
   // Update the validity
   _tidVector[main_tables_size + dst_row] = tid;
 
   delta->copyRowFromStringVector(source, dst_row);
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
 }
 
 tx::TX_CODE Store::commitPositions(const pos_list_t& pos, const tx::transaction_cid_t cid, bool valid) {
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   for(const auto& p : pos) {
     if(valid) {
       _cidBeginVector[p] = cid;
@@ -404,26 +416,26 @@ tx::TX_CODE Store::commitPositions(const pos_list_t& pos, const tx::transaction_
   }
 
   persist_scattered(pos, valid);
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
   return tx::TX_CODE::TX_OK;
 }
 
 tx::TX_CODE Store::checkForConcurrentCommit(const pos_list_t& pos, const tx::transaction_id_t tid) const {
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   for(const auto& p : pos) {
     if (_tidVector[p] != tid) {
-      pthread_rwlock_unlock(&_rw_lock);
+      //pthread_rwlock_unlock(&_rw_lock);
       return tx::TX_CODE::TX_FAIL_CONCURRENT_COMMIT;
     }
   }
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
   return tx::TX_CODE::TX_OK;
 }
 
 tx::TX_CODE Store::markForDeletion(const pos_t pos, const tx::transaction_id_t tid) {
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   if(atomic_cas(&_tidVector[pos], tx::START_TID, tid)) {
-    pthread_rwlock_unlock(&_rw_lock);
+    //pthread_rwlock_unlock(&_rw_lock);
     return tx::TX_CODE::TX_OK;
   }
 
@@ -431,21 +443,21 @@ tx::TX_CODE Store::markForDeletion(const pos_t pos, const tx::transaction_id_t t
     // It is a row that we inserted ourselves. We remove the TID, leaving it with TID=0,begin=0,end=0 which is invisible to everyone
     // No need for a CAS here since we already have it "locked"
     _tidVector[pos] = 0;
-    pthread_rwlock_unlock(&_rw_lock);
+    //pthread_rwlock_unlock(&_rw_lock);
     return tx::TX_CODE::TX_OK;
   }
 
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
   return tx::TX_CODE::TX_FAIL_CONCURRENT_COMMIT;
 }
 
 tx::TX_CODE Store::unmarkForDeletion(const pos_list_t& pos, const tx::transaction_id_t tid) {
-  pthread_rwlock_rdlock(&_rw_lock);
+  //pthread_rwlock_rdlock(&_rw_lock);
   for(const auto& p : pos) {
     if (_tidVector[p] == tid)
       _tidVector[p] = tx::START_TID;
   }
-  pthread_rwlock_unlock(&_rw_lock);
+  //pthread_rwlock_unlock(&_rw_lock);
   return tx::TX_CODE::TX_OK;
 }
 
