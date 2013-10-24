@@ -32,8 +32,9 @@ const size_t DEFAULT_PORT = 5000;
 // Global EBB Server instance
 static ebb_server server;
 
-LoggerPtr logger(Logger::getLogger("hyrise"));
-
+namespace {
+  LoggerPtr logger(Logger::getLogger("hyrise"));
+}
 
 /// To prevent multiple hyrise instances from using the same port
 /// we initialize
@@ -155,6 +156,7 @@ int main(int argc, char *argv[]) {
     return EXIT_SUCCESS;
   }
 
+  std::cout << "Hyrise server running on port " << port << " using scheduler " << scheduler_name << " with " << worker_threads << " worker threads..." << std::endl;
 
   //Bind the program to the first NUMA node for schedulers that have core bound threads
   if((scheduler_name == "CoreBoundQueuesScheduler") || (scheduler_name == "CoreBoundQueuesScheduler") ||  (scheduler_name == "WSCoreBoundQueuesScheduler") || (scheduler_name == "WSCoreBoundPriorityQueuesScheduler"))
