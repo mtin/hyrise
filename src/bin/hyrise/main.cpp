@@ -125,7 +125,6 @@ void bindToNode(int node) {
     fprintf(stderr, "Couldn't membind to nodeset  %s: %s\n", str, strerror(error));
     fprintf(stderr, "Continuing as normal, however, no guarantees\n");
     free(str);
-    //throw std::runtime_error(strerror(error));
   }
 }
 
@@ -172,11 +171,8 @@ int main(int argc, char *argv[]) {
   LOG4CXX_WARN(logger, "compiled with development settings, expect substantially lower and non-representative performance");
 #endif
 
-
-
   SharedScheduler::getInstance().init(scheduler_name, worker_threads);
 
-  signal(SIGINT, &shutdown);
   // MainS erver Loop
   struct ev_loop *loop = ev_default_loop(0);
 
@@ -190,7 +186,6 @@ int main(int argc, char *argv[]) {
   PidFile pi;
   PortResource pa(port, port+100, server);
 
-  //ebb_server_listen_on_port(&server, port);
   LOG4CXX_INFO(logger, "Started server on port " << pa.getPort());
   ev_loop(loop, 0);
   LOG4CXX_INFO(logger, "Stopping Server...");

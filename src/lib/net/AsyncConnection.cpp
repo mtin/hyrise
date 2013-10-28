@@ -23,7 +23,7 @@ ebb_connection *new_connection(ebb_server *server, struct sockaddr_in *addr) {
     return nullptr;
   }
 
-  AsyncConnection *connection_data = new AsyncConnection();
+  AsyncConnection *connection_data = new AsyncConnection;
   connection_data->addr = *addr;
   
   // Initializes the connection
@@ -82,26 +82,19 @@ void request_complete(ebb_request *request) {
   }
 
   std::shared_ptr<Task> task = handler_factory->create(connection_data);
-  // Always map the first task to the first core
-  // task->setPreferredCore(0);
-  // give RequestParseTask high priority
-  task->setPriority(Task::HIGH_PRIORITY);
+  task->setPriority(Task::HIGH_PRIORITY); // give RequestParseTask high priority
   SharedScheduler::getInstance().getScheduler()->schedule(task);
+  connection_data->waiting_for_response = true;
 }
 
 void continue_responding(ebb_connection *connection) {
-
   AsyncConnection *connection_data = (AsyncConnection *)connection->data;
   if (connection_data->keep_alive_flag == false) {
     ebb_connection_schedule_close(connection);
   }
   else {
     // clear data buffer of connection
-    free(connection_data->path);
-    free(connection_data->body);
-    connection_data->body_len = 0;
-    connection_data->path = nullptr;
-    connection_data->body = nullptr;
+    connection_data->reset();
   }
 }
 
@@ -176,13 +169,13 @@ void write_cb(struct ev_loop *loop, struct ev_async *w, int revents) {
     conn->contentType = conn->contentType.size() == 0 ? "application/json" : conn->contentType;
     conn->write_buffer_len += snprintf((char *)conn->write_buffer, max_header_length, 
       "HTTP/1.1 %lu OK\r\nContent-Type: %s\r\nContent-Length: %lu\r\nConnection: %s\r\n\r\n", 
-      conn->code, 
+      conn->code,
       conn->contentType.c_str(),
       conn->response_length,
       conn->keep_alive_flag == true ? "Keep-Alive" : "Close");
 
-    // Append the response
     memcpy(conn->write_buffer + conn->write_buffer_len, conn->response, conn->response_length);
+    // Append the response
     conn->write_buffer_len += conn->response_length;
 
     ebb_connection_write(conn->connection, conn->write_buffer, conn->write_buffer_len, continue_responding);
@@ -190,43 +183,49 @@ void write_cb(struct ev_loop *loop, struct ev_async *w, int revents) {
     printf("%s [%s] %s %s (%f s)\n", inet_ntoa(conn->addr.sin_addr), timestr, method, conn->path, duration);
 #endif
    }
-#ifndef NDEBUG
    else {
+#ifndef NDEBUG
     printf("%s [%s] %s %s (%f s) not sent\n", inet_ntoa(conn->addr.sin_addr), timestr, method, conn->path, duration);
-  }
 #endif
+    conn->reset();
+  }
   ev_async_stop(conn->ev_loop, &conn->ev_write);
+  conn->waiting_for_response = false;
   // When connection is nullptr, `continue_responding` won't fire since we never sent data to the client,
-  // thus, we'll need to clean up manually here, while connection has already been cleaned up in on `on_response`
+  // thus, we'll need to clean up manually here, while connection has already been cleaned up in on `on_close`
   if (conn->connection == nullptr) delete conn;
 }
 
 void on_close(ebb_connection *connection) {
   AsyncConnection *connection_data = (AsyncConnection *)connection->data;
-  if (connection_data != nullptr)
-    delete(AsyncConnection *) connection_data;
-    connection->data = nullptr;
-    connection_data->connection = nullptr;
+  connection_data->connection = nullptr;
   free(connection);
+  if (!connection_data->waiting_for_response)
+    delete connection_data;
 }
 
 AsyncConnection::AsyncConnection() :
-    request(nullptr), path(nullptr), body(nullptr), body_len(0), response(nullptr), write_buffer(nullptr), closed(false), code(0) {
+    request(nullptr),
+    path(nullptr),
+    body(nullptr), body_len(0), response(nullptr), write_buffer(nullptr), code(0) {
 }
 
 AsyncConnection::~AsyncConnection() {
-  free(path);
-  free(write_buffer);
-  free(request);
-  free(body);
-  free(response);
+  reset();
 }
 
-void AsyncConnection::respond(const std::string &message, size_t status, const std::string & contentType) {
-  // Noop for dead connection
-  if (connection == nullptr) return;
-  this->code = status;
-  this->contentType = contentType;
+void AsyncConnection::reset() {
+  free(path); path = nullptr;
+  free(body); body_len = 0; body = nullptr;
+  free(request); request = nullptr;
+  free(write_buffer); write_buffer = nullptr;
+  free(response); response = nullptr;
+  waiting_for_response = false;
+}
+
+void AsyncConnection::respond(const std::string &message, size_t status, const std::string & _contentType) {
+  code = status;
+  contentType = _contentType;
   response = (char *) malloc(message.size());
   response_length = message.size();
   memcpy(response, message.c_str(), message.size());
