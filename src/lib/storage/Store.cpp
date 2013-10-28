@@ -349,7 +349,7 @@ std::pair<size_t, size_t> Store::resizeDelta(size_t num) {
 }
 
 std::pair<size_t, size_t> Store::appendToDelta(size_t num) {
-  pthread_rwlock_wrlock(&_rw_lock);
+  // pthread_rwlock_wrlock(&_rw_lock);
 
 
   size_t start = delta->size();
@@ -366,7 +366,7 @@ std::pair<size_t, size_t> Store::appendToDelta(size_t num) {
   _cidEndVector.resize(main_tables_size + start + num, tx::INF_CID);
   _tidVector.resize(main_tables_size + start + num, tx::START_TID);
 
-  pthread_rwlock_unlock(&_rw_lock);
+  // pthread_rwlock_unlock(&_rw_lock);
 
   return std::move(result);
 }
