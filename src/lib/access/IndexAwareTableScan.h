@@ -14,19 +14,18 @@ namespace access {
 /// allowed for the index.
 class IndexAwareTableScan : public PlanOperation {
 public:
-  explicit IndexAwareTableScan(std::unique_ptr<AbstractExpression> expr);
+  explicit IndexAwareTableScan();
   void executePlanOperation();
   static std::shared_ptr<PlanOperation> parse(Json::Value &data);
   const std::string vname();
   void setIndexName(const std::string &name);
-  template<typename T>
-  void setValue(const T value) {
-    _is.setValue(value);
-  }
+  void setValue(const hyrise_int_t value);
 
 private:
-  IndexScan _is;
-  TableScan _ts;
+  hyrise_int_t _value;
+  std::string _index_name;
+  // IndexScan _is;
+  // TableScan _ts;
 };
 
 }

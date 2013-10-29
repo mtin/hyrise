@@ -1,0 +1,44 @@
+{
+  "operators": {
+    "-1": {
+      "type": "TableLoad",
+      "table": "reference",
+      "filename": "tables/employees_idx_with_delta.tbl"
+    },
+
+
+    "load": {
+      "type": "TableLoad",
+      "table": "employees",
+      "filename": "tables/employees.tbl"
+    },
+    "create_idx": {
+      "type": "CreateIndex",
+      "fields": ["employee_company_id"],
+      "index_name": "emp_comp_ix"
+    },
+
+    "insert" : {
+        "type" : "InsertScan",
+        "data" : [
+            [7,3,"Franz Faerber"],
+            [8,1,"Jan Oberst"]
+        ]
+    },
+
+    "scan": {
+      "type": "IndexAwareTableScan",
+      "vtype": 0,
+      "value": 3,
+      "fields": ["employee_company_id"],
+      "index": "emp_comp_ix"
+    }
+  },
+  "edges": [
+    ["load", "create_idx"], 
+    ["load", "insert"], 
+    ["create_idx", "insert"], 
+    ["insert", "scan"]
+  ]
+  // ["1", "3"], ["0", "2"], ["3", "2"]]
+}

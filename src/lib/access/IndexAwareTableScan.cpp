@@ -23,23 +23,33 @@ namespace {
   auto _ = QueryParser::registerPlanOperation<IndexAwareTableScan>("IndexAwareTableScan");
 }
 
-IndexAwareTableScan::IndexAwareTableScan(std::unique_ptr<AbstractExpression> expr) : _ts(std::move(expr)) {
-  
-}
+// IndexAwareTableScan::IndexAwareTableScan(std::unique_ptr<AbstractExpression> expr) 
+//   : _ts(std::move(expr)) {
+// }
+
+IndexAwareTableScan::IndexAwareTableScan() { }
 
 void IndexAwareTableScan::executePlanOperation() {
+
+  size_t field = _field_definition[0];
+
+  IndexScan _is;
+  TableScan _ts(std::unique_ptr<EqualsExpression<hyrise_int_t> >(new EqualsExpression<hyrise_int_t>(0, field, _value)));
+  
+
+  // Prepare Index Scan for the Main
   storage::c_atable_ptr_t t = input.getTables()[0];
   _is.addInput(t);
+  _is.addField(field);
+  _is.setValue<hyrise_int_t>(_value);
+  _is.setIndexName(_index_name);
 
+  // Preapare Table Scan for the Delta
   auto t_store = std::dynamic_pointer_cast<const storage::Store>(t);
   if(t_store) {
     _ts.addInput(t_store->getDeltaTable());
   } else {
     _ts.addInput(t);      
-  }
-
-  for(auto field: _indexed_field_definition) {
-    _is.addField(field);
   }
 
   _is.execute();
@@ -63,7 +73,16 @@ void IndexAwareTableScan::executePlanOperation() {
 }
 
 std::shared_ptr<PlanOperation> IndexAwareTableScan::parse(Json::Value &data) {
-  throw std::runtime_error("not implemented");
+
+  std::shared_ptr<IndexAwareTableScan> idx_scan = BasicParser<IndexAwareTableScan>::parse(data);
+
+  if (data.isMember("index"))
+    idx_scan->setIndexName(data["index"].asString());
+
+  if (data.isMember("value"))
+    idx_scan->setValue(data["value"].asInt());
+
+  return idx_scan;
 }
 
 const std::string IndexAwareTableScan::vname() {
@@ -71,8 +90,13 @@ const std::string IndexAwareTableScan::vname() {
 }
 
 void IndexAwareTableScan::setIndexName(const std::string &name) {
-  _is.setIndexName(name);
+   _index_name = name;
+}
+
+void IndexAwareTableScan::setValue(const hyrise_int_t value) {
+  _value = value;
 }
 
 }
 }
+
