@@ -36,6 +36,9 @@ void IndexAwareTableScan::executePlanOperation() {
   IndexScan _is;
   TableScan _ts(std::unique_ptr<EqualsExpression<hyrise_int_t> >(new EqualsExpression<hyrise_int_t>(0, field, _value)));
   
+  // disable papi trace as nested operators breaks it
+  _is.disablePapiTrace();
+  _ts.disablePapiTrace();
 
   // Prepare Index Scan for the Main
   storage::c_atable_ptr_t t = input.getTables()[0];
