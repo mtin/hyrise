@@ -161,7 +161,7 @@ OSNAME := $(shell uname -s)
 
 %.mk: makefiles/%.default.mk
 	@[ -e $@ ] || echo "Grabbing default $@"; cp $< $@
-	@touch $@ 
+	@touch $@
 
 CFLAGS :=
 CPPFLAGS :=
@@ -172,7 +172,7 @@ LIBS := log4cxx
 LINK_DIRS :=
 INCLUDE_DIRS :=
 
-WITH_PAPI := $(shell if [ "`papi_avail  2>&1 | grep Yes | wc -l`" -ne "0" ]; then echo 1; else echo 0; fi) 
+WITH_PAPI := $(shell if [ "`papi_avail  2>&1 | grep Yes | wc -l`" -ne "0" ]; then echo 1; else echo 0; fi)
 WITH_MYSQL:= 1
 
 PERSISTENCY ?= NONE
@@ -220,7 +220,7 @@ else ifeq ($(PERSISTENCY),NVRAM)
         COMMON_FLAGS += -D NVSIMULATOR_FLUSH_NS=$(NVSIMULATOR_FLUSH_NS)
         COMMON_FLAGS += -D NVSIMULATOR_READ_NS=$(NVSIMULATOR_READ_NS)
         COMMON_FLAGS += -D NVSIMULATOR_WRITE_NS=$(NVSIMULATOR_WRITE_NS)
-        COMMON_FLAGS += -lcpufreq -lrt
+        COMMON_FLAGS += -lcpufreq -lrt -lpmem -lpmemalloc
 else
         COMMON_FLAGS += -D PERSISTENCY_NONE
 endif
