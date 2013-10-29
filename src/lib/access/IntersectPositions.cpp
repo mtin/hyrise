@@ -13,14 +13,16 @@ std::shared_ptr<PlanOperation> IntersectPositions::parse(Json::Value&) {
 }
 
 void IntersectPositions::executePlanOperation() {
+
   const auto& pc1 = std::dynamic_pointer_cast<const PointerCalculator>(getInputTable(0));
-  const auto& pc2 = std::dynamic_pointer_cast<const PointerCalculator>(getInputTable(1));
-
   if (pc1 == nullptr) { throw std::runtime_error("Passed input 0 is not a PC!"); }
-  if (pc2 == nullptr) { throw std::runtime_error("Passed input 1 is not a PC!"); }
+  auto pc3 = pc1;
 
-  auto pc3 = pc1->intersect(pc2);
-
+  for (size_t i=1; i<input.numberOfTables(); ++i) {
+    const auto& pc2 = std::dynamic_pointer_cast<const PointerCalculator>(getInputTable(i));
+    if (pc2 == nullptr) { throw std::runtime_error("Passed input is not a PC!"); }
+    pc3 = pc1->intersect(pc2);
+  }
   addResult(pc3);
 }
 
