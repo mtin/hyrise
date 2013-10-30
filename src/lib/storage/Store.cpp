@@ -350,7 +350,8 @@ std::pair<size_t, size_t> Store::resizeDelta(size_t num) {
 
 std::pair<size_t, size_t> Store::appendToDelta(size_t num) {
   // pthread_rwlock_wrlock(&_rw_lock);
-
+  static locking::Spinlock mtx;
+  std::lock_guard<locking::Spinlock> lck(mtx);
 
   size_t start = delta->size();
   std::pair<size_t, size_t> result = {start, start + num};
@@ -361,7 +362,7 @@ std::pair<size_t, size_t> Store::appendToDelta(size_t num) {
   delta->resize(start + num);
   // Update CID, TID and valid
   auto main_tables_size = functional::sum(main_tables, 0ul, [](atable_ptr_t& t){return t->size();});
-
+ 
   _cidBeginVector.resize(main_tables_size + start + num, tx::INF_CID);
   _cidEndVector.resize(main_tables_size + start + num, tx::INF_CID);
   _tidVector.resize(main_tables_size + start + num, tx::START_TID);
