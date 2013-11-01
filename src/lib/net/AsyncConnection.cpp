@@ -25,7 +25,7 @@ ebb_connection *new_connection(ebb_server *server, struct sockaddr_in *addr) {
 
   AsyncConnection *connection_data = new AsyncConnection;
   connection_data->addr = *addr;
-  
+
   // Initializes the connection
   ebb_connection_init(connection);
   connection->data = connection_data;
@@ -138,6 +138,7 @@ void request_header(ebb_request *request, const char *at, size_t length) {
 void write_cb(struct ev_loop *loop, struct ev_async *w, int revents) {
   AsyncConnection *conn = (AsyncConnection *) w->data;
 
+#ifndef NDEBUG
   char *method = (char *) "";
   switch (conn->request->method) {
     case EBB_GET:
@@ -149,6 +150,7 @@ void write_cb(struct ev_loop *loop, struct ev_async *w, int revents) {
     default:
       break;
   }
+
   struct timeval endtime;
   gettimeofday(&endtime, nullptr);
   float duration = endtime.tv_sec + endtime.tv_usec / 1000000.0 - conn->starttime.tv_sec - conn->starttime.tv_usec / 1000000.0;
@@ -159,6 +161,7 @@ void write_cb(struct ev_loop *loop, struct ev_async *w, int revents) {
   time(&rawtime);
   timeinfo = localtime(&rawtime);
   strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S %z", timeinfo);
+#endif
 
   if (conn->connection != nullptr) {
     conn->write_buffer = (char *)malloc(max_header_length + conn->response_length);
@@ -167,8 +170,8 @@ void write_cb(struct ev_loop *loop, struct ev_async *w, int revents) {
     // Copy the http status code
     conn->code = conn->code == 0 ? 200 : conn->code;
     conn->contentType = conn->contentType.size() == 0 ? "application/json" : conn->contentType;
-    conn->write_buffer_len += snprintf((char *)conn->write_buffer, max_header_length, 
-      "HTTP/1.1 %lu OK\r\nContent-Type: %s\r\nContent-Length: %lu\r\nConnection: %s\r\n\r\n", 
+    conn->write_buffer_len += snprintf((char *)conn->write_buffer, max_header_length,
+      "HTTP/1.1 %lu OK\r\nContent-Type: %s\r\nContent-Length: %lu\r\nConnection: %s\r\n\r\n",
       conn->code,
       conn->contentType.c_str(),
       conn->response_length,
