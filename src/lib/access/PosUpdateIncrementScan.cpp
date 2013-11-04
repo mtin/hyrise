@@ -68,7 +68,7 @@ void PosUpdateIncrementScan::executePlanOperation() {
   auto delta = store->getDeltaTable();
   for (const auto& old_row: *positions) {
     if (store->markForDeletion(old_row, _txContext.tid) != tx::TX_CODE::TX_OK) {
-      txmgr.abort();
+      txmgr.rollbackTransaction(_txContext);
       throw std::runtime_error("Aborted TX because TID of other TX found");
     }
     modRecord.deletePos(store, old_row);
