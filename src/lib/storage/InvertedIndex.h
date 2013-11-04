@@ -21,6 +21,16 @@ private:
   typedef std::map<T, pos_list_t> inverted_index_t;
   inverted_index_t _index;
 
+  pos_list_t getPositionsBetween(typename inverted_index_t::const_iterator begin, const typename inverted_index_t::const_iterator end) {
+    pos_list_t pos;
+    while(begin != end) {
+      pos.insert(pos.end(), begin->second.begin(), begin->second.end());
+      begin++;
+    }
+    std::sort(pos.begin(), pos.end());
+    return pos;
+  }
+
 public:
   virtual ~InvertedIndex() {};
 
@@ -45,6 +55,7 @@ for (auto & e : _index)
     }
   };
 
+
   /**
    * returns a list of positions where key was found.
    */
@@ -56,6 +67,26 @@ for (auto & e : _index)
       pos_list_t empty;
       return empty;
     }
+  };
+
+  pos_list_t getPositionsForKeyLT(T key) {
+    return getPositionsBetween(_index.cbegin(), _index.lower_bound(key));
+  };
+
+  pos_list_t getPositionsForKeyLTE(T key) {
+    return getPositionsBetween(_index.cbegin(), _index.upper_bound(key));
+  };
+
+  pos_list_t getPositionsForKeyBetween(T a, T b) {
+    return getPositionsBetween(_index.lower_bound(a), _index.upper_bound(b));
+  };
+
+  pos_list_t getPositionsForKeyGT(T key) {
+    return getPositionsBetween(_index.upper_bound(key), _index.cend());
+  };
+
+  pos_list_t getPositionsForKeyGTE(T key) {
+    return getPositionsBetween(_index.lower_bound(key), _index.cend());
   };
 
 };
