@@ -317,7 +317,8 @@ hyrise::storage::atable_ptr_t PointerCalculator::copy_structure(const field_list
 }
 
 std::shared_ptr<PointerCalculator> PointerCalculator::intersect(const std::shared_ptr<const PointerCalculator>& other) const {
-  pos_list_t *result = new pos_list_t(std::max(pos_list->size(), other->pos_list->size()));
+  pos_list_t *result = new pos_list_t();
+  result->reserve(std::max(pos_list->size(), other->pos_list->size()));
   assert(std::is_sorted(begin(*pos_list), end(*pos_list)) && std::is_sorted(begin(*other->pos_list), end(*other->pos_list)) && "Both lists have to be sorted");
   std::set_intersection(pos_list->begin(), pos_list->end(),
                         other->pos_list->begin(), other->pos_list->end(),
@@ -327,6 +328,13 @@ std::shared_ptr<PointerCalculator> PointerCalculator::intersect(const std::share
   return create(table, result, fields);
 }
 
+std::shared_ptr<const PointerCalculator> PointerCalculator::intersect_many(pc_vector::const_iterator it, pc_vector::const_iterator it_end) {
+  std::shared_ptr<const PointerCalculator> base = *(it++);
+  for (;it != it_end; ++it) {
+    base = base->intersect(*it);
+  }
+  return base;
+}
 
 std::shared_ptr<PointerCalculator> PointerCalculator::unite(const std::shared_ptr<const PointerCalculator>& other) const {
   assert((other->table == this->table) && "Should point to same table");
