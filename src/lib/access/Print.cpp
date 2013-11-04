@@ -19,7 +19,7 @@ void Print::executePlanOperation() {
   }
 }
 
-std::shared_ptr<PlanOperation> Print::parse(Json::Value& data) {
+std::shared_ptr<PlanOperation> Print::parse(const Json::Value& data) {
   std::shared_ptr<Print> p = std::make_shared<Print>();
   if (data.isMember("limit"))
     p->setLimit(data["limit"].asInt());

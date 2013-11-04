@@ -13,7 +13,7 @@ class Print : public PlanOperation {
   void executePlanOperation();
   void setLimit(size_t limit);
   void setComment(std::string comment);
-  static std::shared_ptr<PlanOperation> parse(Json::Value &data);
+  static std::shared_ptr<PlanOperation> parse(const Json::Value &data);
  private:
   size_t _limit;
   std::string _comment;

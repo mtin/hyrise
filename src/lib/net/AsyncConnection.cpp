@@ -55,17 +55,12 @@ ebb_request *new_request(ebb_connection *connection) {
 }
 
 void request_complete(ebb_request *request) {
-
   ebb_connection *connection = (ebb_connection *)request->data;
   AsyncConnection *connection_data = (AsyncConnection *)connection->data;
   connection_data->connection = connection;
   connection_data->request = request;
   gettimeofday(&connection_data->starttime, nullptr);
-
-  if(ebb_request_should_keep_alive(request))
-    connection_data->keep_alive_flag = true;
-  else
-    connection_data->keep_alive_flag = false;
+  connection_data->keep_alive_flag = ebb_request_should_keep_alive(request);
 
   ev_async_init(&connection_data->ev_write, write_cb);
   ev_async_start(connection_data->ev_loop, &connection_data->ev_write);
@@ -93,7 +88,7 @@ void continue_responding(ebb_connection *connection) {
     ebb_connection_schedule_close(connection);
   }
   else {
-    // clear data buffer of connection
+    // clear connection for next request
     connection_data->reset();
   }
 }
@@ -163,24 +158,8 @@ void write_cb(struct ev_loop *loop, struct ev_async *w, int revents) {
   strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S %z", timeinfo);
 #endif
 
+  // Handle the actual writing
   if (conn->connection != nullptr) {
-    conn->write_buffer = (char *)malloc(max_header_length + conn->response_length);
-    conn->write_buffer_len = 0;
-
-    // Copy the http status code
-    conn->code = conn->code == 0 ? 200 : conn->code;
-    conn->contentType = conn->contentType.size() == 0 ? "application/json" : conn->contentType;
-    conn->write_buffer_len += snprintf((char *)conn->write_buffer, max_header_length,
-      "HTTP/1.1 %lu OK\r\nContent-Type: %s\r\nContent-Length: %lu\r\nConnection: %s\r\n\r\n",
-      conn->code,
-      conn->contentType.c_str(),
-      conn->response_length,
-      conn->keep_alive_flag == true ? "Keep-Alive" : "Close");
-
-    memcpy(conn->write_buffer + conn->write_buffer_len, conn->response, conn->response_length);
-    // Append the response
-    conn->write_buffer_len += conn->response_length;
-
     ebb_connection_write(conn->connection, conn->write_buffer, conn->write_buffer_len, continue_responding);
 #ifndef NDEBUG
     printf("%s [%s] %s %s (%f s)\n", inet_ntoa(conn->addr.sin_addr), timestr, method, conn->path, duration);
@@ -190,7 +169,6 @@ void write_cb(struct ev_loop *loop, struct ev_async *w, int revents) {
 #ifndef NDEBUG
     printf("%s [%s] %s %s (%f s) not sent\n", inet_ntoa(conn->addr.sin_addr), timestr, method, conn->path, duration);
 #endif
-    conn->reset();
   }
   ev_async_stop(conn->ev_loop, &conn->ev_write);
   conn->waiting_for_response = false;
@@ -210,7 +188,7 @@ void on_close(ebb_connection *connection) {
 AsyncConnection::AsyncConnection() :
     request(nullptr),
     path(nullptr),
-    body(nullptr), body_len(0), response(nullptr), write_buffer(nullptr), code(0) {
+    body(nullptr), body_len(0), write_buffer(nullptr) {
 }
 
 AsyncConnection::~AsyncConnection() {
@@ -222,16 +200,25 @@ void AsyncConnection::reset() {
   free(body); body_len = 0; body = nullptr;
   free(request); request = nullptr;
   free(write_buffer); write_buffer = nullptr;
-  free(response); response = nullptr;
   waiting_for_response = false;
 }
 
-void AsyncConnection::respond(const std::string &message, size_t status, const std::string & _contentType) {
-  code = status;
-  contentType = _contentType;
-  response = (char *) malloc(message.size());
-  response_length = message.size();
-  memcpy(response, message.c_str(), message.size());
+void AsyncConnection::respond(const std::string &message, size_t status, const std::string & contentType) {
+  if (connection != nullptr) { // when the connection was closed, don't bother allocating here
+    write_buffer = (char *)malloc(max_header_length + message.size());
+    write_buffer_len = 0;
+
+    // Copy the http status code
+    write_buffer_len += snprintf((char *)write_buffer, max_header_length,
+                                 "HTTP/1.1 %lu OK\r\nContent-Type: %s\r\nContent-Length: %lu\r\nConnection: %s\r\n\r\n", 
+                                 status,
+                                 contentType.c_str(),
+                                 message.size(),
+                                 keep_alive_flag ? "Keep-Alive" : "Close");
+
+    memcpy(write_buffer + write_buffer_len, message.c_str(), message.size());
+    write_buffer_len += message.size();
+  }
   send_response();
 }
 

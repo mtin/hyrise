@@ -44,7 +44,7 @@ struct add_json_value_functor {
 
 PosUpdateIncrementScan::PosUpdateIncrementScan(std::string column, Json::Value offset) : _column(column), _offset(offset) {} 
 
-std::shared_ptr<PlanOperation> PosUpdateIncrementScan::parse(Json::Value& data) {
+std::shared_ptr<PlanOperation> PosUpdateIncrementScan::parse(const Json::Value& data) {
   return std::make_shared<PosUpdateIncrementScan>(data["column"].asString(), data["offset"]);
 
 }

@@ -17,7 +17,7 @@ void Commit::executePlanOperation() {
   	addResult(input.getTable(0));
 }
 
-std::shared_ptr<PlanOperation> Commit::parse(Json::Value &data) {
+std::shared_ptr<PlanOperation> Commit::parse(const Json::Value &data) {
   return std::make_shared<Commit>();
 }
 

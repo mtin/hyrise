@@ -75,7 +75,7 @@ void IndexAwareTableScan::executePlanOperation() {
   }
 }
 
-std::shared_ptr<PlanOperation> IndexAwareTableScan::parse(Json::Value &data) {
+std::shared_ptr<PlanOperation> IndexAwareTableScan::parse(const Json::Value &data) {
 
   std::shared_ptr<IndexAwareTableScan> idx_scan = BasicParser<IndexAwareTableScan>::parse(data);
 
