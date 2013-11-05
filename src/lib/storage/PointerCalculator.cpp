@@ -339,11 +339,12 @@ std::shared_ptr<const PointerCalculator> PointerCalculator::intersect_many(pc_ve
 std::shared_ptr<PointerCalculator> PointerCalculator::unite(const std::shared_ptr<const PointerCalculator>& other) const {
   assert((other->table == this->table) && "Should point to same table");
   if (pos_list && other->pos_list) {
-    auto result = new pos_list_t(std::max(pos_list->size(), other->pos_list->size()));
+    auto result = new pos_list_t();
+    result->reserve(pos_list->size() + other->pos_list->size());
     assert(std::is_sorted(begin(*pos_list), end(*pos_list)) && std::is_sorted(begin(*other->pos_list), end(*other->pos_list)) && "Both lists have to be sorted");
     std::set_union(pos_list->begin(), pos_list->end(),
                    other->pos_list->begin(), other->pos_list->end(),
-                   result->begin());
+                   std::back_inserter(*result));
     return create(table, result, copy_vec(fields));
   } else {
     pos_list_t* positions = nullptr;
