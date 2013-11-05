@@ -15,7 +15,7 @@
     "create_idx": {
       "type": "CreateIndex",
       "fields": ["employee_company_id"],
-      "index_name": "emp_comp_ix"
+      "index_name": "idx__employees__employee_company_id"
     },
 
     "insert" : {
@@ -28,10 +28,10 @@
 
     "scan": {
       "type": "IndexAwareTableScan",
-      "vtype": 0,
-      "value": 3,
-      "fields": ["employee_company_id"],
-      "index": "emp_comp_ix"
+      "tablename" : "employees",
+      "predicates" : [
+        {"type" : "EQ_V", "in" : 0, "f" : "employee_company_id", "value" : 3}
+      ]
     }
   },
   "edges": [

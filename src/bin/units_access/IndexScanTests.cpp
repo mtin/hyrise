@@ -32,7 +32,8 @@ TEST_F(IndexScanTests, basic_index_scan_test) {
   is.addInput(t);
   is.addField(0);
   is.setIndexName("my_index");
-  is.setValue<hyrise_int_t>(200);
+  is.setPredicateType(PredicateType::EqualsExpressionValue);
+  is.setValue1<hyrise_int_t>(200);
   is.execute();
 
   auto result = is.getResultTable();

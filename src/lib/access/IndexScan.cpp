@@ -35,16 +35,42 @@ struct ScanIndexFunctor {
   typedef storage::pos_list_t *value_type;
 
   std::shared_ptr<AbstractIndex> _index;
-  AbstractIndexValue *_indexValue;
+  AbstractIndexValue *_indexValue1;
+  AbstractIndexValue *_indexValue2;
+  PredicateType::type _predicate_type;
 
-  ScanIndexFunctor(AbstractIndexValue *i, std::shared_ptr<AbstractIndex> d):
-    _index(d), _indexValue(i) {}
+  ScanIndexFunctor(AbstractIndexValue *indexValue1, AbstractIndexValue *indexValue2, std::shared_ptr<AbstractIndex> d, PredicateType::type predicate_type):
+    _index(d), _indexValue1(indexValue1), _indexValue2(indexValue2), _predicate_type(predicate_type) {}
 
   template<typename ValueType>
   value_type operator()() {
     auto idx = std::dynamic_pointer_cast<InvertedIndex<ValueType>>(_index);
-    auto v = static_cast<IndexValue<ValueType>*>(_indexValue);
-    storage::pos_list_t *result = new storage::pos_list_t(idx->getPositionsForKey(v->value));
+    auto v1 = static_cast<IndexValue<ValueType>*>(_indexValue1);
+    auto v2 = static_cast<IndexValue<ValueType>*>(_indexValue2);
+    storage::pos_list_t *result = nullptr;
+
+    switch (_predicate_type) {
+      case PredicateType::EqualsExpressionValue:
+        result = new storage::pos_list_t(idx->getPositionsForKey(v1->value));
+        break;
+      case PredicateType::GreaterThanExpressionValue:
+        result = new storage::pos_list_t(idx->getPositionsForKeyGT(v1->value));
+        break;
+      case PredicateType::GreaterThanEqualsExpressionValue:
+        result = new storage::pos_list_t(idx->getPositionsForKeyGTE(v1->value));
+        break;
+      case PredicateType::LessThanExpressionValue:
+        result = new storage::pos_list_t(idx->getPositionsForKeyLT(v1->value));
+        break;
+      case PredicateType::LessThanEqualsExpressionValue:
+        result = new storage::pos_list_t(idx->getPositionsForKeyLTE(v1->value));
+        break;
+      case PredicateType::BetweenExpression:
+        result = new storage::pos_list_t(idx->getPositionsForKeyBetween(v1->value, v2->value));
+        break;
+      default:
+        throw std::runtime_error("Unsupported predicate type in InvertedIndex");
+    }
     return result;
   }
 };
@@ -53,8 +79,13 @@ namespace {
   auto _ = QueryParser::registerPlanOperation<IndexScan>("IndexScan");
 }
 
+
+IndexScan::IndexScan() :
+  _value1(nullptr), _value2(nullptr) {}
+
 IndexScan::~IndexScan() {
-  delete _value;
+  if (_value1 != nullptr) delete _value1; 
+  if (_value2 != nullptr) delete _value2;
 }
 
 void IndexScan::executePlanOperation() {
@@ -63,18 +94,24 @@ void IndexScan::executePlanOperation() {
 
   // Handle type of index and value
   storage::type_switch<hyrise_basic_types> ts;
-  ScanIndexFunctor fun(_value, idx);
+  ScanIndexFunctor fun(_value1, _value2, idx, _predicate_type);
   storage::pos_list_t *pos = ts(input.getTable(0)->typeOfColumn(_field_definition[0]), fun);
 
   addResult(PointerCalculator::create(input.getTable(0), pos));
 }
 
 std::shared_ptr<PlanOperation> IndexScan::parse(const Json::Value &data) {
+
+
   std::shared_ptr<IndexScan> s = BasicParser<IndexScan>::parse(data);
   storage::type_switch<hyrise_basic_types> ts;
   CreateIndexValueFunctor civf(data);
-  s->_value = ts(data["vtype"].asUInt(), civf);
+  s->_value1 = ts(data["vtype"].asUInt(), civf);
   s->_indexName = data["index"].asString();
+  // if (data.isMember("predicate_type"))
+  //   s->setPredicateType(parsePredicateType(predicate["predicate_type"]));
+  // else
+  s->setPredicateType(parsePredicateType(PredicateType::EqualsExpressionValue));
   return s;
 }
 

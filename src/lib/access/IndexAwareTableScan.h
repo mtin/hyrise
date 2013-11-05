@@ -18,14 +18,14 @@ public:
   void executePlanOperation();
   static std::shared_ptr<PlanOperation> parse(const Json::Value &data);
   const std::string vname();
-  void setIndexName(const std::string &name);
-  void setValue(const hyrise_int_t value);
-
+  void setPredicate(SimpleExpression *c);
+  void setTablename(std::string name);
+  void addIndexScan(IndexScan* s);
+  
 private:
-  hyrise_int_t _value;
-  std::string _index_name;
-  // IndexScan _is;
-  // TableScan _ts;
+  SimpleExpression *_predicate;
+  std::vector<IndexScan*> _is;
+  std::string _tablename;
 };
 
 }
