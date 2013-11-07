@@ -31,6 +31,11 @@ namespace {
 
 IndexAwareTableScan::IndexAwareTableScan() { }
 
+IndexAwareTableScan::~IndexAwareTableScan() {
+  for (auto _idx_scan : _is ) delete _idx_scan;
+  // predicate gets deleted by SimpleTableScan
+}
+
 void IndexAwareTableScan::executePlanOperation() {
 
   SimpleTableScan _ts;

@@ -16,6 +16,7 @@ class IndexAwareTableScan : public PlanOperation {
 public:
   explicit IndexAwareTableScan();
   void executePlanOperation();
+  ~IndexAwareTableScan();
   static std::shared_ptr<PlanOperation> parse(const Json::Value &data);
   const std::string vname();
   void setPredicate(SimpleExpression *c);
