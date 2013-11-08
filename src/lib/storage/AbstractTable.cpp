@@ -353,3 +353,13 @@ void AbstractTable::setUuid(unique_id u) {
   }
   _uuid = u;
 }
+
+
+void AbstractTable::setName(const std::string name) {
+  _name = name;
+}
+
+
+std::string AbstractTable::getName() const {
+  return _name;
+}

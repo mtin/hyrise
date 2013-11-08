@@ -57,6 +57,8 @@ void TableLoad::executePlanOperation() {
       p.setInput(CSVInput(_file_name, params));
       sm->loadTable(_table_name, p);
     }
+    auto table = sm->getTable(_table_name);
+    table->setName(_table_name);
 
     // We don't load unless the necessary prerequisites are met,
     // let StorageManager error if table does not exist

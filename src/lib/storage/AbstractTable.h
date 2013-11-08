@@ -533,11 +533,15 @@ public:
 
   void setUuid(unique_id = unique_id());
 
+  void setName(const std::string name);
+  std::string getName() const;
+
   virtual void persist_scattered(const pos_list_t& elements, bool new_elements = true) const = 0;
 
- private:
+ protected:
   // Global unique identifier for this object
   unique_id _uuid;
+  std::string _name;
 };
 
 #endif  // SRC_LIB_STORAGE_ABSTRACTTABLE_H_
