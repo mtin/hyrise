@@ -21,6 +21,8 @@ class TracingError : public std::runtime_error {
 };
 
 #ifdef USE_PAPI_TRACE
+#include <mutex>
+
 #include "helper/locking.h"
 
 #include "papi.h"

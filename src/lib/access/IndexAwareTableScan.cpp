@@ -82,7 +82,7 @@ void IndexAwareTableScan::executePlanOperation() {
 
   if(t_store) {
     pos_list_t pos = *pc2->getPositions();
-    pos_t offset = t_store->getMainTables()[0]->size();
+    pos_t offset = t_store->getMainTable()->size();
 
     std::for_each(pos.begin(), pos.end(), [&offset](pos_t& d) { d += offset;});
 
