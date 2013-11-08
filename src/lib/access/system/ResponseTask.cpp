@@ -201,16 +201,18 @@ void ResponseTask::operator()() {
     LOG4CXX_DEBUG(_logger, "Table Use Count: " << result.use_count());
   }
 
+  size_t status = 200;
   if (!_error_messages.empty()) {
     Json::Value errors;
     for (const auto& msg: _error_messages) {
       errors.append(Json::Value(msg));
     }
     response["error"] = errors;
+    status = 500;
   }
 
   Json::FastWriter fw;
-  connection->respond(fw.write(response));
+  connection->respond(fw.write(response), status);
 }
 
 }
