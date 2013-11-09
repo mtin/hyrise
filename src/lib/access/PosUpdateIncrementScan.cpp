@@ -66,6 +66,7 @@ void PosUpdateIncrementScan::executePlanOperation() {
 
   std::size_t column_idx = store->numberOfColumn(_column);
   auto delta = store->getDeltaTable();
+  auto main_size = store->getMainTable()->size();
   for (const auto& old_row: *positions) {
     if (store->markForDeletion(old_row, _txContext.tid) != tx::TX_CODE::TX_OK) {
       txmgr.rollbackTransaction(_txContext);
@@ -82,7 +83,8 @@ void PosUpdateIncrementScan::executePlanOperation() {
     fun.set(column_idx, delta_row, _offset);
     ts(store->typeOfColumn(column_idx), fun);
 
-    modRecord.insertPos(store, delta_row);
+    // add inserted pos to mod record. use absolute pos not pos in delta (!)
+    modRecord.insertPos(store, main_size+delta_row);
     ++delta_row;
   }
 
