@@ -328,6 +328,13 @@ std::shared_ptr<PointerCalculator> PointerCalculator::intersect(const std::share
   return create(table, result, fields);
 }
 
+std::shared_ptr<const PointerCalculator> PointerCalculator::intersect_many(pc_vector::const_iterator it, pc_vector::const_iterator it_end) {
+  std::shared_ptr<const PointerCalculator> base = *(it++);
+  for (;it != it_end; ++it) {
+    base = base->intersect(*it);
+  }
+  return base;
+}
 
 std::shared_ptr<PointerCalculator> PointerCalculator::unite(const std::shared_ptr<const PointerCalculator>& other) const {
   assert((other->table == this->table) && "Should point to same table");

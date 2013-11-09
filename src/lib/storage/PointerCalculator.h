@@ -27,6 +27,7 @@ public:
 
   typedef std::vector<std::shared_ptr<const PointerCalculator> > pc_vector;
   static std::shared_ptr<const PointerCalculator> unite_many(pc_vector::const_iterator it, pc_vector::const_iterator it_end);
+  static std::shared_ptr<const PointerCalculator> intersect_many(pc_vector::const_iterator it, pc_vector::const_iterator it_end);
   static std::shared_ptr<PointerCalculator> concatenate_many(pc_vector::const_iterator it, pc_vector::const_iterator it_end);
 
   const pos_list_t *getPositions() const;
