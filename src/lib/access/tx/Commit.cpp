@@ -14,7 +14,7 @@ void Commit::executePlanOperation() {
   
   // add all input data to the output
   for (size_t i=0; i<input.numberOfTables(); ++i)
-  	addResult(input.getTable(0));
+  	addResult(input.getTable(i));
 }
 
 std::shared_ptr<PlanOperation> Commit::parse(const Json::Value &data) {
