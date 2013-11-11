@@ -1,6 +1,7 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
 #include "testing/test.h"
 #include "testing/TableEqualityTest.h"
+#include "access/TableScan.h"
 
 #include "helper.h"
 
@@ -26,6 +27,7 @@ public:
 
   hyrise::storage::c_atable_ptr_t data;
   hyrise::storage::store_ptr_t linxxxs;
+  hyrise::storage::store_ptr_t linxxxs_ref;
 
   hyrise::storage::atable_ptr_t one_row;
   hyrise::storage::atable_ptr_t second_row;
@@ -58,6 +60,7 @@ public:
     // Convert to store
     data = std::make_shared<storage::Store>(TableBuilder::build(list));
     linxxxs = std::dynamic_pointer_cast<storage::Store>(Loader::shortcuts::load("test/lin_xxxs.tbl"));
+    linxxxs_ref = std::dynamic_pointer_cast<storage::Store>(Loader::shortcuts::load("test/lin_xxxs.tbl"));
   }
 
 
@@ -473,6 +476,148 @@ TEST_F(TransactionTests, update_and_read_values) {
   auto r1 = vp.getResultTable();
   ASSERT_EQ(before, r1->size());
 }
+
+
+
+TEST_F(TransactionTests, update_and_delete_same_row) {
+
+  auto reference = Loader::shortcuts::load("test/reference/txtest_update_and_delete_same_row.tbl");
+  auto writeCtx =hyrise::tx::TransactionManager::getInstance().buildContext();
+  auto& mod = hyrise::tx::TransactionManager::getInstance()[writeCtx.tid];
+
+  ASSERT_EQ(0u, mod.inserted.size());
+  size_t before = linxxxs->size();
+
+  // create PC to simulate position
+  auto pc = PointerCalculator::create(linxxxs, new pos_list_t({4}));
+
+  PosUpdateScan is;
+  is.setTXContext(writeCtx);
+  is.addInput(pc);
+
+  Json::Value v;
+  v["col_1"] = 99;
+  is.setRawData(v);
+  is.execute();
+
+  ASSERT_EQ(1u, mod.inserted.size());
+  ASSERT_EQ(1u, mod.inserted[linxxxs].size());
+
+  ASSERT_EQ(1u, mod.deleted.size());
+  ASSERT_EQ(1u, mod.deleted[linxxxs].size());
+
+  size_t after_insert = linxxxs->size();
+
+  // create PC to simulate position
+  auto pc2 = PointerCalculator::create(linxxxs, new pos_list_t({before}));
+
+  DeleteOp del;
+  del.setTXContext(writeCtx);
+  del.addInput(pc2);
+  del.execute();
+
+  Commit c;
+  c.setTXContext(writeCtx);
+  c.execute();
+
+  size_t after_delete = linxxxs->size();
+
+  // load table and validate positions for reference
+  auto readCtx =hyrise::tx::TransactionManager::getInstance().buildContext();
+  auto expr = std::unique_ptr<GreaterThanExpression<storage::hyrise_int_t> >(new GreaterThanExpression<storage::hyrise_int_t>(0, 1, 0));
+
+
+  TableScan ts(std::move(expr));
+  ts.setTXContext(readCtx);
+  ts.addInput(linxxxs);
+  ts.execute();
+
+  ValidatePositions vp;
+  vp.setTXContext(readCtx);
+  vp.addInput(ts.getResultTable());
+  vp.execute();
+
+  const auto &result = vp.getResultTable();
+
+  ASSERT_EQ(before+1, after_insert);
+  ASSERT_EQ(before+1, after_delete);
+  ASSERT_EQ(before-1, result->size());
+
+  // we update and deleted the same row, should be the same as deleting the row
+  EXPECT_RELATION_EQ(result, reference);
+
+}
+
+
+
+
+TEST_F(TransactionTests, insert_and_delete_same_row) {
+
+  auto reference = Loader::shortcuts::load("test/lin_xxxs.tbl");
+  auto writeCtx =hyrise::tx::TransactionManager::getInstance().buildContext();
+  auto& mod = hyrise::tx::TransactionManager::getInstance()[writeCtx.tid];
+
+  ASSERT_EQ(0u, mod.inserted.size());
+  size_t before = linxxxs->size();
+
+  // insert one row
+  auto row = Loader::shortcuts::load("test/insert_one.tbl");
+  storage::atable_ptr_t table(new storage::Store(row));
+
+  InsertScan is;
+  is.setTXContext(writeCtx);
+  is.addInput(linxxxs);
+  is.setInputData(row);
+  is.execute();
+
+  ASSERT_EQ(1u, mod.inserted.size());
+  ASSERT_EQ(1u, mod.inserted[linxxxs].size());
+
+  ASSERT_EQ(0u, mod.deleted.size());
+  ASSERT_EQ(0u, mod.deleted[linxxxs].size());
+
+  size_t after_insert = linxxxs->size();
+
+  // create PC to simulate position
+  auto pc2 = PointerCalculator::create(linxxxs, new pos_list_t({before}));
+
+  DeleteOp del;
+  del.setTXContext(writeCtx);
+  del.addInput(pc2);
+  del.execute();
+
+  Commit c;
+  c.setTXContext(writeCtx);
+  c.execute();
+
+  size_t after_delete = linxxxs->size();
+
+  // load table and validate positions for reference
+  auto readCtx =hyrise::tx::TransactionManager::getInstance().buildContext();
+  auto expr = std::unique_ptr<GreaterThanExpression<storage::hyrise_int_t> >(new GreaterThanExpression<storage::hyrise_int_t>(0, 1, 0));
+
+
+  TableScan ts(std::move(expr));
+  ts.setTXContext(readCtx);
+  ts.addInput(linxxxs);
+  ts.execute();
+
+  ValidatePositions vp;
+  vp.setTXContext(readCtx);
+  vp.addInput(ts.getResultTable());
+  vp.execute();
+
+  const auto &result = vp.getResultTable();
+
+  ASSERT_EQ(before+1, after_insert);
+  ASSERT_EQ(before+1, after_delete);
+  ASSERT_EQ(before, result->size());
+
+  // we update and deleted the same row, should be the same as deleting the row
+  EXPECT_RELATION_EQ(result, reference);
+
+}
+
 
 TEST_F(TransactionTests, update_and_merge) {
 
