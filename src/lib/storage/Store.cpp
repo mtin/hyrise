@@ -324,6 +324,9 @@ tx::TX_CODE Store::checkForConcurrentCommit(const pos_list_t& pos, const tx::tra
     if (_tidVector[p] != tid) {
       return tx::TX_CODE::TX_FAIL_CONCURRENT_COMMIT;
     }
+    if (_cidEndVector[p] != tx::INF_CID) {
+      return tx::TX_CODE::TX_FAIL_CONCURRENT_COMMIT;
+    }
   }
   return tx::TX_CODE::TX_OK;
 }
