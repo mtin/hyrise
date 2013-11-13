@@ -3,7 +3,7 @@
     "-1": {
       "type": "TableLoad",
       "table": "reference",
-      "filename": "tables/employees_idx.tbl"
+      "filename": "tables/employees_empty.tbl"
     },
     "0": {
       "type": "TableLoad",
@@ -21,8 +21,8 @@
       "tablename" : "employees",
       "predicates" : [
         {"type" : "AND"},
-        {"type" : "LTE_V", "in" : 0, "f" : "employee_company_id", "value" : 3},
-        {"type" : "GTE_V", "in" : 0, "f" : "employee_company_id", "value" : 3}
+        {"type" : "LT_V", "in" : 0, "f" : "employee_company_id", "value" : 3},
+        {"type" : "GT_V", "in" : 0, "f" : "employee_company_id", "value" : 3}
       ]
     }, 
     "3": {

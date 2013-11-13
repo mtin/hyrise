@@ -10,6 +10,8 @@
 namespace hyrise {
 namespace access {
 
+struct GroupkeyIndexFunctor;
+
 /// Scan an existing index for the result. Currently only EQ predicates
 /// allowed for the index.
 class IndexAwareTableScan : public PlanOperation {
@@ -20,13 +22,10 @@ public:
   static std::shared_ptr<PlanOperation> parse(const Json::Value &data);
   const std::string vname();
   void setPredicate(SimpleExpression *c);
-  void setTablename(std::string name);
-  void addIndexScan(IndexScan* s);
   
 private:
   SimpleExpression *_predicate;
-  std::vector<IndexScan*> _is;
-  std::string _tablename;
+  std::vector<GroupkeyIndexFunctor> _idx_functors;
 };
 
 }

@@ -13,7 +13,7 @@
       "filename": "tables/employees.tbl"
     },
     "create_idx": {
-      "type": "CreateIndex",
+      "type": "CreateGroupkeyIndex",
       "fields": ["employee_company_id"],
       "index_name": "idx__employees__employee_company_id"
     },
