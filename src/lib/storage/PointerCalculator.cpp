@@ -61,8 +61,8 @@ hyrise::storage::atable_ptr_t PointerCalculator::copy() const {
 }
 
 PointerCalculator::~PointerCalculator() {
-  delete fields;
-  delete pos_list;
+  // delete fields;
+  // delete pos_list;
 }
 
 void PointerCalculator::updateFieldMapping() {
@@ -316,19 +316,91 @@ hyrise::storage::atable_ptr_t PointerCalculator::copy_structure(const field_list
   return result;
 }
 
+void PointerCalculator::intersect_pos_list(
+    pos_list_t::iterator beg1, pos_list_t::iterator end1,
+    pos_list_t::iterator beg2, pos_list_t::iterator end2,
+    pos_list_t *result) {
+
+  // produces sorted intersection of two pos lists. based on
+  // baeza-yates algorithm with average complexity nicely
+  // adapting to the smaller list size. whereas std::set_intersection
+  // iterates over both lists with linear complexity.
+
+  int size_1 = end1-beg1;
+  int size_2 = end2-beg2;
+
+  // if one of the inputs is empty,
+  // return as intersect is empty
+  if (size_1<=0 or size_2<=0) return;
+
+  // if input 1 and input 2 do not overlap at all,
+  // return as intersect is empty
+  if (*(end1-1) < *beg2 or *(end2-1) < *beg1) return;
+
+  // if both lists are very small,
+  // use std intersaction as iterating is faster than binary search
+  if (size_1+size_2 < 20) {
+    std::set_intersection(beg1, end1, beg2, end2, std::back_inserter(*result));
+    return;
+  }
+
+  // make sure input 1 is larger than input 2
+  if (size_1<size_2) {
+    std::swap<pos_list_t::iterator>(end1, end2);
+    std::swap<pos_list_t::iterator>(beg1, beg2);
+    std::swap<int>(size_1, size_2);
+  }
+
+  // find overlap by searching in smaller input (input 2)
+  beg2 = std::lower_bound(beg2, end2, *beg1);
+  end2 = std::upper_bound(beg2, end2, *(end1-1));
+  size_2 = end2-beg2;
+  
+  // search median of input 2 in input 1 
+  // effectively dividing larger input in two
+  auto m = beg2 + (size_2/2);
+  auto m_in_1 = std::lower_bound(beg1, end1, *m);
+
+  // and recursively do the rest
+  if (*m_in_1==*m) {
+    PointerCalculator::intersect_pos_list(beg1, m_in_1, beg2, m, result);
+    result->push_back(*m);
+    PointerCalculator::intersect_pos_list(m_in_1+1, end1, m+1, end2, result);
+  } else {
+    PointerCalculator::intersect_pos_list(beg1, m_in_1, beg2, m, result);
+    PointerCalculator::intersect_pos_list(m_in_1, end1, m+1, end2, result);
+  }
+}
+
+
 std::shared_ptr<PointerCalculator> PointerCalculator::intersect(const std::shared_ptr<const PointerCalculator>& other) const {
   pos_list_t *result = new pos_list_t();
   result->reserve(std::max(pos_list->size(), other->pos_list->size()));
   assert(std::is_sorted(begin(*pos_list), end(*pos_list)) && std::is_sorted(begin(*other->pos_list), end(*other->pos_list)) && "Both lists have to be sorted");
-  std::set_intersection(pos_list->begin(), pos_list->end(),
-                        other->pos_list->begin(), other->pos_list->end(),
-                        std::back_inserter(*result));
+  
+  PointerCalculator::intersect_pos_list(
+    pos_list->begin(), pos_list->end(),
+    other->pos_list->begin(), other->pos_list->end(),
+    result);
 
   assert((other->table == this->table) && "Should point to same table");
   return create(table, result, fields);
 }
 
-std::shared_ptr<const PointerCalculator> PointerCalculator::intersect_many(pc_vector::const_iterator it, pc_vector::const_iterator it_end) {
+
+bool PointerCalculator::isSmaller( std::shared_ptr<const PointerCalculator> lx, std::shared_ptr<const PointerCalculator> rx ) {
+  return lx->size() < rx->size() ;
+}
+
+std::shared_ptr<const PointerCalculator> PointerCalculator::intersect_many(pc_vector::iterator it, pc_vector::iterator it_end) {
+  // pc_vector pcs;
+  // pcs.resize(it_end-it);
+  // std::copy ( it, it_end, pcs.begin() );
+  std::sort(it, it_end, PointerCalculator::isSmaller);
+
+  // pc_vector::const_iterator pcs_it = pcs.begin();
+  // pc_vector::const_iterator pcs_end = pcs.end();
+
   std::shared_ptr<const PointerCalculator> base = *(it++);
   for (;it != it_end; ++it) {
     base = base->intersect(*it);
