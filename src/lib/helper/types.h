@@ -94,6 +94,8 @@ typedef std::vector<field_name_t> field_name_list_t;
 
 typedef std::vector<pos_t> pos_list_t;
 typedef std::vector<field_t> field_list_t;
+
+typedef std::pair<pos_list_t::iterator, pos_list_t::iterator> pos_range_t;
 }
 
 // constraints
