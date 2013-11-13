@@ -111,11 +111,41 @@ void IndexAwareTableScan::executePlanOperation() {
   // calculate the index results
   std::vector<storage::pos_range_t> idx_results;
   storage::type_switch<hyrise_basic_types> ts;
+  std::vector<size_t> columns;
+  std::vector<bool> result_sorted;
+
   size_t i = 0;
   for (auto functor : _idx_functors) {
-    auto idx_result = ts(t->typeOfColumn(_field_definition[i++]), functor);
-    idx_results.push_back(idx_result);
+    auto column = _field_definition[i++];
+    auto idx_result = ts(t->typeOfColumn(column), functor);
+
+    // check if we already have a result for this column
+    auto other_result_it = std::find(columns.begin(),columns.end(),column);
+    if (other_result_it == columns.end()) {
+      // no result for this column, so just add it
+      columns.push_back(column);
+      idx_results.push_back(idx_result);
+      // if thepredicate is not equals, remember to sort the result later
+      result_sorted.push_back(functor._predicate_type == PredicateType::EqualsExpressionValue);
+    } else {
+      // we already have a result. pos range are on
+      // the same vector, so we can directly intersect them
+      // by adjusting the iterators for the range
+      size_t other_result_index = other_result_it - columns.begin();
+      storage::pos_range_t *other_result = &idx_results[other_result_index];
+      if (idx_result.first > other_result->first)
+        other_result->first = idx_result.first;
+      if (idx_result.second < other_result->second)
+        other_result->second = idx_result.second;
+      if (other_result->first > other_result->second)
+        other_result->second = other_result->second;
+
+      // remember to sort the result later
+      result_sorted[other_result_index] = false;
+    }
   }
+
+
   
   // sort so we start with the smallest range
   if (idx_results.size() > 2) {
@@ -138,7 +168,9 @@ void IndexAwareTableScan::executePlanOperation() {
   else if (idx_results.size() >= 2) {
     auto a = idx_results[0];
     auto b = idx_results[1];
-    PointerCalculator::intersect_pos_list(a.first, a.second, b.first, b.second, base);
+    bool a_sorted = result_sorted[0];
+    bool b_sorted = result_sorted[1];
+    PointerCalculator::intersect_pos_list(a.first, a.second, b.first, b.second, base, a_sorted, b_sorted);
   }
 
   // if we have more than two results, intersect them too
@@ -146,10 +178,11 @@ void IndexAwareTableScan::executePlanOperation() {
     std::vector<storage::pos_range_t>::iterator it = idx_results.begin();
     std::vector<storage::pos_range_t>::iterator it_end = idx_results.end();
     ++it; ++it;
-    // storage::pos_range_t base = *(it++);
     for (;it != it_end; ++it) {
+      if (base->empty()) break; // when base is empty, final intersect is empty too
       auto r = *it;
-      PointerCalculator::intersect_pos_list(r.first, r.second, base->begin(), base->end(), tmp_result);
+      bool is_sorted = result_sorted[it-idx_results.begin()];
+      PointerCalculator::intersect_pos_list(r.first, r.second, base->begin(), base->end(), tmp_result, is_sorted, true);
       *base = *tmp_result;
       tmp_result->clear();
     }

@@ -33,7 +33,7 @@ public:
   static bool isSmaller( std::shared_ptr<const PointerCalculator> lx, std::shared_ptr<const PointerCalculator> rx );
   static void intersect_pos_list( pos_list_t::iterator beg1, pos_list_t::iterator end1,
                                   pos_list_t::iterator beg2, pos_list_t::iterator end2,
-                                  pos_list_t *result);
+                                  pos_list_t *result, bool first_sorted=true, bool second_sorted=true);
 
   const pos_list_t *getPositions() const;
   pos_list_t getActualTablePositions() const;
