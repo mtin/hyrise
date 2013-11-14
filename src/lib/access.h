@@ -20,6 +20,7 @@
 #include <access/ProjectionScan.h>
 #include <access/SimpleRawTableScan.h>
 #include <access/SimpleTableScan.h>
+#include <access/IndexAwareTableScan.h>
 #include <access/SmallestTableScan.h>
 #include <access/SortScan.h>
 #include <access/system/PlanOperation.h>
@@ -37,6 +38,7 @@
 #include <access/system/SettingsOperation.h>
 
 #include <access/tx/Commit.h>
+#include <access/tx/Rollback.h>
 #include <access/tx/ValidatePositions.h>
 
 #endif  // SRC_LIB_ACCESS_H_

@@ -379,6 +379,10 @@ public:
 
   }
 
+  template <typename T>
+  void setValue(field_name_t column, size_t row, const T &value) {
+    setValue(numberOfColumn(column), row, value);
+  }
 
   /**
    * Templated method for retrieving a value by its ID.

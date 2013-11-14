@@ -50,26 +50,29 @@ struct ScanIndexFunctor {
     storage::pos_list_t *result = nullptr;
 
     switch (_predicate_type) {
+      case PredicateType::EqualsExpression:
       case PredicateType::EqualsExpressionValue:
         result = new storage::pos_list_t(idx->getPositionsForKey(v1->value));
         break;
+      case PredicateType::GreaterThanExpression:
       case PredicateType::GreaterThanExpressionValue:
         result = new storage::pos_list_t(idx->getPositionsForKeyGT(v1->value));
         break;
-      case PredicateType::GreaterThanEqualsExpressionValue:
-        result = new storage::pos_list_t(idx->getPositionsForKeyGTE(v1->value));
-        break;
+      // case PredicateType::GreaterThanEqualsExpression:
+      //   result = new storage::pos_list_t(idx->getPositionsForKeyGTE(v1->value));
+      //   break;
+      case PredicateType::LessThanExpression:
       case PredicateType::LessThanExpressionValue:
         result = new storage::pos_list_t(idx->getPositionsForKeyLT(v1->value));
         break;
-      case PredicateType::LessThanEqualsExpressionValue:
-        result = new storage::pos_list_t(idx->getPositionsForKeyLTE(v1->value));
-        break;
+      // case PredicateType::LessThanEqualsExpression:
+      //   result = new storage::pos_list_t(idx->getPositionsForKeyLTE(v1->value));
+      //   break;
       case PredicateType::BetweenExpression:
         result = new storage::pos_list_t(idx->getPositionsForKeyBetween(v1->value, v2->value));
         break;
       default:
-        throw std::runtime_error("Unsupported predicate type in InvertedIndex");
+        throw std::runtime_error("Unsupported predicate type in IndexScan");
     }
     return result;
   }
@@ -111,7 +114,7 @@ std::shared_ptr<PlanOperation> IndexScan::parse(const Json::Value &data) {
   // if (data.isMember("predicate_type"))
   //   s->setPredicateType(parsePredicateType(predicate["predicate_type"]));
   // else
-  s->setPredicateType(parsePredicateType(PredicateType::EqualsExpressionValue));
+  s->setPredicateType(parsePredicateType(PredicateType::EqualsExpression));
   return s;
 }
 
