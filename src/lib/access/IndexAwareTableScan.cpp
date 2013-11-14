@@ -283,17 +283,17 @@ void IndexAwareTableScan::setPredicate(AbstractExpression *c) {
   SimpleExpression* se = dynamic_cast<SimpleExpression*>(c);
   if(!se) throw std::runtime_error("Expression not parsable");
 
-  _predicate = se;
-
   CompoundExpression* ce = dynamic_cast<CompoundExpression*>(c);
   if(ce != nullptr) {
     if(ce->type != ExpressionType::AND) throw std::runtime_error("IndexAwareScan only supports AND for CompoundExpressions");
       // this is not a real limitation - it's just that we haven't implemented the rest yet.
     setPredicate(ce->lhs);
     setPredicate(ce->rhs);
+    _predicate = se;
     return;
   }
 
+  _predicate = se;
 
   do {
     EXPR_SPECIFIC_ALL_TYPES(LessThanExpression, std::less);
