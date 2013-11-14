@@ -8,11 +8,11 @@ template <typename T>
 class LessThanExpression : public SimpleFieldExpression {
  private:
   ValueId lower_bound;
-  T value;
   std::shared_ptr<BaseDictionary<T>> valueIdMap;
   bool value_exists;
 
  public:
+  T value;
 
   LessThanExpression(size_t i, field_t f, T _value):
       SimpleFieldExpression(i, f), value(_value)
@@ -23,6 +23,10 @@ class LessThanExpression : public SimpleFieldExpression {
   {}
 
   LessThanExpression(hyrise::storage::c_atable_ptr_t _table, field_t _field, T _value) :
+      SimpleFieldExpression(_table, _field), value(_value)
+  {}
+
+  LessThanExpression(hyrise::storage::c_atable_ptr_t _table, field_name_t _field, T _value) :
       SimpleFieldExpression(_table, _field), value(_value)
   {}
 

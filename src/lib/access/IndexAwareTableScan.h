@@ -21,11 +21,14 @@ public:
   ~IndexAwareTableScan();
   static std::shared_ptr<PlanOperation> parse(const Json::Value &data);
   const std::string vname();
-  void setPredicate(SimpleExpression *c);
+  void setPredicate(AbstractExpression *c);
+  void setTableName(std::string name);
   
 private:
+  void _setPredicateFromJson(AbstractExpression *c);
   SimpleExpression *_predicate;
   std::vector<GroupkeyIndexFunctor> _idx_functors;
+  std::string _tableName;
 };
 
 }

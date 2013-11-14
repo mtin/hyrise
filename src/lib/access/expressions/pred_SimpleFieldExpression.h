@@ -9,9 +9,9 @@ class SimpleFieldExpression : public SimpleExpression {
  protected:
   hyrise::storage::c_atable_ptr_t table;
   field_t field;
+ public:
   field_name_t field_name;
   size_t input;
- public:
 
   SimpleFieldExpression(size_t input_index, field_t field_index): field(field_index),
                                                                   input(input_index) { }
@@ -50,10 +50,10 @@ class SimpleFieldExpression : public SimpleExpression {
 template <typename T, class Op = std::equal_to<T> >
 class GenericExpressionValue : public SimpleFieldExpression {
  private:
-  T value;
   Op _operator;
 
  public:
+  T value;
 
   GenericExpressionValue(size_t i, field_t f, T _value):
       SimpleFieldExpression(i, f), value(_value)
@@ -64,6 +64,10 @@ class GenericExpressionValue : public SimpleFieldExpression {
   {}
 
   GenericExpressionValue(const hyrise::storage::c_atable_ptr_t& _table, field_t _field, T _value) :
+      SimpleFieldExpression(_table, _field), value(_value)
+  {}
+
+  GenericExpressionValue(const hyrise::storage::c_atable_ptr_t& _table, field_name_t _field, T _value) :
       SimpleFieldExpression(_table, _field), value(_value)
   {}
 

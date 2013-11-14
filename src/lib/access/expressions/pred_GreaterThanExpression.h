@@ -8,11 +8,11 @@ template <typename T>
 class GreaterThanExpression : public SimpleFieldExpression {
  private:
   ValueId lower_bound;
-  T value;
   std::shared_ptr<BaseDictionary<T>> valueIdMap;
   bool value_exists;
 
  public:
+  T value;
 
   GreaterThanExpression(size_t i, field_t f, T v):
       SimpleFieldExpression(i, f), value(v)
@@ -23,6 +23,9 @@ class GreaterThanExpression : public SimpleFieldExpression {
   {}
 
   GreaterThanExpression(hyrise::storage::c_atable_ptr_t _table, field_t _field, T _value) : SimpleFieldExpression(_table, _field), value(_value)
+  {}
+
+  GreaterThanExpression(hyrise::storage::c_atable_ptr_t _table, field_name_t _field, T _value) : SimpleFieldExpression(_table, _field), value(_value)
   {}
 
   virtual ~GreaterThanExpression() { }

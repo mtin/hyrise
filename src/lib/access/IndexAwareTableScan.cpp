@@ -6,7 +6,6 @@
 #include "access/system/BasicParser.h"
 #include "access/json_converters.h"
 #include "access/system/QueryParser.h"
-#include "access/expressions/pred_buildExpression.h"
 
 #include "io/StorageManager.h"
 
@@ -19,12 +18,33 @@
 #include "helper/checked_cast.h"
 
 #include "access/expressions/pred_buildExpression.h"
+#include "access/expressions/pred_GreaterThanExpression.h"
+#include "access/expressions/pred_EqualsExpression.h"
+#include "access/expressions/pred_LessThanExpression.h"
+#include "access/expressions/pred_CompoundExpression.h"
 #include "access/expressions/expression_types.h"
 #include "access/IntersectPositions.h"
 #include "access/SimpleTableScan.h"
 
 
 #include <chrono>
+
+#define EXPR_SPECIFIC(EXPR, COMP, TYPE) \
+{ \
+auto e = dynamic_cast<GenericExpressionValue<TYPE, COMP<TYPE>>*>(c); \
+if(e) { \
+GroupkeyIndexFunctor groupkey_functor(Json::Value(e->value), "idx__" + _tableName + "__" + e->field_name, PredicateType::EXPR##Value); \
+_idx_functors.push_back(groupkey_functor); \
+assert(!e->field_name.empty()); \
+addField(e->field_name); \
+break; \
+} \
+};
+
+#define EXPR_SPECIFIC_ALL_TYPES(EXPR, COMP) \
+EXPR_SPECIFIC(EXPR, COMP, hyrise_int_t); \
+EXPR_SPECIFIC(EXPR, COMP, hyrise_float_t); \
+EXPR_SPECIFIC(EXPR, COMP, hyrise_string_t);
 
 namespace hyrise {
 namespace access {
@@ -215,7 +235,7 @@ std::shared_ptr<PlanOperation> IndexAwareTableScan::parse(const Json::Value &dat
     throw std::runtime_error("IndexAwareScan needs a base table name");
   }
 
-  idx_scan->setPredicate(buildExpression(data["predicates"]));
+  idx_scan->_setPredicateFromJson(buildExpression(data["predicates"]));
 
   PredicateType::type pred_type;
   std::string tablename = data["tablename"].asString();
@@ -250,8 +270,43 @@ const std::string IndexAwareTableScan::vname() {
   return "IndexAwareTableScan";
 }
 
-void IndexAwareTableScan::setPredicate(SimpleExpression *c) {
-  _predicate = c;
+void IndexAwareTableScan::_setPredicateFromJson(AbstractExpression *c) {
+  SimpleExpression* se = dynamic_cast<SimpleExpression*>(c);
+  if(!se) throw std::runtime_error("Expression not parsable");
+
+  _predicate = se;
+}
+
+void IndexAwareTableScan::setPredicate(AbstractExpression *c) {
+  assert(!_tableName.empty());
+
+  SimpleExpression* se = dynamic_cast<SimpleExpression*>(c);
+  if(!se) throw std::runtime_error("Expression not parsable");
+
+  _predicate = se;
+
+  CompoundExpression* ce = dynamic_cast<CompoundExpression*>(c);
+  if(ce != nullptr) {
+    if(ce->type != ExpressionType::AND) throw std::runtime_error("IndexAwareScan only supports AND for CompoundExpressions");
+      // this is not a real limitation - it's just that we haven't implemented the rest yet.
+    setPredicate(ce->lhs);
+    setPredicate(ce->rhs);
+    return;
+  }
+
+
+  do {
+    EXPR_SPECIFIC_ALL_TYPES(LessThanExpression, std::less);
+    EXPR_SPECIFIC_ALL_TYPES(EqualsExpression, std::equal_to);
+    EXPR_SPECIFIC_ALL_TYPES(GreaterThanExpression, std::greater);
+
+    throw std::runtime_error("Expression not recognized");
+  } while(false);
+
+}
+
+void IndexAwareTableScan::setTableName(std::string name) {
+  _tableName = name;
 }
 
 }

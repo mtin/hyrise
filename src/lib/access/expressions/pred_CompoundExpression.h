@@ -5,11 +5,8 @@
 #include "pred_common.h"
 
 class CompoundExpression : public SimpleExpression {
- private:
-
-  ExpressionType type;
-
  public:
+  ExpressionType type;
 
   SimpleExpression *lhs;
   SimpleExpression *rhs;
