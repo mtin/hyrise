@@ -2,67 +2,175 @@
     "operators": {
         "load_customer": {
             "type": "TableLoad",
-            "table": "customer",
+            "table": "CUSTOMER",
             "filename": "tpcc/customer.csv",
             "header": "tpcc/customer_header.tbl",
             "delimiter": ","
             },
         "load_district": {
             "type": "TableLoad",
-            "table": "district",
+            "table": "DISTRICT",
             "filename": "tpcc/district.csv",
             "header": "tpcc/district_header.tbl",
             "delimiter": ","
             },
         "load_history": {
             "type": "TableLoad",
-            "table": "history",
+            "table": "HISTORY",
             "filename": "tpcc/history.csv",
             "header": "tpcc/history_header.tbl",
             "delimiter": ","
             },
         "load_item": {
             "type": "TableLoad",
-            "table": "item",
+            "table": "ITEM",
             "filename": "tpcc/item.csv",
             "header": "tpcc/item_header.tbl",
             "delimiter": ","
             },
         "load_new_order": {
             "type": "TableLoad",
-            "table": "new_order",
+            "table": "NEW_ORDER",
             "filename": "tpcc/new_order.csv",
             "header": "tpcc/new_order_header.tbl",
             "delimiter": ","
             },
         "load_order_line": {
             "type": "TableLoad",
-            "table": "order_line",
+            "table": "ORDER_LINE",
             "filename": "tpcc/order_line.csv",
             "header": "tpcc/order_line_header.tbl",
             "delimiter": ","
             },
         "load_orders": {
             "type": "TableLoad",
-            "table": "orders",
+            "table": "ORDERS",
             "filename": "tpcc/orders.csv",
             "header": "tpcc/orders_header.tbl",
             "delimiter": ","
             },
         "load_stock": {
             "type": "TableLoad",
-            "table": "stock",
+            "table": "STOCK",
             "filename": "tpcc/stock.csv",
             "header": "tpcc/stock_header.tbl",
             "delimiter": ","
             },
         "load_warehouse": {
             "type": "TableLoad",
-            "table": "warehouse",
+            "table": "WAREHOUSE",
             "filename": "tpcc/warehouse.csv",
             "header": "tpcc/warehouse_header.tbl",
             "delimiter": ","
+        },
+        "nop" : {
+            "type" : "NoOp"
+        },
+        "idx__NEW_ORDER__NO_W_ID": {
+              "type": "CreateIndex",
+              "fields": ["NO_W_ID"],
+              "index_name": "idx__NEW_ORDER__NO_W_ID"
+        },
+        "idx__ITEM__I_ID": {
+              "type": "CreateIndex",
+              "fields": ["I_ID"],
+              "index_name": "idx__ITEM__I_ID"
+        },
+        "idx__CUSTOMER__C_ID": {
+              "type": "CreateIndex",
+              "fields": ["C_ID"],
+              "index_name": "idx__CUSTOMER__C_ID"
+        },
+        "idx__CUSTOMER__C_LAST": {
+              "type": "CreateIndex",
+              "fields": ["C_LAST"],
+              "index_name": "idx__CUSTOMER__C_LAST"
+        },
+        "idx__DISTRICT__D_W_ID": {
+              "type": "CreateIndex",
+              "fields": ["D_W_ID"],
+              "index_name": "idx__DISTRICT__D_W_ID"
+        },
+        "idx__NEW_ORDER__NO_D_ID": {
+              "type": "CreateIndex",
+              "fields": ["NO_D_ID"],
+              "index_name": "idx__NEW_ORDER__NO_D_ID"
+        },
+        "idx__WAREHOUSE__W_ID": {
+              "type": "CreateIndex",
+              "fields": ["W_ID"],
+              "index_name": "idx__WAREHOUSE__W_ID"
+        },
+        "idx__CUSTOMER__C_W_ID": {
+              "type": "CreateIndex",
+              "fields": ["C_W_ID"],
+              "index_name": "idx__CUSTOMER__C_W_ID"
+        },
+        "idx__DISTRICT__D_ID": {
+              "type": "CreateIndex",
+              "fields": ["D_ID"],
+              "index_name": "idx__DISTRICT__D_ID"
+        },
+        "idx__CUSTOMER__C_D_ID": {
+              "type": "CreateIndex",
+              "fields": ["C_D_ID"],
+              "index_name": "idx__CUSTOMER__C_D_ID"
+        },
+        "idx__ORDER_LINE__OL_O_ID": {
+              "type": "CreateIndex",
+              "fields": ["OL_O_ID"],
+              "index_name": "idx__ORDER_LINE__OL_O_ID"
+        },
+        "idx__STOCK__S_W_ID": {
+              "type": "CreateIndex",
+              "fields": ["S_W_ID"],
+              "index_name": "idx__STOCK__S_W_ID"
+        },
+        "idx__ORDERS__O_C_ID": {
+              "type": "CreateIndex",
+              "fields": ["O_C_ID"],
+              "index_name": "idx__ORDERS__O_C_ID"
+        },
+        "idx__STOCK__S_I_ID": {
+              "type": "CreateIndex",
+              "fields": ["S_I_ID"],
+              "index_name": "idx__STOCK__S_I_ID"
+        },
+        "idx__ORDERS__O_W_ID": {
+              "type": "CreateIndex",
+              "fields": ["O_W_ID"],
+              "index_name": "idx__ORDERS__O_W_ID"
+        },
+        "idx__ORDER_LINE__OL_W_ID": {
+              "type": "CreateIndex",
+              "fields": ["OL_W_ID"],
+              "index_name": "idx__ORDER_LINE__OL_W_ID"
+        },
+        "idx__ORDERS__O_D_ID": {
+              "type": "CreateIndex",
+              "fields": ["O_D_ID"],
+              "index_name": "idx__ORDERS__O_D_ID"
+        },
+        "idx__ORDER_LINE__OL_D_ID": {
+              "type": "CreateIndex",
+              "fields": ["OL_D_ID"],
+              "index_name": "idx__ORDER_LINE__OL_D_ID"
+        },
+        "idx__STOCK__S_QUANTITY": {
+              "type": "CreateIndex",
+              "fields": ["S_QUANTITY"],
+              "index_name": "idx__STOCK__S_QUANTITY"
+        },
+        "idx__ORDERS__O_ID": {
+              "type": "CreateIndex",
+              "fields": ["O_ID"],
+              "index_name": "idx__ORDERS__O_ID"
+        },
+        "idx__NEW_ORDER__NO_O_ID": {
+              "type": "CreateIndex",
+              "fields": ["NO_O_ID"],
+              "index_name": "idx__NEW_ORDER__NO_O_ID"
         }
     },
-    "edges" : [["load_customer","load_district"], ["load_district","load_history"], ["load_history","load_item"], ["load_item","load_new_order"], ["load_new_order","load_order_line"], ["load_order_line","load_orders"], ["load_orders","load_stock"], ["load_stock","load_warehouse"]]
+    "edges" : [["load_customer","load_district"], ["load_district","load_history"], ["load_history","load_item"], ["load_item","load_new_order"], ["load_new_order","load_order_line"], ["load_order_line","load_orders"], ["load_orders","load_stock"], ["load_stock","load_warehouse"], ["load_warehouse", "nop"], ["load_new_order", "idx__NEW_ORDER__NO_W_ID"], ["idx__NEW_ORDER__NO_W_ID", "nop"], ["load_item", "idx__ITEM__I_ID"], ["idx__ITEM__I_ID", "nop"], ["load_customer", "idx__CUSTOMER__C_ID"], ["idx__CUSTOMER__C_ID", "nop"], ["load_customer", "idx__CUSTOMER__C_LAST"], ["idx__CUSTOMER__C_LAST", "nop"], ["load_district", "idx__DISTRICT__D_W_ID"], ["idx__DISTRICT__D_W_ID", "nop"], ["load_new_order", "idx__NEW_ORDER__NO_D_ID"], ["idx__NEW_ORDER__NO_D_ID", "nop"], ["load_warehouse", "idx__WAREHOUSE__W_ID"], ["idx__WAREHOUSE__W_ID", "nop"], ["load_customer", "idx__CUSTOMER__C_W_ID"], ["idx__CUSTOMER__C_W_ID", "nop"], ["load_district", "idx__DISTRICT__D_ID"], ["idx__DISTRICT__D_ID", "nop"], ["load_customer", "idx__CUSTOMER__C_D_ID"], ["idx__CUSTOMER__C_D_ID", "nop"], ["load_order_line", "idx__ORDER_LINE__OL_O_ID"], ["idx__ORDER_LINE__OL_O_ID", "nop"], ["load_stock", "idx__STOCK__S_W_ID"], ["idx__STOCK__S_W_ID", "nop"], ["load_orders", "idx__ORDERS__O_C_ID"], ["idx__ORDERS__O_C_ID", "nop"], ["load_stock", "idx__STOCK__S_I_ID"], ["idx__STOCK__S_I_ID", "nop"], ["load_orders", "idx__ORDERS__O_W_ID"], ["idx__ORDERS__O_W_ID", "nop"], ["load_order_line", "idx__ORDER_LINE__OL_W_ID"], ["idx__ORDER_LINE__OL_W_ID", "nop"], ["load_orders", "idx__ORDERS__O_D_ID"], ["idx__ORDERS__O_D_ID", "nop"], ["load_order_line", "idx__ORDER_LINE__OL_D_ID"], ["idx__ORDER_LINE__OL_D_ID", "nop"], ["load_stock", "idx__STOCK__S_QUANTITY"], ["idx__STOCK__S_QUANTITY", "nop"], ["load_orders", "idx__ORDERS__O_ID"], ["idx__ORDERS__O_ID", "nop"], ["load_new_order", "idx__NEW_ORDER__NO_O_ID"], ["idx__NEW_ORDER__NO_O_ID", "nop"]]
 }
