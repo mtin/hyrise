@@ -223,7 +223,6 @@ public:
    */
   virtual void setValueId(size_t column, size_t row, const ValueId valueId);
 
-
   /**
    * Reorganizes the bit vector of a certain column.
    * @warning Throws runtime error if not implemented!

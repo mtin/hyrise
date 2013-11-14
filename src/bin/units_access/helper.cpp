@@ -162,12 +162,7 @@ hyrise::storage::c_atable_ptr_t executeAndWait(
 
   wait->wait();
 
-
-  
   auto result_task = response->getResultTask();
-  
-  /*
-  */
   
   if (response->getState() == OpFail) {
     throw std::runtime_error(joinString(response->getErrorMessages(), "\n"));
