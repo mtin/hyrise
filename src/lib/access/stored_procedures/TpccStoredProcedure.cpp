@@ -29,18 +29,18 @@ void TpccStoredProcedure::operator()() {
     startTransaction();
     Json::Value result;
     result = execute();
-    commit();
-    successful_commit = true;
+    // commit();
+    // successful_commit = true;
 
     Json::StyledWriter writer;
     _connection->respond(writer.write(result));
   }
   catch (std::runtime_error e) {
-    if (!successful_commit)
-      rollback();
+    // if (!successful_commit)
+    rollback();
     _connection->respond(std::string("error: ") + e.what());
     std::cout << std::string("error: ") + e.what();
-    return;
+    return; 
   }
 }
 
@@ -212,8 +212,6 @@ std::unique_ptr<AbstractExpression> TpccStoredProcedure::connectAnd(expr_list_t 
 void TpccStoredProcedure::commit() {
   if (_finished)
     throw std::runtime_error("cannot commit twice");
-  
-  
   
   Commit commit;
   commit.setTXContext(_tx);
