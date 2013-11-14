@@ -23,7 +23,7 @@ void TpccPaymentProcedure::setData(const Json::Value& data) {
   _d_id =     assureIntValueBetween(data, "D_ID", 1, 10);
   _c_w_id =   assureMemberExists(data, "C_W_ID").asInt();
   _c_d_id =   assureIntValueBetween(data, "C_D_ID", 1, 10);
-  _h_amount = assureFloatValueBetween(data, "H_AMOUNT", 100.0f, 1000.0f);
+  _h_amount = assureFloatValueBetween(data, "H_AMOUNT", 1.0f, 5000.0f);
 
   const bool id = data["C_ID"].isInt();
   const bool last = data["C_LAST"].isString();
