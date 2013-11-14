@@ -35,35 +35,38 @@ const std::string TpccDeliveryProcedure::vname() {
 Json::Value TpccDeliveryProcedure::execute() {
   _date = getDate();
 
+  Json::Value rows;
+
   storage::c_atable_ptr_t tNewOrder;
   for(int i = 0; i < 10; i++) {
     _d_id = i+1;
     tNewOrder = getNewOrder();
-    if(tNewOrder->size() > 0) break;
-  }
-  if (tNewOrder->size() == 0) {
-    std::ostringstream os;
-    os << "no new order for warehouse " << _w_id;
-    throw std::runtime_error(os.str());
-  }
-  _o_id = tNewOrder->getValue<hyrise_int_t>("NO_O_ID", 0);
 
-  auto tOrder = getCId();
-  if (tOrder->size() == 0) {
-    throw std::runtime_error("internal error: new order is associated with non-existing order");
-  }
-  _c_id = tOrder->getValue<hyrise_int_t>("O_C_ID", 0);
+    if (tNewOrder->size() == 0) continue;
+    _o_id = tNewOrder->getValue<hyrise_int_t>("NO_O_ID", 0);
 
-  auto tSum = sumOLAmount();
-  if (tSum->size() == 0) {
-    throw std::runtime_error("internal error: no order lines for existing order");
-  }
-  _total = tSum->getValue<hyrise_float_t>(0, 0);
+    auto tOrder = getCId();
+    if (tOrder->size() == 0) {
+      throw std::runtime_error("internal error: new order is associated with non-existing order");
+    }
+    _c_id = tOrder->getValue<hyrise_int_t>("O_C_ID", 0);
 
-  deleteNewOrder();
-  updateOrders();
-  updateOrderLine();
-  updateCustomer();
+    auto tSum = sumOLAmount();
+    if (tSum->size() == 0) {
+      throw std::runtime_error("internal error: no order lines for existing order");
+    }
+    _total = tSum->getValue<hyrise_float_t>(0, 0);
+
+    deleteNewOrder();
+    updateOrders();
+    updateOrderLine();
+    updateCustomer();
+
+    Json::Value row;
+    row[0] = _d_id;
+    row[1] = _o_id;
+    rows.append(row);
+  }
 
   commit();
 
@@ -72,11 +75,6 @@ Json::Value TpccDeliveryProcedure::execute() {
   header[0] = "D_ID";
   header[1] = "NO_O_ID";
   result["header"] = header;
-  Json::Value rows;
-  Json::Value row;
-  row[0] = _d_id;
-  row[1] = _o_id;
-  rows[0] = row;
   result["rows"] = rows;
   result["Execution Status"] = "Delivery has been queued";
 
