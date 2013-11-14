@@ -1,5 +1,7 @@
 #include "access/Print.h"
 
+#include <iostream>
+
 namespace hyrise { namespace access {
 
 namespace { auto _ = QueryParser::registerPlanOperation<Print>("Print"); }

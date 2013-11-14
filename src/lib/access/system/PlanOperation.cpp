@@ -134,38 +134,41 @@ void PlanOperation::operator()() noexcept {
 }
 
 const PlanOperation * PlanOperation::execute() {
-  epoch_t startTime = get_epoch_nanoseconds();
+  const bool recordPerformance = _performance_attr != nullptr;
+
+  // Check if we really need this
+  epoch_t startTime;
+  if (recordPerformance)
+    startTime = get_epoch_nanoseconds();
 
   refreshInput();
 
   setupPlanOperation();
 
-  PapiTracer pt;
-  if (!_papi_disabled) {
-    pt.addEvent("PAPI_TOT_CYC");
-    pt.addEvent(getEvent());
-    pt.start();
+  PapiTracer *pt;
+  if (recordPerformance) {
+    pt = new PapiTracer;
+    pt->addEvent("PAPI_TOT_CYC");
+    pt->addEvent(getEvent());
+    pt->start();
   }
 
   executePlanOperation();
-  
-  if (!_papi_disabled)
-    pt.stop();
+  if (recordPerformance) pt->stop();
 
   teardownPlanOperation();
 
-  if (!_papi_disabled) {
+  if (recordPerformance) {
     epoch_t endTime = get_epoch_nanoseconds();
     std::string threadId = boost::lexical_cast<std::string>(std::this_thread::get_id());
-
-    if (_performance_attr != nullptr) {
-      *_performance_attr = (performance_attributes_t) {
-        pt.value("PAPI_TOT_CYC"), pt.value(getEvent()), getEvent() , planOperationName(), _operatorId, startTime, endTime, threadId
-      };
-    }
+    *_performance_attr = (performance_attributes_t) {
+      pt->value("PAPI_TOT_CYC"), pt->value(getEvent()), getEvent() , planOperationName(), _operatorId, startTime, endTime, threadId
+    };
   }
 
   setState(OpSuccess);
+  delete pt;
+  
   return this;
 }
 
