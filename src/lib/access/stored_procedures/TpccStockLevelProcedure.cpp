@@ -85,20 +85,37 @@ storage::c_atable_ptr_t TpccStockLevelProcedure::getStockCount() {
   expressions_s.push_back(new GenericExpressionValue<hyrise_int_t, std::less<hyrise_int_t>>(stock->getDeltaTable(), "S_QUANTITY", _threshold));
   auto validated_s = selectAndValidate(stock, "STOCK", connectAnd(expressions_s));
 
-  JoinScan join(JoinType::EQUI);
-  join.addInput(validated_ol);
-  join.addInput(validated_s);
-  join.addJoinClause<int>(0, "OL_I_ID", 1, "S_I_ID");
-  join.execute();
 
-  GroupByScan groupby;
-  groupby.addInput(join.getResultTable());
+  std::shared_ptr<HashBuild> hb = std::make_shared<HashBuild>();
+  hb->setOperatorId("__HashBuild");
+  hb->setPlanOperationName("HashBuild");
+  _responseTask->registerPlanOperation(hb);
+  hb->addInput(validated_ol);
+  hb->addField("OL_I_ID");
+  hb->setKey("join");
+  hb->execute();
+
+  std::shared_ptr<HashJoinProbe> hjp = std::make_shared<HashJoinProbe>();
+  hjp->setOperatorId("__HashJoinProbe");
+  hjp->setPlanOperationName("HashJoinProbe");
+  _responseTask->registerPlanOperation(hjp);
+  hjp->addInput(validated_s);
+  hjp->addField("S_I_ID");
+  hjp->addInput(hb->getResultHashTable());
+  hjp->execute();
+
+
+  std::shared_ptr<GroupByScan> groupby = std::make_shared<GroupByScan>();
+  groupby->setOperatorId("__GroupByScan");
+  groupby->setPlanOperationName("GroupByScan");
+  _responseTask->registerPlanOperation(groupby);
+  groupby->addInput(hjp->getResultTable());
   auto count = new CountAggregateFun("OL_I_ID");
   count->setDistinct(true);
-  groupby.addFunction(count);
-  groupby.execute();
+  groupby->addFunction(count);
+  groupby->execute();
 
-  return groupby.getResultTable();
+  return groupby->getResultTable();
 }
 
 } } // namespace hyrise::access
