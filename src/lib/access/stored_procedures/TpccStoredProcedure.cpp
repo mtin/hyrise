@@ -12,6 +12,8 @@
 #include <io/ResourceManager.h>
 #include <io/TransactionManager.h>
 #include <access.h>
+#include "access/storage/GetTable.h"
+
 
 namespace hyrise { namespace access {
 
@@ -128,16 +130,12 @@ float TpccStoredProcedure::assureFloatValueBetween(const Json::Value& data, cons
 storage::c_store_ptr_t TpccStoredProcedure::getTpccTable(std::string name) const {
   // TableLoad load;
 
-  std::shared_ptr<TableLoad> load = std::make_shared<TableLoad>();
-  load->setOperatorId("__load");
-  load->setPlanOperationName("load");
+  std::shared_ptr<GetTable> load = std::make_shared<GetTable>(name);
+  load->setOperatorId("__GetTable");
+  load->setPlanOperationName("GetTable");
   _responseTask->registerPlanOperation(load);
 
   load->setTXContext(_tx);
-  load->setTableName(name);
-  load->setHeaderFileName(tpccHeaderLocation.at(name));
-  load->setFileName(tpccDataLocation.at(name));
-  load->setDelimiter(tpccDelimiter);
   load->execute();
 
   storage::c_atable_ptr_t table = load->getResultTable();
