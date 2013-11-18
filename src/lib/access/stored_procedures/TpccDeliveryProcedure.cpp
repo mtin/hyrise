@@ -21,6 +21,7 @@ TpccDeliveryProcedure::TpccDeliveryProcedure(net::AbstractConnection* connection
 
 void TpccDeliveryProcedure::setData(const Json::Value& data) {
   _w_id =         assureMemberExists(data, "W_ID").asInt();
+  _d_id =         assureIntValueBetween(data, "D_ID", 1, 10);
   _o_carrier_id = assureIntValueBetween(data, "O_CARRIER_ID", 1, 10);
 }
 
@@ -125,20 +126,6 @@ storage::c_atable_ptr_t TpccDeliveryProcedure::sumOLAmount() {
   expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orderLine->getDeltaTable(), "OL_D_ID", _d_id));
   expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orderLine->getDeltaTable(), "OL_O_ID", _o_id));
   auto validated = selectAndValidate(orderLine, "ORDER_LINE", connectAnd(expressions));
-
-  // HashBuild hb;
-  // hb.addInput(validated);
-  // hb.addField(1);
-  // hb.setKey("groupby");
-  // hb.execute();
-
-  // const auto &hash = hb.getResultHashTable();
-
-  // GroupByScan gs;
-  // gs.addInput(t);
-  // gs.addInput(hash);
-  // gs.addField(1);
-  // gs.execute();
 
   std::shared_ptr<GroupByScan> groupby = std::make_shared<GroupByScan>();
   groupby->setOperatorId("__GroupByScan");

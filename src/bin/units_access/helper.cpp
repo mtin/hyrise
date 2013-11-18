@@ -1,7 +1,6 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
 #include "helper.h"
 
-//#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <memory>
@@ -271,13 +270,11 @@ std::string executeStoredProcedureAndWait(
     size_t poolSize) {
 
   std::stringstream query;
-  query << "data=" << json;
+  query << "query=" << json;
 
   auto conn = make_unique<MockedConnection>(query.str());
 
-  auto procedure2 = (net::Router::getInstance().getHandler("/" + storedProcedureName + "/")->create(&*conn));
-
-  auto procedure = std::dynamic_pointer_cast<TpccStoredProcedure>(net::Router::getInstance().getHandler("/" + storedProcedureName + "/")->create(&*conn));
+  auto procedure = checked_pointer_cast<TpccStoredProcedure>(net::Router::getInstance().getHandler("/" + storedProcedureName + "/")->create(&*conn));
   (*procedure)();
 
   return conn->getResponse();

@@ -25,12 +25,16 @@ TpccStoredProcedure::TpccStoredProcedure(net::AbstractConnection* connection) :
 }
 
 void TpccStoredProcedure::operator()() {
-  // bool successful_commit = false;
-
   try {
     auto d = data();
     setData(d);
-  
+  }
+  catch (std::runtime_error e) {
+    _connection->respond(std::string("error: ") + e.what());
+    return;
+  }
+ 
+  try {
     startTransaction();
     Json::Value result;
     result = execute();    
@@ -42,20 +46,12 @@ void TpccStoredProcedure::operator()() {
 
     Json::StyledWriter writer;
     _connection->respond(writer.write(result));
-
   }
   catch (std::runtime_error e) {
-    // if (!successful_commit)
-    try {
-      rollback();
-    } catch (std::runtime_error e) {
-      _connection->respond(std::string("error: ") + e.what(), 500);
+    rollback();
+    _connection->respond(std::string("error: ") + e.what());
       std::cout << std::string("error: ") + e.what();
-      return;
-    }
-    _connection->respond(std::string("error: ") + e.what(), 500);
-    std::cout << std::string("error: ") + e.what();
-    return; 
+    return;
   }
 }
 
@@ -134,8 +130,6 @@ float TpccStoredProcedure::assureFloatValueBetween(const Json::Value& data, cons
   return value;
 }
 storage::c_store_ptr_t TpccStoredProcedure::getTpccTable(std::string name) const {
-  // TableLoad load;
-
   std::shared_ptr<GetTable> load = std::make_shared<GetTable>(name);
   load->setOperatorId("__GetTable");
   load->setPlanOperationName("GetTable");
@@ -152,7 +146,6 @@ storage::c_store_ptr_t TpccStoredProcedure::getTpccTable(std::string name) const
 }
 
 storage::c_atable_ptr_t TpccStoredProcedure::selectAndValidate(storage::c_atable_ptr_t table, std::string tablename, std::unique_ptr<AbstractExpression> expr) const {
-  
   std::shared_ptr<IndexAwareTableScan> select = std::make_shared<IndexAwareTableScan>();
   select->setOperatorId("__IndexAwareTableScan");
   select->setPlanOperationName("IndexAwareTableScan");
@@ -189,7 +182,7 @@ storage::atable_ptr_t TpccStoredProcedure::newRowFrom(storage::c_atable_ptr_t ta
     list.append(storage::TableBuilder::param(columnData.getName(), data_type_to_string(columnData.getType())));
   }
   auto newRow = storage::TableBuilder::build(list);
-  newRow->resize(1); //TODO it's halloween for now but there should be a more generic value
+  newRow->resize(1);
 
   return newRow;
 }

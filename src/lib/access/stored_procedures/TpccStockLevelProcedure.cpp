@@ -85,7 +85,6 @@ storage::c_atable_ptr_t TpccStockLevelProcedure::getStockCount() {
   expressions_s.push_back(new GenericExpressionValue<hyrise_int_t, std::less<hyrise_int_t>>(stock->getDeltaTable(), "S_QUANTITY", _threshold));
   auto validated_s = selectAndValidate(stock, "STOCK", connectAnd(expressions_s));
 
-
   std::shared_ptr<HashBuild> hb = std::make_shared<HashBuild>();
   hb->setOperatorId("__HashBuild");
   hb->setPlanOperationName("HashBuild");

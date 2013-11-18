@@ -56,7 +56,7 @@ Json::Value TpccOrderStatusProcedure::execute() {
     }
 
     _chosenOne = 0;
-    _c_last = tCustomer->getValue<std::string>("C_LAST", 0);
+    _c_last = tCustomer->getValue<hyrise_string_t>("C_LAST", 0);
   }
   else {
     tCustomer = std::const_pointer_cast<AbstractTable>(getCustomersByLastName());
@@ -66,7 +66,7 @@ Json::Value TpccOrderStatusProcedure::execute() {
     }
 
     _chosenOne = tCustomer->size() / 2;
-    _c_id = tCustomer->getValue<int>("C_ID", _chosenOne);
+    _c_id = tCustomer->getValue<hyrise_int_t>("C_ID", _chosenOne);
   }
 
   auto tOrders = getLastOrder();
@@ -75,9 +75,9 @@ Json::Value TpccOrderStatusProcedure::execute() {
     os << "no active order for customer " << _c_id << " in district " << _d_id << " of warehouse " << _w_id;
     throw std::runtime_error(os.str());
   }
-  _o_id = tOrders->getValue<int>("O_ID", 0);
-  const std::string o_entry_d = tOrders->getValue<std::string>("O_ENTRY_D", 0);
-  const int o_carrier_id = tOrders->getValue<int>("O_CARRIER_ID", 0);
+  _o_id = tOrders->getValue<hyrise_int_t>("O_ID", 0);
+  const std::string o_entry_d = tOrders->getValue<hyrise_string_t>("O_ENTRY_D", 0);
+  const int o_carrier_id = tOrders->getValue<hyrise_int_t>("O_CARRIER_ID", 0);
 
   auto tOrderLines = getOrderLines();
   if (tOrderLines->size() < 5 || tOrderLines->size() > 15)
@@ -90,10 +90,10 @@ Json::Value TpccOrderStatusProcedure::execute() {
   result["W_ID"]         = _w_id;
   result["D_ID"]         = _d_id;
   result["C_ID"]         = _c_id;
-  result["C_FIRST"]      = tCustomer->getValue<std::string>("C_FIRST", _chosenOne);
-  result["C_MIDDLE"]     = tCustomer->getValue<std::string>("C_MIDDLE", _chosenOne);
+  result["C_FIRST"]      = tCustomer->getValue<hyrise_string_t>("C_FIRST", _chosenOne);
+  result["C_MIDDLE"]     = tCustomer->getValue<hyrise_string_t>("C_MIDDLE", _chosenOne);
   result["C_LAST"]       = _c_last;
-  result["C_BALANCE"]    = tCustomer->getValue<float>("C_BALANCE", _chosenOne);
+  result["C_BALANCE"]    = tCustomer->getValue<hyrise_float_t>("C_BALANCE", _chosenOne);
   result["O_ID"]         = _o_id;
   result["O_ENTRY_D"]    = _date;
   result["O_CARRIER_ID"] = o_carrier_id;
@@ -101,11 +101,11 @@ Json::Value TpccOrderStatusProcedure::execute() {
   Json::Value orderLines(Json::arrayValue);
   for (size_t i = 0; i < tOrderLines->size(); ++i) {
     Json::Value orderLine;
-    orderLine["OL_SUPPLY_W_ID"] = tOrderLines->getValue<int>("OL_SUPPLY_W_ID", i);
-    orderLine["OL_I_ID"]        = tOrderLines->getValue<int>("OL_I_ID", i);
-    orderLine["OL_QUANTITY"]    = tOrderLines->getValue<int>("OL_QUANTITY", i);
-    orderLine["OL_AMOUNT"]      = tOrderLines->getValue<float>("OL_AMOUNT", i);
-    orderLine["OL_DELIVERY_D"]  = tOrderLines->getValue<std::string>("OL_DELIVERY_D", i);
+    orderLine["OL_SUPPLY_W_ID"] = tOrderLines->getValue<hyrise_int_t>("OL_SUPPLY_W_ID", i);
+    orderLine["OL_I_ID"]        = tOrderLines->getValue<hyrise_int_t>("OL_I_ID", i);
+    orderLine["OL_QUANTITY"]    = tOrderLines->getValue<hyrise_int_t>("OL_QUANTITY", i);
+    orderLine["OL_AMOUNT"]      = tOrderLines->getValue<hyrise_float_t>("OL_AMOUNT", i);
+    orderLine["OL_DELIVERY_D"]  = tOrderLines->getValue<hyrise_string_t>("OL_DELIVERY_D", i);
     orderLines.append(orderLine);
   }
   result["order lines"] = orderLines;

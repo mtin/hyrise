@@ -42,9 +42,9 @@ break; \
 };
 
 #define EXPR_SPECIFIC_ALL_TYPES(EXPR, COMP) \
-EXPR_SPECIFIC(EXPR, COMP, hyrise_int_t); \
-EXPR_SPECIFIC(EXPR, COMP, hyrise_float_t); \
-EXPR_SPECIFIC(EXPR, COMP, hyrise_string_t);
+  EXPR_SPECIFIC(EXPR, COMP, hyrise_int_t); \
+  EXPR_SPECIFIC(EXPR, COMP, hyrise_float_t); \
+  EXPR_SPECIFIC(EXPR, COMP, hyrise_string_t);
 
 namespace hyrise {
 namespace access {
@@ -53,9 +53,9 @@ namespace {
   auto _ = QueryParser::registerPlanOperation<IndexAwareTableScan>("IndexAwareTableScan");
 }
 
-IndexAwareTableScan::IndexAwareTableScan() { }
+IndexAwareTableScan::IndexAwareTableScan() {}
 
-IndexAwareTableScan::~IndexAwareTableScan() { }
+IndexAwareTableScan::~IndexAwareTableScan() {}
 
 struct GroupkeyIndexFunctor {
   typedef storage::pos_range_t value_type;
@@ -309,6 +309,6 @@ void IndexAwareTableScan::setTableName(std::string name) {
   _tableName = name;
 }
 
-}
-}
+} // namespace access
+} // namespace hyrise
 

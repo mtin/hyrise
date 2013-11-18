@@ -36,8 +36,12 @@ void TpccNewOrderProcedure::setData(const Json::Value& data) {
     info.quantity = assureIntValueBetween(itemInfo[i],"quantity", 1, 10);
     _items.push_back(info);
   }
-
   _carrier_id = 0;
+
+  std::sort(_items.begin(), _items.end(), [](const ItemInfo& i1, const ItemInfo& i2) { return i1.id < i2.id; });
+  const auto it = std::unique(_items.begin(), _items.end(), [](const ItemInfo& i1, const ItemInfo& i2) { return i1.id == i2.id; });
+  if (it != _items.end())
+    throw std::runtime_error("items in New Order must be unique");
 }
 
 std::string TpccNewOrderProcedure::name() {
@@ -99,11 +103,12 @@ Json::Value TpccNewOrderProcedure::execute() {
   const std::string c_last = tCustomer->getValue<hyrise_string_t>("C_LAST", 0);
   const std::string c_credit = tCustomer->getValue<hyrise_string_t>("C_CREDIT", 0);
 
-  incrementNextOrderId();
+  incrementNextOrderId(std::const_pointer_cast<AbstractTable>(tDistrict));
   createOrder();
   createNewOrder();
 
   int s_ytd;
+  std::string s_data, s_dist;
   float total = 0;
 
   for (int i = 0; i < _ol_cnt; ++i) {
@@ -289,22 +294,10 @@ storage::c_atable_ptr_t TpccNewOrderProcedure::getWarehouseTaxRate() {
   return validated;
 }
 
-void TpccNewOrderProcedure::incrementNextOrderId() {
-  //TODO use other table
-  auto district = getTpccTable("DISTRICT");
-
-  expr_list_t expressions;
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(district->getDeltaTable(), "D_W_ID", _w_id));
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(district->getDeltaTable(), "D_ID", _d_id));
-  auto validated = selectAndValidate(district, "DISTRICT", connectAnd(expressions));
-  if (validated->size() != 1) {
-    validated->print();
-    throw std::runtime_error("incrementNextOrderId: no row to update");
-  }
-
+void TpccNewOrderProcedure::incrementNextOrderId(const storage::atable_ptr_t& district) {
   Json::Value updates;
   updates["D_NEXT_O_ID"] = _o_id + 1;
-  update(validated, updates);
+  update(district, updates);
 }
 
 void TpccNewOrderProcedure::updateStock(const ItemInfo& item) {
@@ -314,10 +307,8 @@ void TpccNewOrderProcedure::updateStock(const ItemInfo& item) {
   expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(stock->getDeltaTable(), "S_W_ID", _w_id));
   expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(stock->getDeltaTable(), "S_I_ID", item.id));
   auto validated = selectAndValidate(stock, "STOCK", connectAnd(expressions));
-  if (validated->size() != 1) {
-    validated->print();
+  if (validated->size() != 1)
     throw std::runtime_error("updateStock: no row to update");
-  }
 
   Json::Value updates;
   updates["S_QUANTITY"] = item.quantity;

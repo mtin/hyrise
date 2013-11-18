@@ -65,5 +65,5 @@ TEST_F(IndexAwareTableScanTests, basic_index_aware_table_scan_test_lt) {
   ASSERT_TABLE_EQUAL(result, reference);
 }
 
-}
-}
+} // namespace access
+} // namespace hyrise
