@@ -1,6 +1,6 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
 #include "access/IndexAwareTableScan.h"
-#include "access/CreateIndex.h"
+#include "access/CreateGroupkeyIndex.h"
 #include "helper/types.h"
 #include "io/shortcuts.h"
 #include "testing/test.h"
@@ -9,6 +9,7 @@
 #include "storage/Store.h"
 #include "io/TransactionManager.h"
 #include "access/expressions/pred_LessThanExpression.h"
+#include "testing/TableEqualityTest.h"
 
 namespace hyrise {
 namespace access {
@@ -20,7 +21,7 @@ public:
   virtual void SetUp() {
     AccessTest::SetUp();
     t = Loader::shortcuts::load("test/index_test.tbl");
-    CreateIndex ci;
+    CreateGroupkeyIndex ci;
     ci.addInput(t);
     ci.addField(0);
     ci.setIndexName("idx__foo__col_0");
@@ -62,7 +63,7 @@ TEST_F(IndexAwareTableScanTests, basic_index_aware_table_scan_test_lt) {
   is.setPredicate(new GenericExpressionValue<hyrise_int_t, std::less<hyrise_int_t>>(0, "col_0", 200));
   is.execute();
   auto result = is.getResultTable();
-  ASSERT_TABLE_EQUAL(result, reference);
+  EXPECT_RELATION_EQ(result, reference);
 }
 
 } // namespace access
