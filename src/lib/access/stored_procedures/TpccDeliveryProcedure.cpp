@@ -126,13 +126,31 @@ storage::c_atable_ptr_t TpccDeliveryProcedure::sumOLAmount() {
   expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orderLine->getDeltaTable(), "OL_O_ID", _o_id));
   auto validated = selectAndValidate(orderLine, "ORDER_LINE", connectAnd(expressions));
 
-  GroupByScan groupby;
-  groupby.addInput(validated);
-  auto sum = new SumAggregateFun("OL_AMOUNT");
-  groupby.addFunction(sum);
-  groupby.execute();
+  // HashBuild hb;
+  // hb.addInput(validated);
+  // hb.addField(1);
+  // hb.setKey("groupby");
+  // hb.execute();
 
-  return groupby.getResultTable();
+  // const auto &hash = hb.getResultHashTable();
+
+  // GroupByScan gs;
+  // gs.addInput(t);
+  // gs.addInput(hash);
+  // gs.addField(1);
+  // gs.execute();
+
+  std::shared_ptr<GroupByScan> groupby = std::make_shared<GroupByScan>();
+  groupby->setOperatorId("__GroupByScan");
+  groupby->setPlanOperationName("GroupByScan");
+  _responseTask->registerPlanOperation(groupby);
+
+  groupby->addInput(validated);
+  auto sum = new SumAggregateFun("OL_AMOUNT");
+  groupby->addFunction(sum);
+  groupby->execute();
+
+  return groupby->getResultTable();
 }
 
 void TpccDeliveryProcedure::updateCustomer() {

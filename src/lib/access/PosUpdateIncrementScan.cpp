@@ -85,7 +85,17 @@ void PosUpdateIncrementScan::executePlanOperation() {
 
     // add inserted pos to mod record. use absolute pos not pos in delta (!)
     modRecord.insertPos(store, main_size+delta_row);
-    ++delta_row;
+ 
+
+#ifdef PERSISTENCY_BUFFEREDLOGGER
+    const size_t columnCount = store->columnCount();
+      uint64_t bitmask = (1 << (columnCount + 1)) - 1;
+      std::vector<ValueId> vids = store->copyValueIds(main_size+delta_row);
+      io::Logger::getInstance().logValue(_txContext.tid, reinterpret_cast<uintptr_t>(store.get()), main_size+delta_row, old_row, bitmask, &vids);
+#endif
+
+     ++delta_row;
+
   }
 
   if (auto rsp = getResponseTask()) {

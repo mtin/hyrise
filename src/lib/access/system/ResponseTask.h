@@ -5,6 +5,8 @@
 #include <atomic>
 #include <mutex>
 
+#include "json.h"
+
 #include "helper/epoch.h"
 #include "access/system/OutputTask.h"
 #include "net/AbstractConnection.h"
@@ -53,6 +55,8 @@ class ResponseTask : public Task {
   }
 
   void registerPlanOperation(const std::shared_ptr<PlanOperation>& planOp);
+
+  Json::Value generateResponseJson();
 
   void addErrorMessage(std::string message) {
     std::lock_guard<std::mutex> guard(errorMutex);

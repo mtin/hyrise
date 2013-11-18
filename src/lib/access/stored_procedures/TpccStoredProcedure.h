@@ -7,6 +7,7 @@
 #include <helper/types.h>
 #include <io/TXContext.h>
 #include <access/expressions/pred_SimpleExpression.h>
+#include "access/system/ResponseTask.h"
 #include <net/Router.h>
 #include <net/AbstractConnection.h>
 #include <storage/Store.h>
@@ -53,10 +54,12 @@ class TpccStoredProcedure : public net::AbstractRequestHandler {
 
   net::AbstractConnection* _connection;
   tx::TXContext _tx;
+  std::shared_ptr<ResponseTask> _responseTask;
 
  private:
   void startTransaction();
   bool _finished = false;
+  bool _recordPerformance = false;
 };
 
 } } // namespace hyrise::access
