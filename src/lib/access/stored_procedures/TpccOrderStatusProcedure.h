@@ -1,6 +1,5 @@
 // Copyright (c) 2013 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_ACCESS_STOREDPROCEDURES_TPCCORDERSTATUS_H_
-#define SRC_LIB_ACCESS_STOREDPROCEDURES_TPCCORDERSTATUS_H_
+#pragma once
 
 #include "TpccStoredProcedure.h"
 
@@ -34,6 +33,4 @@ class TpccOrderStatusProcedure : public TpccStoredProcedure {
 };
 
 } } // namespace hyrise::access
-
-#endif // SRC_LIB_ACCESS_STOREDPROCEDURES_TPCCORDERSTATUS_H_
 

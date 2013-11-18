@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_BIN_UNITS_ACCESS_HELPER_H_
-#define SRC_BIN_UNITS_ACCESS_HELPER_H_
+#pragma once
 
 #include <json.h>
 #include <gtest/gtest.h>
@@ -112,6 +111,4 @@ std::string executeStoredProcedureAndWait(
     size_t poolSize = getNumberOfCoresOnSystem());
 
 } } // namespace hyrise::access
-
-#endif  // SRC_BIN_UNITS_ACCESS_HELPER_H_
 

@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_BIN_UNITS_ACCESS_TPCCSTOREDPROCEDURESTEST_H_
-#define SRC_BIN_UNITS_ACCESS_TPCCSTOREDPROCEDURESTEST_H_
+#pragma once
 
 #include "io/shortcuts.h"
 #include "testing/test.h"
@@ -55,4 +54,3 @@ protected:
 
 } } // namespace hyrise::access
 
-#endif // SRC_BIN_UNITS_ACCESS_TPCCSTOREDPROCEDURESTEST_H_

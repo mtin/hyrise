@@ -1,6 +1,5 @@
 // Copyright (c) 2013 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_ACCESS_STOREDPROCEDURES_TPCCSTOREDPROCEDURE_H_
-#define SRC_LIB_ACCESS_STOREDPROCEDURES_TPCCSTOREDPROCEDURE_H_
+#pragma once
 
 #include "json.h"
 
@@ -63,6 +62,4 @@ class TpccStoredProcedure : public net::AbstractRequestHandler {
 };
 
 } } // namespace hyrise::access
-
-#endif // SRC_LIB_ACCESS_STOREDPROCEDURES_TPCCSTOREDPROCEDURE_H_
 
