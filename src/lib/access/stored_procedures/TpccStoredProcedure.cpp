@@ -37,8 +37,14 @@ void TpccStoredProcedure::operator()() {
   }
   catch (std::runtime_error e) {
     // if (!successful_commit)
-    rollback();
-    _connection->respond(std::string("error: ") + e.what());
+    try {
+      rollback();
+    } catch (std::runtime_error e) {
+      _connection->respond(std::string("error: ") + e.what(), 500);
+      std::cout << std::string("error: ") + e.what();
+      return;
+    }
+    _connection->respond(std::string("error: ") + e.what(), 500);
     std::cout << std::string("error: ") + e.what();
     return; 
   }
