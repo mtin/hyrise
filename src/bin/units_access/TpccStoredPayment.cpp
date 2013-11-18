@@ -135,8 +135,8 @@ TEST_F(TpccStoredPaymentTest, Payment) {
 
 TEST_F(TpccStoredPaymentTest, Payment_wrongAmount) {
   //                    (w_id, d_id, c_id, c_last        , c_w_id, c_d_id, h_amount);
-  EXPECT_THROW(doPayment(1   , 1   , 1   , ""            , 1     , 1     , 99.99f  ), TpccError);
-  EXPECT_THROW(doPayment(1   , 1   , 1   , ""            , 1     , 1     , 1000.01f), TpccError);
+  EXPECT_THROW(doPayment(1   , 1   , 1   , ""            , 1     , 1     , 0.99f  ), TpccError);
+  EXPECT_THROW(doPayment(1   , 1   , 1   , ""            , 1     , 1     , 5000.01f), TpccError);
 }
 
 TEST_F(TpccStoredPaymentTest, Payment_wrongD_ID) {

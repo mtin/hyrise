@@ -67,107 +67,107 @@
             "type" : "NoOp"
         },
         "idx__NEW_ORDER__NO_W_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["NO_W_ID"],
               "index_name": "idx__NEW_ORDER__NO_W_ID"
         },
         "idx__ITEM__I_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["I_ID"],
               "index_name": "idx__ITEM__I_ID"
         },
         "idx__CUSTOMER__C_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["C_ID"],
               "index_name": "idx__CUSTOMER__C_ID"
         },
         "idx__CUSTOMER__C_LAST": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["C_LAST"],
               "index_name": "idx__CUSTOMER__C_LAST"
         },
         "idx__DISTRICT__D_W_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["D_W_ID"],
               "index_name": "idx__DISTRICT__D_W_ID"
         },
         "idx__NEW_ORDER__NO_D_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["NO_D_ID"],
               "index_name": "idx__NEW_ORDER__NO_D_ID"
         },
         "idx__WAREHOUSE__W_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["W_ID"],
               "index_name": "idx__WAREHOUSE__W_ID"
         },
         "idx__CUSTOMER__C_W_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["C_W_ID"],
               "index_name": "idx__CUSTOMER__C_W_ID"
         },
         "idx__DISTRICT__D_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["D_ID"],
               "index_name": "idx__DISTRICT__D_ID"
         },
         "idx__CUSTOMER__C_D_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["C_D_ID"],
               "index_name": "idx__CUSTOMER__C_D_ID"
         },
         "idx__ORDER_LINE__OL_O_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["OL_O_ID"],
               "index_name": "idx__ORDER_LINE__OL_O_ID"
         },
         "idx__STOCK__S_W_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["S_W_ID"],
               "index_name": "idx__STOCK__S_W_ID"
         },
         "idx__ORDERS__O_C_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["O_C_ID"],
               "index_name": "idx__ORDERS__O_C_ID"
         },
         "idx__STOCK__S_I_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["S_I_ID"],
               "index_name": "idx__STOCK__S_I_ID"
         },
         "idx__ORDERS__O_W_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["O_W_ID"],
               "index_name": "idx__ORDERS__O_W_ID"
         },
         "idx__ORDER_LINE__OL_W_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["OL_W_ID"],
               "index_name": "idx__ORDER_LINE__OL_W_ID"
         },
         "idx__ORDERS__O_D_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["O_D_ID"],
               "index_name": "idx__ORDERS__O_D_ID"
         },
         "idx__ORDER_LINE__OL_D_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["OL_D_ID"],
               "index_name": "idx__ORDER_LINE__OL_D_ID"
         },
         "idx__STOCK__S_QUANTITY": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["S_QUANTITY"],
               "index_name": "idx__STOCK__S_QUANTITY"
         },
         "idx__ORDERS__O_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["O_ID"],
               "index_name": "idx__ORDERS__O_ID"
         },
         "idx__NEW_ORDER__NO_O_ID": {
-              "type": "CreateIndex",
+              "type": "CreateGroupkeyIndex",
               "fields": ["NO_O_ID"],
               "index_name": "idx__NEW_ORDER__NO_O_ID"
         }
