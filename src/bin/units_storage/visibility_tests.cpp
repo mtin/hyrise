@@ -124,7 +124,7 @@ TEST_F (VisibilityTests, read_writes_after_commit) {
 	ASSERT_EQ(next_cid, txmgr.getLastCommitId() + 1);
 
 	pos_list_t pos_tmp = {linxxxs->size() -1};
-	ASSERT_EQ(hyrise::tx::TX_CODE::TX_OK, linxxxs->commitPositions(pos_tmp, next_cid, true));
+	//ASSERT_EQ(hyrise::tx::TX_CODE::TX_OK, linxxxs->commitPositions(pos_tmp, next_cid, true));
 	txmgr.commit(tid_a);
 
 	// the second transaction should see all the values after the commit is done
@@ -160,7 +160,7 @@ TEST_F (VisibilityTests, read_writes_after_commit_old_cid) {
 	auto next_cid = txmgr.prepareCommit();
 	ASSERT_EQ(next_cid, txmgr.getLastCommitId() + 1);
 	pos_list_t pos_tmp = {linxxxs->size() -1};
-	ASSERT_EQ(hyrise::tx::TX_CODE::TX_OK, linxxxs->commitPositions(pos_tmp, next_cid, true));
+	//ASSERT_EQ(hyrise::tx::TX_CODE::TX_OK, linxxxs->commitPositions(pos_tmp, next_cid, true));
 	txmgr.commit(tid_a);
 
 	// the second transaction should not see all the values after the commit, due to old cid

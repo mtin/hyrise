@@ -213,7 +213,7 @@ transaction_cid_t TransactionManager::commitTransaction(TXContext ctx) {
       if (tx::TX_CODE::TX_OK != store->checkForConcurrentCommit(kv.second, ctx.tid)) {
         txmgr.rollbackTransaction(ctx);
         txmgr.abort();
-        throw std::runtime_error("Aborted TX with Last Commit ID != New Commit ID");
+        throw std::runtime_error("Aborted TX because concurrent commit found");
       }
     }
   }
@@ -221,24 +221,14 @@ transaction_cid_t TransactionManager::commitTransaction(TXContext ctx) {
   for (auto& kv: modifications.inserted) {
     auto weak_table = kv.first;
     if (auto store = getStore(weak_table.lock())) {
-      auto result = store->commitPositions(kv.second, ctx.cid, true);
-      if (result != TX_CODE::TX_OK) {
-        txmgr.rollbackTransaction(ctx);
-        txmgr.abort();
-        throw std::runtime_error("Aborted TX with "); // TODO at return code to error message
-      }
+      store->commitPositions(kv.second, ctx.cid, true);
     }
   }
 
   for (auto& kv: modifications.deleted) {
     auto weak_table = kv.first;
     if (auto store = getStore(weak_table.lock())) {
-      auto result = store->commitPositions(kv.second, ctx.cid, false);
-      if (result != TX_CODE::TX_OK) {
-        txmgr.rollbackTransaction(ctx);
-        txmgr.abort();
-        throw std::runtime_error("Aborted TX with "); // TODO at return code to error message
-      }
+      store->commitPositions(kv.second, ctx.cid, false);
     }
   }
 

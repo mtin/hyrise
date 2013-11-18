@@ -305,7 +305,7 @@ void Store::copyRowToDeltaFromStringVector(const std::vector<std::string>& sourc
   delta->copyRowFromStringVector(source, dst_row);
 }
 
-tx::TX_CODE Store::commitPositions(const pos_list_t& pos, const tx::transaction_cid_t cid, bool valid) {
+void Store::commitPositions(const pos_list_t& pos, const tx::transaction_cid_t cid, bool valid) {
   for(const auto& p : pos) {
     if(valid) {
       _cidBeginVector[p] = cid;
@@ -316,25 +316,14 @@ tx::TX_CODE Store::commitPositions(const pos_list_t& pos, const tx::transaction_
   }
 
   persist_scattered(pos, valid);
-  return tx::TX_CODE::TX_OK;
 }
 
 tx::TX_CODE Store::checkForConcurrentCommit(const pos_list_t& pos, const tx::transaction_id_t tid) const {
   for(const auto& p : pos) {
     if (_tidVector[p] != tid) {
-      std::cout << this->getName() << std::endl;
-      std::cout << "checkForConcurrentCommit failed. " << std::endl;
-      std::cout << "_tidVector[p]: " << _tidVector[p] << std::endl;
-      std::cout << "tid: " << tid << std::endl;
-      std::cout << "p: " << p << std::endl;
       return tx::TX_CODE::TX_FAIL_CONCURRENT_COMMIT;
     }
     if (_cidEndVector[p] != tx::INF_CID) {
-      std::cout << this->getName() << std::endl;
-      std::cout << "checkForConcurrentCommit failed. " << std::endl;
-      std::cout << "_cidEndVector[p]: " << _cidEndVector[p] << std::endl;
-      std::cout << "tx::INF_CID: " << tx::INF_CID << std::endl;
-      std::cout << "p: " << p << std::endl;
       return tx::TX_CODE::TX_FAIL_CONCURRENT_COMMIT;
     }
   }
@@ -342,17 +331,11 @@ tx::TX_CODE Store::checkForConcurrentCommit(const pos_list_t& pos, const tx::tra
 }
 
 tx::TX_CODE Store::markForDeletion(const pos_t pos, const tx::transaction_id_t tid) {
-
   if(atomic_cas(&_tidVector[pos], tx::START_TID, tid)) {
     return tx::TX_CODE::TX_OK;
   }
 
-  if(_tidVector[pos] && _cidEndVector[pos] == tx::INF_CID) {
-    // It is a row that we inserted ourselves. So we leave it as it is.
-    // No need for a CAS here since we already have it "locked"
-    // WARNING:
-    // This only works as long as inserted pos as committed before deleted.
-    // Otherwise we need to remove the position from the inserted list
+  if(_tidVector[pos] == tid && _cidEndVector[pos] == tx::INF_CID) {
     return tx::TX_CODE::TX_OK;
   }
 

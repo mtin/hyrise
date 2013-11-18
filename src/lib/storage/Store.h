@@ -68,7 +68,7 @@ public:
   void copyRowToDeltaFromJSONVector(const std::vector<Json::Value>& source, size_t dst_row, tx::transaction_id_t tid);
   void copyRowToDeltaFromStringVector(const std::vector<std::string>& source, size_t dst_row, tx::transaction_id_t tid);
 
-  tx::TX_CODE commitPositions(const pos_list_t& pos, const tx::transaction_cid_t cid, bool valid);
+  void commitPositions(const pos_list_t& pos, const tx::transaction_cid_t cid, bool valid);
 
   // TID handling
   inline tx::transaction_id_t tid(size_t row) const { return _tidVector[row]; }
