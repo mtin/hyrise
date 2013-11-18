@@ -23,7 +23,7 @@ class TpccDeliveryProcedure : public TpccStoredProcedure {
   storage::c_atable_ptr_t sumOLAmount();
   void updateCustomer();
   void updateOrderLine();
-  void updateOrders();
+  void updateOrders(const storage::atable_ptr_t& ordersRow);
 
   int _w_id;
   int _d_id;

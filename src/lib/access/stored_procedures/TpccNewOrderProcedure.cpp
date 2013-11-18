@@ -115,7 +115,7 @@ Json::Value TpccNewOrderProcedure::execute() {
     auto& item = _items.at(i);
     const int quantity = _items.at(i).quantity;
 
-    auto tStock = getStockInfo(item.w_id, item.id);
+    auto tStock = getStockInfo(item);
     if (tStock->size() == 0) {
       std::ostringstream os;
       os << "internal error: no stock information for item: " << item.id << " in warehouse " << item.w_id;
@@ -123,7 +123,7 @@ Json::Value TpccNewOrderProcedure::execute() {
     }
 
     s_ytd = tStock->getValue<hyrise_int_t>("S_YTD", 0);
-    s_ytd += quantity; //TODO WHAT???
+    s_ytd += quantity;
 
     int s_quantity = tStock->getValue<hyrise_int_t>("S_QUANTITY", 0);
     item.s_order_cnt = tStock->getValue<hyrise_int_t>("S_ORDER_CNT", 0);
@@ -147,7 +147,7 @@ Json::Value TpccNewOrderProcedure::execute() {
 
     total += item.amount();
 
-    updateStock(item);
+    updateStock(std::const_pointer_cast<AbstractTable>(tStock), item);
     createOrderLine(item, i + 1);
   }
 
@@ -221,9 +221,9 @@ void TpccNewOrderProcedure::createOrderLine(const ItemInfo& item, const int ol_n
   newRow->setValue<hyrise_int_t>("OL_NUMBER", 0, ol_number);
   newRow->setValue<hyrise_int_t>("OL_I_ID", 0, item.id);
   newRow->setValue<hyrise_int_t>("OL_SUPPLY_W_ID", 0, item.w_id);
-  newRow->setValue<hyrise_string_t>("OL_DELIVERY_D", 0, _date); //TODO not NULL?
+  newRow->setValue<hyrise_string_t>("OL_DELIVERY_D", 0, _date);
   newRow->setValue<hyrise_int_t>("OL_QUANTITY", 0, item.quantity);
-  newRow->setValue<hyrise_float_t>("OL_AMOUNT", 0, item.amount()); //TODO precision xx.xx
+  newRow->setValue<hyrise_float_t>("OL_AMOUNT", 0, item.amount());
   newRow->setValue<hyrise_string_t>("OL_DIST_INFO", 0, _ol_dist_info);
   
   insert(orderLine, newRow);
@@ -275,12 +275,12 @@ storage::c_atable_ptr_t TpccNewOrderProcedure::getItemInfo(int i_id) {
   return validated;
 }
 
-storage::c_atable_ptr_t TpccNewOrderProcedure::getStockInfo(int w_id, int i_id) {
+storage::c_atable_ptr_t TpccNewOrderProcedure::getStockInfo(const ItemInfo& item) {
   auto stock = getTpccTable("STOCK");
 
   expr_list_t expressions;
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(stock->getDeltaTable(), "S_W_ID", w_id));
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(stock->getDeltaTable(), "S_I_ID", i_id));
+  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(stock->getDeltaTable(), "S_W_ID", item.w_id));
+  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(stock->getDeltaTable(), "S_I_ID", item.id));
   auto validated = selectAndValidate(stock, "STOCK", connectAnd(expressions));
 
   return validated;
@@ -294,28 +294,19 @@ storage::c_atable_ptr_t TpccNewOrderProcedure::getWarehouseTaxRate() {
   return validated;
 }
 
-void TpccNewOrderProcedure::incrementNextOrderId(const storage::atable_ptr_t& district) {
+void TpccNewOrderProcedure::incrementNextOrderId(const storage::atable_ptr_t& districtRow) {
   Json::Value updates;
   updates["D_NEXT_O_ID"] = _o_id + 1;
-  update(district, updates);
+  update(districtRow, updates);
 }
 
-void TpccNewOrderProcedure::updateStock(const ItemInfo& item) {
-  auto stock = getTpccTable("STOCK");
-
-  expr_list_t expressions;
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(stock->getDeltaTable(), "S_W_ID", _w_id));
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(stock->getDeltaTable(), "S_I_ID", item.id));
-  auto validated = selectAndValidate(stock, "STOCK", connectAnd(expressions));
-  if (validated->size() != 1)
-    throw std::runtime_error("updateStock: no row to update");
-
+void TpccNewOrderProcedure::updateStock(const storage::atable_ptr_t& stockRow, const ItemInfo& item) {
   Json::Value updates;
   updates["S_QUANTITY"] = item.quantity;
   updates["S_ORDER_CNT"] = item.s_order_cnt;
   updates["S_REMOTE_CNT"] = item.s_remote_cnt;
   updates["S_QUANTITY"] = item.quantity;
-  update(validated, updates);
+  update(stockRow, updates);
 }
 
 } } // namespace hyrise::access

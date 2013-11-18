@@ -100,13 +100,13 @@ Json::Value TpccPaymentProcedure::execute() {
   const std::string d_name = tDistrict->getValue<hyrise_string_t>("D_NAME", 0);
   _h_data = w_name + "    " + d_name;
 
-  updateWarehouseBalance();
-  updateDistrictBalance();
+  updateWarehouseBalance(std::const_pointer_cast<AbstractTable>(tWarehouse));
+  updateDistrictBalance(std::const_pointer_cast<AbstractTable>(tDistrict));
 
   if (bc_customer)
-    updateBCCustomer();
+    updateBCCustomer(std::const_pointer_cast<AbstractTable>(tCustomer));
   else
-    updateGCCustomer();
+    updateGCCustomer(std::const_pointer_cast<AbstractTable>(tCustomer));
 
   insertHistory();
 
@@ -214,60 +214,33 @@ void TpccPaymentProcedure::insertHistory() {
   insert(history, newRow);
 }
 
-void TpccPaymentProcedure::updateDistrictBalance() {
-  auto orders = getTpccTable("DISTRICT");
-
-  expr_list_t expressions;
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orders->getDeltaTable(), "D_W_ID", _w_id));
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orders->getDeltaTable(), "D_ID", _d_id));
-  auto validated = selectAndValidate(orders, "DISTRICT", connectAnd(expressions));
-
+void TpccPaymentProcedure::updateDistrictBalance(const storage::atable_ptr_t& districtRow) {
   Json::Value updates;
   updates["D_YTD"] = _d_ytd;
-  update(validated, updates);
+  update(districtRow, updates);
 }
 
-void TpccPaymentProcedure::updateBCCustomer() {
-  auto orders = getTpccTable("CUSTOMER");
-
-  expr_list_t expressions;
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orders->getDeltaTable(), "C_W_ID", _w_id));
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orders->getDeltaTable(), "C_D_ID", _d_id));
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orders->getDeltaTable(), "C_ID", _c_id));
-  auto validated = selectAndValidate(orders, "CUSTOMER", connectAnd(expressions));
-
+void TpccPaymentProcedure::updateBCCustomer(const storage::atable_ptr_t& customerRow) {
   Json::Value updates;
   updates["C_BALANCE"] = _c_balance;
   updates["C_YTD_PAYMENT"] = _c_ytd_payment;
   updates["C_PAYMENT_CNT"] = _c_payment_cnt;
   updates["C_DATA"] = _c_data;
-  update(validated, updates);
+  update(customerRow, updates);
 }
 
-void TpccPaymentProcedure::updateGCCustomer() {
-  auto orders = getTpccTable("CUSTOMER");
-
-  expr_list_t expressions;
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orders->getDeltaTable(), "C_W_ID", _w_id));
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orders->getDeltaTable(), "C_D_ID", _d_id));
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orders->getDeltaTable(), "C_ID", _c_id));
-  auto validated = selectAndValidate(orders, "CUSTOMER", connectAnd(expressions));
-
+void TpccPaymentProcedure::updateGCCustomer(const storage::atable_ptr_t& customerRow) {
   Json::Value updates;
   updates["C_BALANCE"] = _c_balance;
   updates["C_YTD_PAYMENT"] = _c_ytd_payment;
   updates["C_PAYMENT_CNT"] = _c_payment_cnt;
-  update(validated, updates);
+  update(customerRow, updates);
 }
 
-void TpccPaymentProcedure::updateWarehouseBalance() {
-  auto orders = getTpccTable("WAREHOUSE");
-
-  auto validated = selectAndValidate(orders, "WAREHOUSE", std::unique_ptr<SimpleExpression>(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orders->getDeltaTable(), "W_ID", _w_id)));
-
+void TpccPaymentProcedure::updateWarehouseBalance(const storage::atable_ptr_t& warehouseRow) {
   Json::Value updates;
   updates["W_YTD"] = _w_ytd;
-  update(validated, updates);
+  update(warehouseRow, updates);
 }
 
 } } // namespace hyrise::access

@@ -37,10 +37,10 @@ class TpccNewOrderProcedure : public TpccStoredProcedure {
   storage::c_atable_ptr_t getCustomer();
   storage::c_atable_ptr_t getDistrict();
   storage::c_atable_ptr_t getItemInfo(int i_id);
-  storage::c_atable_ptr_t getStockInfo(int w_id, int i_id);
+  storage::c_atable_ptr_t getStockInfo(const ItemInfo& item);
   storage::c_atable_ptr_t getWarehouseTaxRate();
-  void incrementNextOrderId(const storage::atable_ptr_t& district);
-  void updateStock(const ItemInfo& item);
+  void incrementNextOrderId(const storage::atable_ptr_t& districtRow);
+  void updateStock(const storage::atable_ptr_t& stockRow, const ItemInfo& item);
 
   int allLocal() const;
 

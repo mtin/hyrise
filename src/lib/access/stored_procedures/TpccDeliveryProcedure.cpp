@@ -6,8 +6,6 @@
 #include <access.h>
 #include <unistd.h>
 
-//TODO 2.7.2 Deferred Execution!
-
 namespace hyrise { namespace access {
 
 namespace {
@@ -59,7 +57,7 @@ Json::Value TpccDeliveryProcedure::execute() {
     _total = tSum->getValue<hyrise_float_t>(0, 0);
 
     deleteNewOrder();
-    updateOrders();
+    updateOrders(std::const_pointer_cast<AbstractTable>(tOrder));
     updateOrderLine();
     updateCustomer();
 
@@ -169,18 +167,10 @@ void TpccDeliveryProcedure::updateOrderLine() {
   update(validated, updates);
 }
 
-void TpccDeliveryProcedure::updateOrders() {
-  auto orders = getTpccTable("ORDERS");
-
-  expr_list_t expressions;
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orders->getDeltaTable(), "O_W_ID", _w_id));
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orders->getDeltaTable(), "O_D_ID", _d_id));
-  expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orders->getDeltaTable(), "O_ID", _o_id));
-  auto validated = selectAndValidate(orders, "ORDERS", connectAnd(expressions));
-
+void TpccDeliveryProcedure::updateOrders(const storage::atable_ptr_t& ordersRow) {
   Json::Value updates;
   updates["O_CARRIER_ID"] = _o_carrier_id;
-  update(validated, updates);
+  update(ordersRow, updates);
 }
 
 

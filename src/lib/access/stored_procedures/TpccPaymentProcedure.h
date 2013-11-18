@@ -22,10 +22,10 @@ class TpccPaymentProcedure : public TpccStoredProcedure {
   storage::c_atable_ptr_t getDistrict();
   storage::c_atable_ptr_t getWarehouse();
   void insertHistory();
-  void updateDistrictBalance();
-  void updateBCCustomer();
-  void updateGCCustomer();
-  void updateWarehouseBalance();
+  void updateDistrictBalance(const storage::atable_ptr_t& districtRow);
+  void updateBCCustomer(const storage::atable_ptr_t& customerRow);
+  void updateGCCustomer(const storage::atable_ptr_t& customerRow);
+  void updateWarehouseBalance(const storage::atable_ptr_t& warehouseRow);
 
   int _w_id;
   int _d_id;
