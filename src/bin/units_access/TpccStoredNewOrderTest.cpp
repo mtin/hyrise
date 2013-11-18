@@ -108,12 +108,12 @@ TEST_F(TpccStoredNewOrderTest, NewOrder) {
                               {14  , 1     , 10      },
                               {15  , 1     , 10      }}; // 15 items remote warehouses*/
 //          (w_id, d_id, c_id, o_carrier_id, ol_dist_info, itemlist, o_id)
-  T_NewOrder(1   , 1   , 1   , 1           , "info1"     , items1  , 6   );
-  T_NewOrder(1   , 2   , 1   , 1           , "info2"     , items1  , 5   );
-  T_NewOrder(2   , 1   , 1   , 1           , "info3"     , items1  , 3   );
-  T_NewOrder(2   , 10  , 1   , 1           , "info4"     , items2  , 3   );
-  T_NewOrder(1   , 2   , 1   , 1           , "info5"     , items2  , 5   );
-  T_NewOrder(2   , 1   , 1   , 1           , "info6"     , items2  , 3   );
+  T_NewOrder(1   , 1   , 1   , 1           , "info1"     , items1  , 6   ); //1st
+  T_NewOrder(1   , 2   , 1   , 1           , "info2"     , items1  , 5   ); //1st
+  T_NewOrder(2   , 1   , 1   , 1           , "info3"     , items1  , 3   ); //1st
+  T_NewOrder(2   , 10  , 1   , 1           , "info4"     , items2  , 3   ); //1st
+  T_NewOrder(1   , 2   , 1   , 1           , "info5"     , items2  , 6   ); //2nd
+  T_NewOrder(2   , 1   , 1   , 1           , "info6"     , items2  , 4   ); //2nd
 }
 
 TEST_F(TpccStoredNewOrderTest, NewOrder_wrongItemCount) {
