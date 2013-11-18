@@ -154,15 +154,21 @@ const PlanOperation * PlanOperation::execute() {
 
   teardownPlanOperation();
 
-  if (!_papi_disabled) {
+  if (_performance_attr != nullptr) {
     epoch_t endTime = get_epoch_nanoseconds();
     std::string threadId = boost::lexical_cast<std::string>(std::this_thread::get_id());
 
-    if (_performance_attr != nullptr) {
-      *_performance_attr = (performance_attributes_t) {
-        pt.value("PAPI_TOT_CYC"), pt.value(getEvent()), getEvent() , planOperationName(), _operatorId, startTime, endTime, threadId
-      };
+    long long papi_cycles = 0;
+    long long papi_event = 0;
+
+    if (!_papi_disabled) {
+      papi_cycles = pt.value("PAPI_TOT_CYC");
+      papi_event = pt.value(getEvent());
     }
+    
+    *_performance_attr = (performance_attributes_t) {
+      papi_cycles, papi_event, getEvent() , planOperationName(), _operatorId, startTime, endTime, threadId
+    };
   }
 
   setState(OpSuccess);

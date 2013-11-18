@@ -25,7 +25,7 @@
 #include "access/expressions/expression_types.h"
 #include "access/IntersectPositions.h"
 #include "access/SimpleTableScan.h"
-
+#include "access/system/ResponseTask.h"
 
 #include <chrono>
 
@@ -121,12 +121,15 @@ void IndexAwareTableScan::executePlanOperation() {
     throw std::runtime_error("IndexAwareTableScan only works on stores");
 
   // execute table scan for the delta
-  SimpleTableScan _ts;
-  _ts.disablePapiTrace(); // disable papi trace as nested operators breaks it
-  _ts.setPredicate(_predicate);
-  _ts.setProducesPositions(true);
-  _ts.addInput(t_store->getDeltaTable());
-  _ts.execute();
+  std::shared_ptr<SimpleTableScan> _ts = std::make_shared<SimpleTableScan>();
+  _ts->disablePapiTrace(); // disable papi trace as nested operators breaks it
+  _ts->setPredicate(_predicate);
+  _ts->setProducesPositions(true);
+  _ts->addInput(t_store->getDeltaTable());
+  _ts->setOperatorId("__SimpleTableScanIATS");
+  _ts->setPlanOperationName("SimpleTableScanIATS");
+  getResponseTask()->registerPlanOperation(_ts);
+  _ts->execute();
 
   // calculate the index results
   std::vector<storage::pos_range_t> idx_results;
@@ -209,7 +212,7 @@ void IndexAwareTableScan::executePlanOperation() {
   }
   
   // correct offset for delta and add delta result to idx result
-  auto pc_delta = checked_pointer_cast<const PointerCalculator>(_ts.getResultTable());
+  auto pc_delta = checked_pointer_cast<const PointerCalculator>(_ts->getResultTable());
   const pos_list_t *delta_pos_unadjusted = pc_delta->getPositions();
   pos_t offset = t_store->getMainTable()->size();
   size_t delta_result_size = delta_pos_unadjusted->size();
