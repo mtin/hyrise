@@ -49,7 +49,7 @@ Json::Value TpccStoredNewOrderTest::doNewOrder(int w_id, int d_id, int c_id, int
   EXPECT_EQ(d_id, getValuei(response, "D_ID"));\
   EXPECT_EQ(c_id, getValuei(response, "C_ID"));\
   EXPECT_EQ("CLName" + toString(c_id), getValues(response, "C_LAST"));\
-  /*TODO check C_CREDIT*/\
+  getValues(response, "C_CREDIT");/*TODO check for value*/\
   EXPECT_FLOAT_EQ(0.1 * w_id + 0.01 * c_id, getValuef(response, "C_DISCOUNT"));\
   EXPECT_FLOAT_EQ(0.1 * w_id, getValuef(response, "W_TAX"));\
   EXPECT_FLOAT_EQ(0.01 * d_id, getValuef(response, "D_TAX"));\
@@ -85,28 +85,78 @@ Json::Value TpccStoredNewOrderTest::doNewOrder(int w_id, int d_id, int c_id, int
   EXPECT_EQ(getTable(History)->size()  , i_history_size);\
 }
 
-TEST_F(TpccStoredNewOrderTest, NewOrder) {
+
+
+#define T_NewOrder_Rollback(w_id, d_id, c_id, o_carrier_id, ol_dist_info, itemlist, o_id) \
+{\
+  const auto response = doNewOrder(w_id, d_id, c_id, o_carrier_id, ol_dist_info, itemlist);\
+\
+  EXPECT_EQ(w_id, getValuei(response, "W_ID"));\
+  EXPECT_EQ(d_id, getValuei(response, "D_ID"));\
+  EXPECT_EQ(c_id, getValuei(response, "C_ID"));\
+  EXPECT_EQ("CLName" + toString(c_id), getValues(response, "C_LAST"));\
+  getValues(response, "C_CREDIT");/*TODO check for value*/\
+  EXPECT_FLOAT_EQ(0.1 * w_id + 0.01 * c_id, getValuef(response, "C_DISCOUNT"));\
+  EXPECT_EQ(o_id, getValuei(response, "O_ID"));\
+  \
+  EXPECT_EQ(getTable(Customer)->size() , i_customer_size);\
+  EXPECT_EQ(getTable(Orders)->size()   , i_orders_size);\
+  EXPECT_EQ(getTable(OrderLine)->size(), i_orderLine_size);\
+  EXPECT_EQ(getTable(Warehouse)->size(), i_warehouse_size);\
+  EXPECT_EQ(getTable(NewOrder)->size() , i_newOrder_size);\
+  EXPECT_EQ(getTable(District)->size() , i_district_size);\
+  EXPECT_EQ(getTable(Item)->size()     , i_item_size);\
+  EXPECT_EQ(getTable(Stock)->size()    , i_stock_size);\
+  EXPECT_EQ(getTable(History)->size()  , i_history_size);\
+}
+
+
+namespace {
 //                           {{i_id, i_w_id, quantity}}
-  const item_list_t items1 = {{1   , 1     , 1       },
-                              {2   , 1     , 2       },
-                              {3   , 1     , 3       },
-                              {4   , 1     , 4       },
-                              {5   , 1     , 5       }}; // 5 items all local
-  const item_list_t items2 = {{1   , 1     , 10      },
-                              {2   , 1     , 10      },
-                              {3   , 1     , 10      },
-                              {4   , 1     , 10      },
-                              {5   , 1     , 10      },
-                              {6   , 1     , 10      },
-                              {7   , 1     , 10      },
-                              {8   , 1     , 10      },
-                              {9   , 1     , 10      },
-                              {10  , 1     , 10      },
-                              {11  , 1     , 10      },
-                              {12  , 1     , 10      },
-                              {13  , 1     , 10      },
-                              {14  , 1     , 10      },
-                              {15  , 1     , 10      }}; // 15 items remote warehouses*/
+const item_list_t items1 = {{1   , 1     , 1       },
+                            {2   , 1     , 2       },
+                            {3   , 1     , 3       },
+                            {4   , 1     , 4       },
+                            {5   , 1     , 5       }}; // 5 items all local
+const item_list_t items2 = {{1   , 1     , 10      },
+                            {2   , 1     , 10      },
+                            {3   , 1     , 10      },
+                            {4   , 1     , 10      },
+                            {5   , 1     , 10      },
+                            {6   , 1     , 10      },
+                            {7   , 1     , 10      },
+                            {8   , 1     , 10      },
+                            {9   , 1     , 10      },
+                            {10  , 1     , 10      },
+                            {11  , 1     , 10      },
+                            {12  , 1     , 10      },
+                            {13  , 1     , 10      },
+                            {14  , 1     , 10      },
+                            {15  , 1     , 10      }}; // 15 items remote warehouses*/
+const item_list_t itemsw1 = {{1   , 1     , 1       },
+                             {2   , 1     , 2       },
+                             {-3  , 1     , 3       },
+                             {4   , 1     , 4       },
+                             {5   , 1     , 5       }}; // 5 items all local
+const item_list_t itemsw2 = {{1   , 1     , 10      },
+                             {2   , 1     , 10      },
+                             {3   , 1     , 10      },
+                             {4   , 1     , 10      },
+                             {5   , 1     , 10      },
+                             {6   , 1     , 10      },
+                             {7   , 1     , 10      },
+                             {8   , 1     , 10      },
+                             {9   , 1     , 10      },
+                             {10  , 1     , 10      },
+                             {11  , 1     , 10      },
+                             {12  , 1     , 10      },
+                             {13  , 1     , 10      },
+                             {14  , 1     , 10      },
+                             {17  , 1     , 10      }}; // 15 items remote warehouses*/
+
+} // namespace
+
+TEST_F(TpccStoredNewOrderTest, NewOrder) {
 //          (w_id, d_id, c_id, o_carrier_id, ol_dist_info, itemlist, o_id)
   T_NewOrder(1   , 1   , 1   , 1           , "info1"     , items1  , 6   ); //1st
   T_NewOrder(1   , 2   , 1   , 1           , "info2"     , items1  , 5   ); //1st
@@ -114,6 +164,19 @@ TEST_F(TpccStoredNewOrderTest, NewOrder) {
   T_NewOrder(2   , 10  , 1   , 1           , "info4"     , items2  , 3   ); //1st
   T_NewOrder(1   , 2   , 1   , 1           , "info5"     , items2  , 6   ); //2nd
   T_NewOrder(2   , 1   , 1   , 1           , "info6"     , items2  , 4   ); //2nd
+}
+
+TEST_F(TpccStoredNewOrderTest, NewOrder_rollback) {
+//                  (w_id, d_id, c_id, o_carrier_id, ol_dist_info, itemlist, o_id)
+  T_NewOrder_Rollback(1   , 1   , 1   , 1           , "info"      , itemsw1 , 6   );
+  T_NewOrder_Rollback(1   , 1   , 1   , 1           , "info"      , itemsw1 , 6   );
+  T_NewOrder_Rollback(2   , 1   , 1   , 1           , "info"      , itemsw1 , 3   );
+  T_NewOrder_Rollback(1   , 3   , 2   , 1           , "info"      , itemsw1 , 3   );
+  T_NewOrder_Rollback(1   , 7   , 2   , 1           , "info"      , itemsw1 , 3   );
+  T_NewOrder_Rollback(2   , 10  , 1   , 1           , "info"      , itemsw1 , 3   );
+  T_NewOrder_Rollback(2   , 1   , 2   , 1           , "info"      , itemsw1 , 3   );
+  T_NewOrder_Rollback(2   , 7   , 2   , 1           , "info"      , itemsw1 , 3   );
+  T_NewOrder_Rollback(1   , 8   , 1   , 1           , "info"      , itemsw1 , 3   );
 }
 
 TEST_F(TpccStoredNewOrderTest, NewOrder_wrongItemCount) {

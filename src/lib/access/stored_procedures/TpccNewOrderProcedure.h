@@ -25,9 +25,9 @@ class TpccNewOrderProcedure : public TpccStoredProcedure {
                     int s_remote_cnt;
                     float price;
                     std::string name;
-                    std::string data;/*needed*/
-                    bool bc;
-    float amount() const { return quantity * price; } } ItemInfo;
+                    bool original;
+                    float amount() const { return quantity * price; }
+  } ItemInfo;
   typedef std::vector<ItemInfo> item_info_list_t;
 
   //queries
@@ -48,7 +48,7 @@ class TpccNewOrderProcedure : public TpccStoredProcedure {
   int _d_id;
   int _c_id;
   int _o_id;
-  int _ol_cnt;
+  size_t _ol_cnt;
   int _carrier_id;
   int _ol_supply_w_id;
   std::string _ol_dist_info;

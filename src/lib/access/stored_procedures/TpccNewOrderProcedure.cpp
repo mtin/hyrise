@@ -25,7 +25,7 @@ void TpccNewOrderProcedure::setData(const Json::Value& data) {
   _c_id =         assureMemberExists(data, "C_ID").asInt();
 
   const auto itemInfo = assureMemberExists(data, "items");
-  _ol_cnt = itemInfo.size();
+  _ol_cnt = static_cast<size_t>(itemInfo.size());
   if (_ol_cnt < 5 || _ol_cnt > 15)
     throw std::runtime_error("there must be between 5 and 15 items in an order");
 
@@ -63,15 +63,19 @@ Json::Value TpccNewOrderProcedure::execute() {
   _all_local = allLocal();
 
   _rollback = false;
-  for (auto& item : _items) {
+  for (size_t i = 0; i < _ol_cnt; ++i) {
+    auto& item = _items.at(i);
     auto tItem = getItemInfo(item.id);
     if (tItem->size() == 0) {
-      throw std::runtime_error("item not found - fixme");
-      _rollback = true;//TODO not found condition
+      --_ol_cnt;
+      _items.erase(_items.begin() + i);
+      _rollback = true;
+      continue; // do NOT add this item to the itemlist
     }
     item.price = tItem->getValue<hyrise_float_t>("I_PRICE", 0);
     item.name = tItem->getValue<hyrise_string_t>("I_NAME", 0);
-    item.data = tItem->getValue<hyrise_string_t>("I_DATA", 0);
+    const auto i_data = tItem->getValue<hyrise_string_t>("I_DATA", 0);
+    item.original = (i_data.find("ORIGINAL") != i_data.npos);
   }
 
   auto tWarehouse = getWarehouseTaxRate();
@@ -138,7 +142,8 @@ Json::Value TpccNewOrderProcedure::execute() {
     item.s_quantity = s_quantity;
     item.s_remote_cnt = tStock->getValue<hyrise_int_t>("S_REMOTE_CNT", 0);
 
-    std::string s_data = tStock->getValue<hyrise_string_t>("S_DATA", 0);
+    const auto s_data = tStock->getValue<hyrise_string_t>("S_DATA", 0);
+    item.original &= s_data.find("ORIGINAL") != s_data.npos;
 
     std::ostringstream os;
     os << "S_DIST_" << std::setw(2) << std::setfill('0') << std::right << _d_id;
@@ -152,7 +157,7 @@ Json::Value TpccNewOrderProcedure::execute() {
   }
 
   if (_rollback)
-    rollback(); //TODO this can skip more actions (2.4.2.3)!
+    rollback();
   else
     commit();
 
@@ -188,10 +193,10 @@ Json::Value TpccNewOrderProcedure::execute() {
     item["I_NAME"] = cur.name;
     item["OL_QUANTITY"] = cur.quantity;
     item["S_QUANTITY"] = cur.s_quantity;
-    if (cur.bc)
-      item["brand-generic"] = "BC";
+    if (cur.original)
+      item["brand-generic"] = "B";
     else
-      item["brand-generic"] = "GC";
+      item["brand-generic"] = "G";
     item["I_PRICE"] = cur.price;
     item["OL_AMOUNT"] = cur.price * cur.quantity;
 

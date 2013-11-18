@@ -62,7 +62,7 @@ Json::Value TpccDeliveryProcedure::execute() {
     updateCustomer();
 
     Json::Value row;
-    row[0] = _d_id;
+    row[0] = _w_id;
     row[1] = _o_id;
     rows.append(row);
   }
@@ -71,7 +71,7 @@ Json::Value TpccDeliveryProcedure::execute() {
 
   Json::Value result;
   Json::Value header;
-  header[0] = "D_ID";
+  header[0] = "W_ID";
   header[1] = "NO_O_ID";
   result["header"] = header;
   result["rows"] = rows;
