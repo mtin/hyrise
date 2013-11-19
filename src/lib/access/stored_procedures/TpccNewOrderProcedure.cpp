@@ -37,11 +37,6 @@ void TpccNewOrderProcedure::setData(const Json::Value& data) {
     _items.push_back(info);
   }
   _carrier_id = 0;
-
-  std::sort(_items.begin(), _items.end(), [](const ItemInfo& i1, const ItemInfo& i2) { return i1.id < i2.id; });
-  const auto it = std::unique(_items.begin(), _items.end(), [](const ItemInfo& i1, const ItemInfo& i2) { return i1.id == i2.id; });
-  if (it != _items.end())
-    throw std::runtime_error("items in New Order must be unique");
 }
 
 std::string TpccNewOrderProcedure::name() {
@@ -70,6 +65,8 @@ Json::Value TpccNewOrderProcedure::execute() {
       --_ol_cnt;
       _items.erase(_items.begin() + i);
       _rollback = true;
+      if (i != _ol_cnt)
+        throw std::runtime_error("only the last item may be invalid!");
       continue; // do NOT add this item to the itemlist
     }
     item.price = tItem->getValue<hyrise_float_t>("I_PRICE", 0);

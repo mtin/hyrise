@@ -134,9 +134,9 @@ const item_list_t items2 = {{1   , 1     , 10      },
                             {15  , 1     , 10      }}; // 15 items remote warehouses*/
 const item_list_t itemsw1 = {{1   , 1     , 1       },
                              {2   , 1     , 2       },
-                             {-3  , 1     , 3       },
+                             {3   , 1     , 3       },
                              {4   , 1     , 4       },
-                             {5   , 1     , 5       }}; // 5 items all local, 1 wrong
+                             {0   , 1     , 5       }}; // 5 items all local, 1 wrong
 const item_list_t itemsw2 = {{1   , 1     , 10      },
                              {2   , 1     , 10      },
                              {3   , 1     , 10      },
@@ -218,13 +218,28 @@ TEST_F(TpccStoredNewOrderTest, NewOrder_wrongQuantity) {
                                                            {5   , 1     , 0       }, }), TpccError);
 }
 
-TEST_F(TpccStoredNewOrderTest, NewOrder_twiceTheSameItem) {
+TEST_F(TpccStoredNewOrderTest, NewOrder_invalidItemNotLast) {
   //                     (w_id, d_id, c_id, ol_dist_info, {{i_id, i_w_id, quantity}});
   EXPECT_THROW(doNewOrder(1   , 1   , 1   , "info"      , {{1   , 1     , 1       },
-                                                           {2   , 1     , 1       },
+                                                           {-2  , 1     , 1       },
                                                            {3   , 1     , 1       },
                                                            {4   , 1     , 1       },
                                                            {4   , 1     , 1       }}), TpccError);
+  EXPECT_THROW(doNewOrder(1   , 2   , 1   , "info"      , {{-1  , 1     , 1       },
+                                                           {2   , 1     , 1       },
+                                                           {3   , 1     , 1       },
+                                                           {-4  , 1     , 1       },
+                                                           {4   , 1     , 1       }}), TpccError);
+  EXPECT_THROW(doNewOrder(2   , 1   , 2   , "info"      , {{1   , 1     , 1       },
+                                                           {2   , 1     , 1       },
+                                                           {3   , 1     , 1       },
+                                                           {-4  , 1     , 1       },
+                                                           {4   , 1     , 1       }}), TpccError);
+  EXPECT_THROW(doNewOrder(1   , 10  , 3   , "info"      , {{1   , 1     , 1       },
+                                                           {2   , 1     , 1       },
+                                                           {3   , 1     , 1       },
+                                                           {-4  , 1     , 1       },
+                                                           {-4  , 1     , 1       }}), TpccError);
 }
 
 } } // namespace hyrise::access
