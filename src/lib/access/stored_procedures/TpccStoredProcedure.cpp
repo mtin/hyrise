@@ -30,15 +30,15 @@ void TpccStoredProcedure::operator()() {
     setData(d);
   }
   catch (std::runtime_error e) {
-    _connection->respond(std::string("error: ") + e.what());
+    _connection->respond(std::string("error: ") + e.what(), 500);
     return;
   }
- 
+
   try {
     startTransaction();
     Json::Value result;
-    result = execute();    
-    
+    result = execute();
+
     if (_recordPerformance) {
       auto json_result_with_perf = _responseTask->generateResponseJson();
       result["performanceData"] = json_result_with_perf["performanceData"];
@@ -49,7 +49,7 @@ void TpccStoredProcedure::operator()() {
   }
   catch (std::runtime_error e) {
     rollback();
-    _connection->respond(std::string("error: ") + e.what());
+    _connection->respond(std::string("error: ") + e.what(), 500);
       std::cout << std::string("error: ") + e.what();
     return;
   }
@@ -188,7 +188,7 @@ storage::atable_ptr_t TpccStoredProcedure::newRowFrom(storage::c_atable_ptr_t ta
 }
 
 void TpccStoredProcedure::insert(storage::atable_ptr_t table, storage::atable_ptr_t rows) const {
-  
+
   std::shared_ptr<InsertScan> insert = std::make_shared<InsertScan>();
   insert->setOperatorId("__InsertScan");
   insert->setPlanOperationName("InsertScan");
@@ -252,7 +252,7 @@ std::unique_ptr<AbstractExpression> TpccStoredProcedure::connectAnd(expr_list_t 
 void TpccStoredProcedure::commit() {
   if (_finished)
     throw std::runtime_error("cannot commit twice");
-  
+
   std::shared_ptr<Commit> commit = std::make_shared<Commit>();
   commit->setOperatorId("__Commit");
   commit->setPlanOperationName("Commit");
@@ -266,7 +266,7 @@ void TpccStoredProcedure::commit() {
 void TpccStoredProcedure::rollback() {
   if (_finished)
     throw std::runtime_error("cannot rollback twice");
-  
+
   std::shared_ptr<Rollback> rb = std::make_shared<Rollback>();
   rb->setOperatorId("__Rollback");
   rb->setPlanOperationName("Rollback");
