@@ -58,7 +58,7 @@ IndexAwareTableScan::IndexAwareTableScan() {}
 IndexAwareTableScan::~IndexAwareTableScan() {}
 
 struct GroupkeyIndexFunctor {
-  typedef storage::pos_range_t value_type;
+  typedef PositionRange value_type;
 
   std::string _indexname;
   const Json::Value _indexValue1;
@@ -128,14 +128,15 @@ void IndexAwareTableScan::executePlanOperation() {
   _ts->addInput(t_store->getDeltaTable());
   _ts->setOperatorId("__SimpleTableScanIATS");
   _ts->setPlanOperationName("SimpleTableScanIATS");
-  getResponseTask()->registerPlanOperation(_ts);
+  auto responseTask = getResponseTask();
+  if (responseTask)
+    responseTask->registerPlanOperation(_ts);
   _ts->execute();
 
   // calculate the index results
-  std::vector<storage::pos_range_t> idx_results;
+  std::vector<PositionRange> idx_results;
   storage::type_switch<hyrise_basic_types> ts;
   std::vector<size_t> columns;
-  std::vector<bool> result_sorted;
 
   size_t i = 0;
   for (auto functor : _idx_functors) {
@@ -148,64 +149,57 @@ void IndexAwareTableScan::executePlanOperation() {
       // no result for this column, so just add it
       columns.push_back(column);
       idx_results.push_back(idx_result);
-      // if thepredicate is not equals, remember to sort the result later
-      result_sorted.push_back(functor._predicate_type == PredicateType::EqualsExpressionValue);
     } else {
       // we already have a result. pos range are on
       // the same vector, so we can directly intersect them
       // by adjusting the iterators for the range
       size_t other_result_index = other_result_it - columns.begin();
-      storage::pos_range_t *other_result = &idx_results[other_result_index];
-      if (idx_result.first > other_result->first)
-        other_result->first = idx_result.first;
-      if (idx_result.second < other_result->second)
-        other_result->second = idx_result.second;
-      if (other_result->first > other_result->second)
-        other_result->second = other_result->second;
+      PositionRange *other_result = &idx_results[other_result_index];
+      if (idx_result.begin > other_result->begin)
+        other_result->begin = idx_result.begin;
+      if (idx_result.end < other_result->end)
+        other_result->end = idx_result.end;
+      if (other_result->begin > other_result->end)
+        other_result->end = other_result->end;
 
       // remember to sort the result later
-      result_sorted[other_result_index] = false;
+      other_result->sorted = false;
     }
   }
 
-
-  
   // sort so we start with the smallest range
   if (idx_results.size() > 2) {
     std::sort(
       begin(idx_results), end(idx_results),
-      [] (storage::pos_range_t a, storage::pos_range_t b) {
-        return (a.second-a.first)<(b.second-b.first);
+      [] (PositionRange a, PositionRange b) {
+        return (a.end-a.begin)<(b.end-b.begin);
       });
   }
-  
+    
   pos_list_t *base = new pos_list_t;
   pos_list_t *tmp_result = new pos_list_t;
 
   // if we only have one idx result, this is the final one
   if (idx_results.size() == 1) {
     auto r = idx_results[0];
-    std::copy(r.first, r.second, std::back_inserter(*base));
+    std::copy(r.begin, r.end, std::back_inserter(*base));
   } 
   // otherwise we intersect the first two results
   else if (idx_results.size() >= 2) {
     auto a = idx_results[0];
     auto b = idx_results[1];
-    bool a_sorted = result_sorted[0];
-    bool b_sorted = result_sorted[1];
-    PointerCalculator::intersect_pos_list(a.first, a.second, b.first, b.second, base, a_sorted, b_sorted);
+    PointerCalculator::intersect_pos_list(a.begin, a.end, b.begin, b.end, base, a.sorted, b.sorted);
   }
 
   // if we have more than two results, intersect them too
   if (idx_results.size() > 2) {
-    std::vector<storage::pos_range_t>::iterator it = idx_results.begin();
-    std::vector<storage::pos_range_t>::iterator it_end = idx_results.end();
+    std::vector<PositionRange>::iterator it = idx_results.begin();
+    std::vector<PositionRange>::iterator it_end = idx_results.end();
     ++it; ++it;
     for (;it != it_end; ++it) {
       if (base->empty()) break; // when base is empty, final intersect is empty too
       auto r = *it;
-      bool is_sorted = result_sorted[it-idx_results.begin()];
-      PointerCalculator::intersect_pos_list(r.first, r.second, base->begin(), base->end(), tmp_result, is_sorted, true);
+      PointerCalculator::intersect_pos_list(r.begin, r.end, base->begin(), base->end(), tmp_result, r.sorted, true);
       *base = *tmp_result;
       tmp_result->clear();
     }
