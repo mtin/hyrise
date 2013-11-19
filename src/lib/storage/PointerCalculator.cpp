@@ -325,10 +325,11 @@ void PointerCalculator::intersect_pos_list(
   // baeza-yates algorithm with average complexity nicely
   // adapting to the smaller list size. whereas std::set_intersection
   // iterates over both lists with linear complexity.
-
+  
+  pos_list_t input1_sorted, input2_sorted;
   if (!first_sorted) {
     // copy input 1 and sort it
-    pos_list_t input1_sorted; input1_sorted.reserve(end1-beg1);
+    input1_sorted.reserve(end1-beg1);
     std::copy ( beg1, end1, std::back_inserter(input1_sorted) );
     std::sort ( input1_sorted.begin(), input1_sorted.end() );
     beg1 = input1_sorted.begin();
@@ -336,7 +337,7 @@ void PointerCalculator::intersect_pos_list(
   }
   if (!second_sorted) {
     // copy input 2 and sort it
-    pos_list_t input2_sorted; input2_sorted.reserve(end2-beg2);
+    input2_sorted.reserve(end2-beg2);
     std::copy ( beg2, end2, std::back_inserter(input2_sorted) );
     std::sort ( input2_sorted.begin(), input2_sorted.end() );
     beg2 = input2_sorted.begin();
