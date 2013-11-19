@@ -19,7 +19,7 @@ template<typename T>
 class GroupkeyIndex : public AbstractIndex {
 private:
   typedef std::map<T, pos_list_t> inverted_index_mutable_t;
-  typedef std::map<T, hyrise::storage::pos_range_t> groupkey_offsets_t;
+  typedef std::map<T, PositionRange> groupkey_offsets_t;
   typedef pos_list_t groupkey_postings_t;
 
   groupkey_offsets_t _offsets;
@@ -55,7 +55,7 @@ public:
         // set offsets
         auto offset_begin = _postings.end() - it.second.end() + it.second.begin();
         auto offset_end = _postings.end();
-        _offsets[it.first] = std::make_pair(offset_begin, offset_end);
+        _offsets[it.first] = PositionRange(offset_begin, offset_end, true);
       }
     }
   };
@@ -64,41 +64,60 @@ public:
   /**
    * returns a list of positions where key was found.
    */
-  hyrise::storage::pos_range_t getPositionsForKey(T key) {
+  PositionRange getPositionsForKey(T key) {
    auto it = _offsets.find(key);
     if (it != _offsets.end()) {
-      return std::make_pair(it->second.first, it->second.second);
+      return PositionRange(it->second.begin, it->second.end, true);
     } else {
       // empty result
-      return std::make_pair(_postings.begin(), _postings.begin());
+      return PositionRange(_postings.begin(), _postings.begin(), true);
     }
   };
 
-  hyrise::storage::pos_range_t getPositionsForKeyLT(T key) {
+  PositionRange getPositionsForKeyLT(T key) {
     auto it = _offsets.lower_bound(key);
-    return std::make_pair(_postings.begin(), it->second.second);
+    if (it != _offsets.end()) {
+      return PositionRange(_postings.begin(), it->second.begin, false);
+    } else {
+      // all
+      return PositionRange(_postings.begin(), _postings.end(), false);
+    }
   };
 
-  hyrise::storage::pos_range_t getPositionsForKeyLTE(T key) {
+  PositionRange getPositionsForKeyLTE(T key) {
     auto it = _offsets.upper_bound(key);
-    return std::make_pair(_postings.begin(), it->second.first);
+    if (it != _offsets.end()) {
+      return PositionRange(_postings.begin(), it->second.begin, false);
+    } else {
+      // all
+      return PositionRange(_postings.begin(), _postings.end(), false);
+    }
   };
 
-  hyrise::storage::pos_range_t getPositionsForKeyBetween(T a, T b) {
-    auto it1 = _offsets.lower_bound(a);
-    auto it2 = _offsets.upper_bound(b);
-    return std::make_pair(it1->second.first, it2->second.second);
-  };
-
-  hyrise::storage::pos_range_t getPositionsForKeyGT(T key) {
+  PositionRange getPositionsForKeyGT(T key) {
     auto it = _offsets.upper_bound(key);
-    return std::make_pair(it->second.first, _postings.end());
+    if (it != _offsets.end()) {
+      return PositionRange(it->second.begin, _postings.end(), false);
+    } else {
+      // empty
+      return PositionRange(_postings.end(), _postings.end(), false);
+    }
   };
 
-  hyrise::storage::pos_range_t getPositionsForKeyGTE(T key) {
+  PositionRange getPositionsForKeyGTE(T key) {
     auto it = _offsets.lower_bound(key);
-    return std::make_pair(it->second.first, _postings.end());
+    if (it != _offsets.end()) {
+      return PositionRange(it->second.begin, _postings.end(), false);
+    } else {
+      // empty
+      return PositionRange(_postings.end(), _postings.end(), false);
+    }
   };
 
+  // PositionRange getPositionsForKeyBetween(T a, T b) {
+  //   auto it1 = _offsets.lower_bound(a);
+  //   auto it2 = _offsets.upper_bound(b);
+  //   return PositionRange(it1->second.begin, it2->second.end, false);
+  // };
 };
 #endif  // SRC_LIB_STORAGE_GROUPKEYINDEX_H_

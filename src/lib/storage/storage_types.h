@@ -95,5 +95,18 @@ typedef std::vector<const ColumnMetadata *> metadata_list;
 typedef std::vector<metadata_list *> compound_metadata_list;
 typedef std::vector<ColumnMetadata> metadata_vec_t;
 
+
+struct PositionRange {
+  pos_list_t::iterator begin;
+  pos_list_t::iterator end;
+  bool sorted;
+
+  PositionRange() : begin(nullptr), end(nullptr), sorted(true) {}
+  PositionRange(pos_list_t::iterator _begin, pos_list_t::iterator _end, bool _sorted) : begin(_begin), end(_end), sorted(_sorted) {}
+
+  size_t size() { return end-begin; }
+};
+
+
 #endif  // SRC_LIB_STORAGE_STORAGE_TYPES_H_
 
