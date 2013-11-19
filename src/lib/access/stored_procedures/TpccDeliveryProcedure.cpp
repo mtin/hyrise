@@ -19,7 +19,6 @@ TpccDeliveryProcedure::TpccDeliveryProcedure(net::AbstractConnection* connection
 
 void TpccDeliveryProcedure::setData(const Json::Value& data) {
   _w_id =         assureMemberExists(data, "W_ID").asInt();
-  _d_id =         assureIntValueBetween(data, "D_ID", 1, 10);
   _o_carrier_id = assureIntValueBetween(data, "O_CARRIER_ID", 1, 10);
 }
 
