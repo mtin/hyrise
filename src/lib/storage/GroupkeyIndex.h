@@ -76,29 +76,48 @@ public:
 
   PositionRange getPositionsForKeyLT(T key) {
     auto it = _offsets.lower_bound(key);
-    return PositionRange(_postings.begin(), it->second.end, false);
+    if (it != _offsets.end()) {
+      return PositionRange(_postings.begin(), it->second.begin, false);
+    } else {
+      // all
+      return PositionRange(_postings.begin(), _postings.end(), false);
+    }
   };
 
   PositionRange getPositionsForKeyLTE(T key) {
     auto it = _offsets.upper_bound(key);
-    return PositionRange(_postings.begin(), it->second.begin, false);
-  };
-
-  PositionRange getPositionsForKeyBetween(T a, T b) {
-    auto it1 = _offsets.lower_bound(a);
-    auto it2 = _offsets.upper_bound(b);
-    return PositionRange(it1->second.begin, it2->second.end, false);
+    if (it != _offsets.end()) {
+      return PositionRange(_postings.begin(), it->second.begin, false);
+    } else {
+      // all
+      return PositionRange(_postings.begin(), _postings.end(), false);
+    }
   };
 
   PositionRange getPositionsForKeyGT(T key) {
     auto it = _offsets.upper_bound(key);
-    return PositionRange(it->second.begin, _postings.end(), false);
+    if (it != _offsets.end()) {
+      return PositionRange(it->second.begin, _postings.end(), false);
+    } else {
+      // empty
+      return PositionRange(_postings.end(), _postings.end(), false);
+    }
   };
 
   PositionRange getPositionsForKeyGTE(T key) {
     auto it = _offsets.lower_bound(key);
-    return PositionRange(it->second.begin, _postings.end(), false);
+    if (it != _offsets.end()) {
+      return PositionRange(it->second.begin, _postings.end(), false);
+    } else {
+      // empty
+      return PositionRange(_postings.end(), _postings.end(), false);
+    }
   };
 
+  // PositionRange getPositionsForKeyBetween(T a, T b) {
+  //   auto it1 = _offsets.lower_bound(a);
+  //   auto it2 = _offsets.upper_bound(b);
+  //   return PositionRange(it1->second.begin, it2->second.end, false);
+  // };
 };
 #endif  // SRC_LIB_STORAGE_GROUPKEYINDEX_H_
