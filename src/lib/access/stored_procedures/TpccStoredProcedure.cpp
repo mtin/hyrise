@@ -264,6 +264,11 @@ void TpccStoredProcedure::commit() {
 }
 
 void TpccStoredProcedure::rollback() {
+  if(tx::TransactionManager::isRunningTransaction(_tx.tid) == false) {
+    // TX has most likely been aborted/rolled back by internal measures
+    return;
+  }
+
   if (_finished)
     throw std::runtime_error("cannot rollback twice");
 
