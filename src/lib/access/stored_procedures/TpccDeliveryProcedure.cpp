@@ -37,7 +37,7 @@ Json::Value TpccDeliveryProcedure::execute() {
 
   storage::c_atable_ptr_t tNewOrder;
   for(int i = 0; i < 10; i++) {
-    _d_id = i+1;
+    _d_id = i + 1;
     tNewOrder = getNewOrder();
 
     if (tNewOrder->size() == 0) continue;

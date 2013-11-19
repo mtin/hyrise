@@ -20,19 +20,19 @@ TpccNewOrderProcedure::TpccNewOrderProcedure(net::AbstractConnection* connection
 }
 
 void TpccNewOrderProcedure::setData(const Json::Value& data) {
-  _w_id =         assureMemberExists(data, "W_ID").asInt();
-  _d_id =         assureIntValueBetween(data, "D_ID", 1, 10);
-  _c_id =         assureMemberExists(data, "C_ID").asInt();
+  _w_id = assureMemberExists(data, "W_ID").asInt();
+  _d_id = assureIntValueBetween(data, "D_ID", 1, 10);
+  _c_id = assureMemberExists(data, "C_ID").asInt();
 
   const auto itemInfo = assureMemberExists(data, "items");
   _ol_cnt = static_cast<size_t>(itemInfo.size());
   if (_ol_cnt < 5 || _ol_cnt > 15)
     throw std::runtime_error("there must be between 5 and 15 items in an order");
 
-  for (int i = 0; i < _ol_cnt; ++i) {
+  for (Json::ArrayIndex i = 0; i < static_cast<Json::ArrayIndex>(_ol_cnt); ++i) {
     ItemInfo info;
-    info.id =       assureMemberExists(itemInfo[i],"I_ID").asInt();
-    info.w_id =     assureMemberExists(itemInfo[i],"I_W_ID").asInt();
+    info.id       = assureMemberExists(itemInfo[i],"I_ID").asInt();
+    info.w_id     = assureMemberExists(itemInfo[i],"I_W_ID").asInt();
     info.quantity = assureIntValueBetween(itemInfo[i],"quantity", 1, 10);
     _items.push_back(info);
   }
@@ -115,7 +115,7 @@ Json::Value TpccNewOrderProcedure::execute() {
   std::string s_data, s_dist;
   float total = 0;
 
-  for (int i = 0; i < _ol_cnt; ++i) {
+  for (Json::ArrayIndex i = 0; i < static_cast<Json::ArrayIndex>(_ol_cnt); ++i) {
     auto& item = _items.at(i);
     const int quantity = _items.at(i).quantity;
 
@@ -185,7 +185,7 @@ Json::Value TpccNewOrderProcedure::execute() {
   result["total-amount"] = total;
 
   Json::Value items(Json::arrayValue);
-  for (int i = 0; i < _ol_cnt; ++i) {
+  for (Json::ArrayIndex i = 0; i < static_cast<Json::ArrayIndex>(_ol_cnt); ++i) {
     Json::Value item;
     const auto& cur = _items.at(i);
     item["OL_SUPPLY_W_ID"] = cur.w_id;

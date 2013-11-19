@@ -7,16 +7,15 @@ namespace access {
 class TpccStoredNewOrderTest : public TpccStoredProceduresTest {
 
 protected:
-  Json::Value newOrderData(int w_id, int d_id, int c_id, int o_carrier_id, const std::string& ol_dist_info, item_list_t items);
-  Json::Value doNewOrder(int w_id, int d_id, int c_id, int o_carrier_id, const std::string& ol_dist_info, item_list_t items);
+  Json::Value newOrderData(int w_id, int d_id, int c_id, const std::string& ol_dist_info, item_list_t items);
+  Json::Value doNewOrder(int w_id, int d_id, int c_id, const std::string& ol_dist_info, item_list_t items);
 };
 
-Json::Value TpccStoredNewOrderTest::newOrderData(int w_id, int d_id, int c_id, int o_carrier_id, const std::string& ol_dist_info, item_list_t items) {
+Json::Value TpccStoredNewOrderTest::newOrderData(int w_id, int d_id, int c_id, const std::string& ol_dist_info, item_list_t items) {
   Json::Value data;
   data["W_ID"] = w_id;
   data["D_ID"] = d_id;
   data["C_ID"] = c_id;
-  data["O_CARRIER_ID"] = o_carrier_id;
   data["OL_DIST_INFO"] = ol_dist_info;
 
   Json::Value itemData(Json::arrayValue);
@@ -32,18 +31,18 @@ Json::Value TpccStoredNewOrderTest::newOrderData(int w_id, int d_id, int c_id, i
   return data;
 }
 
-Json::Value TpccStoredNewOrderTest::doNewOrder(int w_id, int d_id, int c_id, int o_carrier_id, const std::string& ol_dist_info,
+Json::Value TpccStoredNewOrderTest::doNewOrder(int w_id, int d_id, int c_id, const std::string& ol_dist_info,
                                                  item_list_t items) {
-  const auto data = newOrderData(w_id, d_id, c_id, o_carrier_id, ol_dist_info, items);
+  const auto data = newOrderData(w_id, d_id, c_id, ol_dist_info, items);
 
   return doStoredProcedure(data, "TPCC-NewOrder");
 }
 
 
 
-#define T_NewOrder(w_id, d_id, c_id, o_carrier_id, ol_dist_info, itemlist, o_id) \
+#define T_NewOrder(w_id, d_id, c_id, ol_dist_info, itemlist, o_id) \
 {\
-  const auto response = doNewOrder(w_id, d_id, c_id, o_carrier_id, ol_dist_info, itemlist);\
+  const auto response = doNewOrder(w_id, d_id, c_id, ol_dist_info, itemlist);\
 \
   EXPECT_EQ(w_id, getValuei(response, "W_ID"));\
   EXPECT_EQ(d_id, getValuei(response, "D_ID"));\
@@ -87,9 +86,9 @@ Json::Value TpccStoredNewOrderTest::doNewOrder(int w_id, int d_id, int c_id, int
 
 
 
-#define T_NewOrder_Rollback(w_id, d_id, c_id, o_carrier_id, ol_dist_info, itemlist, o_id) \
+#define T_NewOrder_Rollback(w_id, d_id, c_id, ol_dist_info, itemlist, o_id) \
 {\
-  const auto response = doNewOrder(w_id, d_id, c_id, o_carrier_id, ol_dist_info, itemlist);\
+  const auto response = doNewOrder(w_id, d_id, c_id, ol_dist_info, itemlist);\
 \
   EXPECT_EQ(w_id, getValuei(response, "W_ID"));\
   EXPECT_EQ(d_id, getValuei(response, "D_ID"));\
@@ -112,7 +111,7 @@ Json::Value TpccStoredNewOrderTest::doNewOrder(int w_id, int d_id, int c_id, int
 
 
 namespace {
-//                           {{i_id, i_w_id, quantity}}
+//                         {{i_id, i_w_id, quantity}}
 const item_list_t items1 = {{1   , 1     , 1       },
                             {2   , 1     , 2       },
                             {3   , 1     , 3       },
@@ -137,7 +136,7 @@ const item_list_t itemsw1 = {{1   , 1     , 1       },
                              {2   , 1     , 2       },
                              {-3  , 1     , 3       },
                              {4   , 1     , 4       },
-                             {5   , 1     , 5       }}; // 5 items all local
+                             {5   , 1     , 5       }}; // 5 items all local, 1 wrong
 const item_list_t itemsw2 = {{1   , 1     , 10      },
                              {2   , 1     , 10      },
                              {3   , 1     , 10      },
@@ -152,84 +151,80 @@ const item_list_t itemsw2 = {{1   , 1     , 10      },
                              {12  , 1     , 10      },
                              {13  , 1     , 10      },
                              {14  , 1     , 10      },
-                             {17  , 1     , 10      }}; // 15 items remote warehouses*/
+                             {17  , 1     , 10      }}; // 15 items remote warehouses, 1 wrong
 
 } // namespace
 
 TEST_F(TpccStoredNewOrderTest, NewOrder) {
-//          (w_id, d_id, c_id, o_carrier_id, ol_dist_info, itemlist, o_id)
-  T_NewOrder(1   , 1   , 1   , 1           , "info1"     , items1  , 6   ); //1st
-  T_NewOrder(1   , 2   , 1   , 1           , "info2"     , items1  , 5   ); //1st
-  T_NewOrder(2   , 1   , 1   , 1           , "info3"     , items1  , 3   ); //1st
-  T_NewOrder(2   , 10  , 1   , 1           , "info4"     , items2  , 3   ); //1st
-  T_NewOrder(1   , 2   , 1   , 1           , "info5"     , items2  , 6   ); //2nd
-  T_NewOrder(2   , 1   , 1   , 1           , "info6"     , items2  , 4   ); //2nd
+//          (w_id, d_id, c_id, ol_dist_info, itemlist, o_id)
+  T_NewOrder(1   , 1   , 1   , "info1"     , items1  , 6   ); //1st
+  T_NewOrder(1   , 2   , 1   , "info2"     , items1  , 5   ); //1st
+  T_NewOrder(2   , 1   , 1   , "info3"     , items1  , 3   ); //1st
+  T_NewOrder(2   , 10  , 1   , "info4"     , items2  , 3   ); //1st
+  T_NewOrder(1   , 2   , 1   , "info5"     , items2  , 6   ); //2nd
+  T_NewOrder(2   , 1   , 1   , "info6"     , items2  , 4   ); //2nd
 }
 
 TEST_F(TpccStoredNewOrderTest, NewOrder_rollback) {
-//                  (w_id, d_id, c_id, o_carrier_id, ol_dist_info, itemlist, o_id)
-  T_NewOrder_Rollback(1   , 1   , 1   , 1           , "info"      , itemsw1 , 6   );
-  T_NewOrder_Rollback(1   , 1   , 1   , 1           , "info"      , itemsw1 , 6   );
-  T_NewOrder_Rollback(2   , 1   , 1   , 1           , "info"      , itemsw1 , 3   );
-  T_NewOrder_Rollback(1   , 3   , 2   , 1           , "info"      , itemsw1 , 3   );
-  T_NewOrder_Rollback(1   , 7   , 2   , 1           , "info"      , itemsw1 , 3   );
-  T_NewOrder_Rollback(2   , 10  , 1   , 1           , "info"      , itemsw1 , 3   );
-  T_NewOrder_Rollback(2   , 1   , 2   , 1           , "info"      , itemsw1 , 3   );
-  T_NewOrder_Rollback(2   , 7   , 2   , 1           , "info"      , itemsw1 , 3   );
-  T_NewOrder_Rollback(1   , 8   , 1   , 1           , "info"      , itemsw1 , 3   );
+//                  (w_id, d_id, c_id , ol_dist_info, itemlist, o_id)
+  T_NewOrder_Rollback(1   , 1   , 1   , "info"      , itemsw1 , 6   );
+  T_NewOrder_Rollback(1   , 1   , 1   , "info"      , itemsw1 , 6   );
+  T_NewOrder_Rollback(2   , 1   , 1   , "info"      , itemsw1 , 3   );
+  T_NewOrder_Rollback(1   , 3   , 2   , "info"      , itemsw1 , 3   );
+  T_NewOrder_Rollback(1   , 7   , 2   , "info"      , itemsw1 , 3   );
+  T_NewOrder_Rollback(2   , 10  , 1   , "info"      , itemsw1 , 3   );
+  T_NewOrder_Rollback(2   , 1   , 2   , "info"      , itemsw1 , 3   );
+  T_NewOrder_Rollback(2   , 7   , 2   , "info"      , itemsw1 , 3   );
+  T_NewOrder_Rollback(1   , 8   , 1   , "info"      , itemsw1 , 3   );
 }
 
 TEST_F(TpccStoredNewOrderTest, NewOrder_wrongItemCount) {
-  //                     (w_id, d_id, c_id, o_carrier_id, ol_dist_info, {{i_id, i_w_id, quantity}});
-  EXPECT_THROW(doNewOrder(1   , 1   , 1   , 1           , "info"      , {{1   , 1     , 1       },
-                                                                         {2   , 1     , 1       },
-                                                                         {3   , 1     , 1       },
-                                                                         {4   , 1     , 1       }}), TpccError); // 4 items
+  //                     (w_id, d_id, c_id, ol_dist_info, {{i_id, i_w_id, quantity}});
+  EXPECT_THROW(doNewOrder(1   , 1   , 1   , "info"      , {{1   , 1     , 1       },
+                                                           {2   , 1     , 1       },
+                                                           {3   , 1     , 1       },
+                                                           {4   , 1     , 1       }}), TpccError); // 4 items
 
-  EXPECT_THROW(doNewOrder(1   , 3   , 2   , 1           , "info"      , {{1   , 1     , 1       },
-                                                                         {2   , 1     , 1       },
-                                                                         {3   , 1     , 1       },
-                                                                         {4   , 1     , 1       },
-                                                                         {5   , 1     , 1       },
-                                                                         {6   , 1     , 1       },
-                                                                         {7   , 1     , 1       },
-                                                                         {8   , 1     , 1       },
-                                                                         {9   , 1     , 1       },
-                                                                         {10  , 1     , 1       },
-                                                                         {11  , 1     , 1       },
-                                                                         {12  , 1     , 1       },
-                                                                         {13  , 1     , 1       },
-                                                                         {14  , 1     , 1       },
-                                                                         {15  , 1     , 1       },
-                                                                         {16  , 1     , 1       }}), TpccError); //16 items
-}
-
-TEST_F(TpccStoredNewOrderTest, NewOrder_withRollback) {
-  //TODO New Order with Rollback
+  EXPECT_THROW(doNewOrder(1   , 3   , 2   , "info"      , {{1   , 1     , 1       },
+                                                           {2   , 1     , 1       },
+                                                           {3   , 1     , 1       },
+                                                           {4   , 1     , 1       },
+                                                           {5   , 1     , 1       },
+                                                           {6   , 1     , 1       },
+                                                           {7   , 1     , 1       },
+                                                           {8   , 1     , 1       },
+                                                           {9   , 1     , 1       },
+                                                           {10  , 1     , 1       },
+                                                           {11  , 1     , 1       },
+                                                           {12  , 1     , 1       },
+                                                           {13  , 1     , 1       },
+                                                           {14  , 1     , 1       },
+                                                           {15  , 1     , 1       },
+                                                           {16  , 1     , 1       }}), TpccError); //16 items
 }
 
 TEST_F(TpccStoredNewOrderTest, NewOrder_wrongQuantity) {
-  //                     (w_id, d_id, c_id, o_carrier_id, ol_dist_info, {{i_id, i_w_id, quantity}});
-  EXPECT_THROW(doNewOrder(1   , 1   , 1   , 1           , "info"      , {{1   , 1     , 1       },
-                                                                         {2   , 1     , 1       },
-                                                                         {3   , 1     , 1       },
-                                                                         {4   , 1     , 1       },
-                                                                         {5   , 1     , 11      }, }), TpccError);
+  //                     (w_id, d_id, c_id, ol_dist_info, {{i_id, i_w_id, quantity}});
+  EXPECT_THROW(doNewOrder(1   , 1   , 1   , "info"      , {{1   , 1     , 1       },
+                                                           {2   , 1     , 1       },
+                                                           {3   , 1     , 1       },
+                                                           {4   , 1     , 1       },
+                                                           {5   , 1     , 11      }, }), TpccError);
   
-  EXPECT_THROW(doNewOrder(1   , 1   , 5   , 1           , "info"      , {{1   , 1     , 1       },
-                                                                         {2   , 1     , 1       },
-                                                                         {3   , 1     , 1       },
-                                                                         {4   , 1     , 1       },
-                                                                         {5   , 1     , 0       }, }), TpccError);
+  EXPECT_THROW(doNewOrder(1   , 1   , 5   , "info"      , {{1   , 1     , 1       },
+                                                           {2   , 1     , 1       },
+                                                           {3   , 1     , 1       },
+                                                           {4   , 1     , 1       },
+                                                           {5   , 1     , 0       }, }), TpccError);
 }
 
 TEST_F(TpccStoredNewOrderTest, NewOrder_twiceTheSameItem) {
-  //                     (w_id, d_id, c_id, o_carrier_id, ol_dist_info, {{i_id, i_w_id, quantity}});
-  EXPECT_THROW(doNewOrder(1   , 1   , 1   , 1           , "info"      , {{1   , 1     , 1       },
-                                                                         {2   , 1     , 1       },
-                                                                         {3   , 1     , 1       },
-                                                                         {4   , 1     , 1       },
-                                                                         {4   , 1     , 1       }}), TpccError);
+  //                     (w_id, d_id, c_id, ol_dist_info, {{i_id, i_w_id, quantity}});
+  EXPECT_THROW(doNewOrder(1   , 1   , 1   , "info"      , {{1   , 1     , 1       },
+                                                           {2   , 1     , 1       },
+                                                           {3   , 1     , 1       },
+                                                           {4   , 1     , 1       },
+                                                           {4   , 1     , 1       }}), TpccError);
 }
 
 } } // namespace hyrise::access

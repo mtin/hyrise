@@ -60,11 +60,5 @@ TEST_F(TpccStoredDeliveryTest, Delivery_WrongCARRIER_ID) {
   EXPECT_THROW(doDelivery(1   , 1   , 11          ), TpccError);
 }
 
-TEST_F(TpccStoredDeliveryTest, Delivery_WrongD_ID) {
-  //                     (w_id, d_id, o_carrier_id);
-  EXPECT_THROW(doDelivery(1   , 0   , 1           ), TpccError);
-  EXPECT_THROW(doDelivery(1   , 11  , 1           ), TpccError);
-}
-
 } } // namespace hyrise::access
 
