@@ -129,20 +129,27 @@ float TpccStoredProcedure::assureFloatValueBetween(const Json::Value& data, cons
   }
   return value;
 }
-storage::c_store_ptr_t TpccStoredProcedure::getTpccTable(std::string name) const {
-  std::shared_ptr<GetTable> load = std::make_shared<GetTable>(name);
-  load->setOperatorId("__GetTable");
-  load->setPlanOperationName("GetTable");
-  _responseTask->registerPlanOperation(load);
 
-  load->setTXContext(_tx);
-  load->execute();
 
-  storage::c_atable_ptr_t table = load->getResultTable();
-  storage::c_store_ptr_t store = std::dynamic_pointer_cast<const storage::Store>(table);
-  if(!store) throw std::runtime_error(name + " is not a Store");
+storage::c_store_ptr_t TpccStoredProcedure::getTpccTable(std::string name) {
 
-  return store;
+  auto it = _tables.find(name);
+
+  if (it == _tables.end()) {
+    std::shared_ptr<GetTable> load = std::make_shared<GetTable>(name);
+    load->setOperatorId("__GetTable");
+    load->setPlanOperationName("GetTable");
+    _responseTask->registerPlanOperation(load);
+    load->setTXContext(_tx);
+    load->execute();
+    storage::c_atable_ptr_t table = load->getResultTable();
+    storage::c_store_ptr_t store = std::dynamic_pointer_cast<const storage::Store>(table);
+    if(!store) throw std::runtime_error(name + " is not a Store");
+    _tables.insert( std::make_pair(name, store) );
+    return store;
+  } else {
+    return it->second;
+  }
 }
 
 storage::c_atable_ptr_t TpccStoredProcedure::selectAndValidate(storage::c_atable_ptr_t table, std::string tablename, std::unique_ptr<AbstractExpression> expr) const {
@@ -171,6 +178,7 @@ storage::c_atable_ptr_t TpccStoredProcedure::selectAndValidate(storage::c_atable
 }
 
 void TpccStoredProcedure::startTransaction() {
+    _finished = false;
     _tx = tx::TransactionManager::beginTransaction();
     _responseTask->setTxContext(_tx);
 }

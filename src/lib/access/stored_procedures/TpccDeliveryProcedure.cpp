@@ -37,6 +37,9 @@ Json::Value TpccDeliveryProcedure::execute() {
 
   storage::c_atable_ptr_t tNewOrder;
   for(int i = 0; i < 10; i++) {
+
+    startTransaction();
+
     _d_id = i + 1;
     tNewOrder = getNewOrder();
 
@@ -60,13 +63,13 @@ Json::Value TpccDeliveryProcedure::execute() {
     updateOrderLine();
     updateCustomer();
 
+    commit();
+
     Json::Value row;
     row[0] = _w_id;
     row[1] = _o_id;
     rows.append(row);
   }
-
-  commit();
 
   Json::Value result;
   Json::Value header;

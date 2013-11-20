@@ -10,7 +10,7 @@
 #include <net/Router.h>
 #include <net/AbstractConnection.h>
 #include <storage/Store.h>
-
+#include <map>
 
 namespace hyrise { namespace access {
 
@@ -33,8 +33,10 @@ class TpccStoredProcedure : public net::AbstractRequestHandler {
   static int assureIntValueBetween(const Json::Value& data, const std::string& name, int min, int max);
   static float assureFloatValueBetween(const Json::Value& data, const std::string& name, float min, float max);
 
+  void startTransaction();
+
   //planop helper
-  storage::c_store_ptr_t getTpccTable(std::string name) const ;
+  storage::c_store_ptr_t getTpccTable(std::string name) ;
   storage::c_atable_ptr_t selectAndValidate(storage::c_atable_ptr_t table, std::string tablename, std::unique_ptr<AbstractExpression> expr) const;
   storage::atable_ptr_t newRowFrom(storage::c_atable_ptr_t table) const;
   void insert(storage::atable_ptr_t table, storage::atable_ptr_t rows) const;
@@ -56,9 +58,9 @@ class TpccStoredProcedure : public net::AbstractRequestHandler {
   std::shared_ptr<ResponseTask> _responseTask;
 
  private:
-  void startTransaction();
   bool _finished = false;
   bool _recordPerformance = false;
+  std::map<std::string, storage::c_store_ptr_t> _tables;
 };
 
 } } // namespace hyrise::access
