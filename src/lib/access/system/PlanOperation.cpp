@@ -140,17 +140,17 @@ const PlanOperation * PlanOperation::execute() {
 
   setupPlanOperation();
 
-  PapiTracer pt;
-  if (!_papi_disabled) {
-    pt.addEvent("PAPI_TOT_CYC");
-    pt.addEvent(getEvent());
-    pt.start();
-  }
+  // PapiTracer pt;
+  // if (!_papi_disabled) {
+  //   pt.addEvent("PAPI_TOT_CYC");
+  //   pt.addEvent(getEvent());
+  //   pt.start();
+  // }
 
   executePlanOperation();
   
-  if (!_papi_disabled)
-    pt.stop();
+  // if (!_papi_disabled)
+  //   pt.stop();
 
   teardownPlanOperation();
 
@@ -161,10 +161,10 @@ const PlanOperation * PlanOperation::execute() {
     long long papi_cycles = 0;
     long long papi_event = 0;
 
-    if (!_papi_disabled) {
-      papi_cycles = pt.value("PAPI_TOT_CYC");
-      papi_event = pt.value(getEvent());
-    }
+    // if (!_papi_disabled) {
+    //   papi_cycles = pt.value("PAPI_TOT_CYC");
+    //   papi_event = pt.value(getEvent());
+    // }
     
     *_performance_attr = (performance_attributes_t) {
       papi_cycles, papi_event, getEvent() , planOperationName(), _operatorId, startTime, endTime, threadId
