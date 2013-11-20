@@ -12,10 +12,26 @@
       "table": "employees",
       "filename": "tables/employees.tbl"
     },
+
     "create_idx": {
       "type": "CreateGroupkeyIndex",
       "fields": ["employee_company_id"],
       "index_name": "idx__employees__employee_company_id"
+    },
+    "create_idx_delta": {
+      "type": "CreateDeltaIndex",
+      "fields": ["employee_company_id"],
+      "index_name": "idx_delta__employees__employee_company_id"
+    },
+
+    "nop": {
+      "type": "NoOp"
+    },
+
+    "create_idx_delta": {
+      "type": "CreateDeltaIndex",
+      "fields": ["employee_company_id"],
+      "index_name": "idx_delta__employees__employee_company_id"
     },
 
     "insert" : {
@@ -36,8 +52,11 @@
   },
   "edges": [
     ["load", "create_idx"], 
+    ["load", "create_idx_delta"], 
+    ["create_idx", "nop"], 
+    ["create_idx_delta", "nop"], 
     ["load", "insert"], 
-    ["create_idx", "insert"], 
+    ["nop", "insert"], 
     ["insert", "scan"]
   ]
   // ["1", "3"], ["0", "2"], ["3", "2"]]

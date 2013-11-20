@@ -72,6 +72,10 @@ void InsertScan::executePlanOperation() {
 
     for(size_t i=0; i<rowCount; ++i) {
       store->copyRowToDeltaFromJSONVector(_raw_data[i], writeArea.first+i, _txContext.tid);
+
+      // Update delta indices
+      store->addRowToDeltaIndices(beforeSize+i);
+
       mods.insertPos(store, beforeSize+i);
 
 #ifdef PERSISTENCY_BUFFEREDLOGGER
@@ -83,6 +87,10 @@ void InsertScan::executePlanOperation() {
   } else {
     for(size_t i=0; i<rowCount; ++i) {
       store->copyRowToDelta(_data, i, writeArea.first+i, _txContext.tid);
+      
+      // Update delta indices
+      store->addRowToDeltaIndices(beforeSize+i);
+
       mods.insertPos(store, beforeSize+i);
 
 #ifdef PERSISTENCY_BUFFEREDLOGGER

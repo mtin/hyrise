@@ -14,6 +14,7 @@
 #include "storage/meta_storage.h"
 #include "storage/PointerCalculator.h"
 #include "storage/GroupkeyIndex.h"
+#include "storage/DeltaIndex.h"
 
 #include "helper/checked_cast.h"
 
@@ -33,8 +34,10 @@
 { \
 auto e = dynamic_cast<GenericExpressionValue<TYPE, COMP<TYPE>>*>(c); \
 if(e) { \
-GroupkeyIndexFunctor groupkey_functor(Json::Value(e->value), "idx__" + _tableName + "__" + e->field_name, PredicateType::EXPR##Value); \
-_idx_functors.push_back(groupkey_functor); \
+GroupkeyIndexFunctor groupkey_functor_main(Json::Value(e->value), "idx__" + _tableName + "__" + e->field_name, PredicateType::EXPR##Value, e->field_name); \
+_idx_functors_main.push_back(groupkey_functor_main); \
+GroupkeyIndexFunctor groupkey_functor_delta(Json::Value(e->value), "idx_delta__" + _tableName + "__" + e->field_name, PredicateType::EXPR##Value, e->field_name); \
+_idx_functors_delta.push_back(groupkey_functor_delta); \
 assert(!e->field_name.empty()); \
 addField(e->field_name); \
 break; \
@@ -61,54 +64,173 @@ struct GroupkeyIndexFunctor {
   typedef PositionRange value_type;
 
   std::string _indexname;
-  const Json::Value _indexValue1;
-  // const Json::Value &_indexValue2;
+  Json::Value _indexValue1;
+  Json::Value _indexValue2;
   PredicateType::type _predicate_type;
+  std::string _fieldname;
+  size_t _column;
+  bool _flagged_for_removal;
 
-  GroupkeyIndexFunctor( const Json::Value &indexValue1,
-                        // AbstractIndexValue *indexValue2,
+  GroupkeyIndexFunctor( Json::Value indexValue1,
                         std::string indexname,
-                        PredicateType::type predicate_type):
+                        PredicateType::type predicate_type,
+                        std::string fieldname):
     _indexname(indexname),
     _indexValue1(indexValue1),
-    // _indexValue2(indexValue2),
-    _predicate_type(predicate_type) {}
+    _predicate_type(predicate_type),
+    _fieldname(fieldname),
+    _flagged_for_removal(false) {}
 
   template<typename ValueType>
   value_type operator()() {
     auto index = StorageManager::getInstance()->getInvertedIndex(_indexname);
-    auto idx = std::dynamic_pointer_cast<GroupkeyIndex<ValueType>>(index);
-
     ValueType v1 = json_converter::convert<ValueType>(_indexValue1);
+    ValueType v2 = json_converter::convert<ValueType>(_indexValue2);
 
-    if (!idx)
-      throw std::runtime_error("IndexAwareTable scan only supports GroupKeyIndex: " + _indexname);
-
-    switch (_predicate_type) {
-      case PredicateType::EqualsExpressionValue:
-        return idx->getPositionsForKey(v1);
-        break;
-      case PredicateType::GreaterThanExpressionValue:
-        return idx->getPositionsForKeyGT(v1);
-        break;
-      case PredicateType::GreaterThanEqualsExpressionValue:
-        return idx->getPositionsForKeyGTE(v1);
-        break;
-      case PredicateType::LessThanExpressionValue:
-        return idx->getPositionsForKeyLT(v1);
-        break;
-      case PredicateType::LessThanEqualsExpressionValue:
-        return idx->getPositionsForKeyLTE(v1);
-        break;
-      // case PredicateType::BetweenExpression:
-      //   return idx->getPositionsForKeyBetween(v1->value, v2->value);
-      //   break;
-      default:
-        throw std::runtime_error("Unsupported predicate type in InvertedIndex");
+    auto idx = std::dynamic_pointer_cast<GroupkeyIndex<ValueType>>(index);
+    if (idx) {
+      switch (_predicate_type) {
+        case PredicateType::EqualsExpressionValue:
+          return idx->getPositionsForKey(v1);
+          break;
+        case PredicateType::GreaterThanExpressionValue:
+          return idx->getPositionsForKeyGT(v1);
+          break;
+        case PredicateType::GreaterThanEqualsExpressionValue:
+          return idx->getPositionsForKeyGTE(v1);
+          break;
+        case PredicateType::LessThanExpressionValue:
+          return idx->getPositionsForKeyLT(v1);
+          break;
+        case PredicateType::LessThanEqualsExpressionValue:
+          return idx->getPositionsForKeyLTE(v1);
+          break;
+        case PredicateType::BetweenExpression:
+          return idx->getPositionsForKeyBetween(v1, v2);
+          break;
+        default:
+          throw std::runtime_error("Unsupported predicate type in InvertedIndex");
+      }
+    } else {
+      auto idx_delta = std::dynamic_pointer_cast<DeltaIndex<ValueType>>(index);
+      if (idx_delta) {
+        switch (_predicate_type) {
+          case PredicateType::EqualsExpressionValue:
+            return idx_delta->getPositionsForKey(v1);
+            break;
+          case PredicateType::GreaterThanExpressionValue:
+            return idx_delta->getPositionsForKeyGT(v1);
+            break;
+          case PredicateType::GreaterThanEqualsExpressionValue:
+            return idx_delta->getPositionsForKeyGTE(v1);
+            break;
+          case PredicateType::LessThanExpressionValue:
+            return idx_delta->getPositionsForKeyLT(v1);
+            break;
+          case PredicateType::LessThanEqualsExpressionValue:
+            return idx_delta->getPositionsForKeyLTE(v1);
+            break;
+          case PredicateType::BetweenExpression:
+            return idx_delta->getPositionsForKeyBetween(v1, v2);
+            break;
+          default:
+            throw std::runtime_error("Unsupported predicate type in InvertedIndex");
+        }
+      } else  {
+        throw std::runtime_error("IndexAwareTable scan only supports GroupKeyIndex and DeltaIndex: " + _indexname);
+      }
     }
   }
 };
 
+void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store> t_store, pos_list_t *result, std::vector<GroupkeyIndexFunctor> &functors) {
+
+  // calculate the index results
+  std::vector<PositionRange> idx_results;
+  storage::type_switch<hyrise_basic_types> ts;
+
+  for (auto functor : functors) {
+    size_t column = t_store->numberOfColumn(functor._fieldname);
+    auto idx_result = ts(t_store->typeOfColumn(column), functor);  
+    idx_results.push_back(idx_result);
+  }
+
+  // sort so we start with the smallest range
+  if (idx_results.size() > 2) {
+    std::sort(
+      begin(idx_results), end(idx_results),
+      [] (const PositionRange &a, const PositionRange &b) {
+        return (a.end-a.begin)<(b.end-b.begin);
+      });
+  }
+  
+  pos_list_t *tmp_result = new pos_list_t;
+
+  // if we only have one idx result, this is the final one
+  if (idx_results.size() == 1) {
+    auto r = idx_results[0];
+    std::copy(r.begin, r.end, std::back_inserter(*result));
+  } 
+  // otherwise we intersect the first two results
+  else if (idx_results.size() >= 2) {
+    auto a = idx_results[0];
+    auto b = idx_results[1];
+    PointerCalculator::intersect_pos_list(a.begin, a.end, b.begin, b.end, result, a.sorted, b.sorted);
+  }
+
+  // if we have more than two results, intersect them too
+  if (idx_results.size() > 2) {
+    std::vector<PositionRange>::iterator it = idx_results.begin();
+    std::vector<PositionRange>::iterator it_end = idx_results.end();
+    ++it; ++it;
+    for (;it != it_end; ++it) {
+      if (result->empty()) break; // when result is empty, final intersect is empty too
+      auto r = *it;
+      PointerCalculator::intersect_pos_list(r.begin, r.end, result->begin(), result->end(), tmp_result, r.sorted, true);
+      *result = *tmp_result;
+      tmp_result->clear();
+    }
+  }
+
+  delete tmp_result;
+}
+
+void IndexAwareTableScan::_consolidateFunctors(std::shared_ptr<const storage::Store> t_store, std::vector<GroupkeyIndexFunctor> &functors) {
+  // set columns
+  for (auto functor : functors)
+    functor._column = t_store->numberOfColumn(functor._fieldname);
+  
+  std::sort(
+    begin(functors), end(functors),
+    [] (const GroupkeyIndexFunctor &a, const GroupkeyIndexFunctor &b) {
+      return (a._column)<(b._column);
+    });
+
+  // consolidate LT and GT on same column to between expression
+  size_t funct_size_minus_one = functors.size()-1;
+  for (size_t i=0; i<funct_size_minus_one; ++i) {
+    if (functors[i]._column == functors[i+1]._column) {
+      if (functors[i]._predicate_type == PredicateType::GreaterThanExpressionValue &&
+          functors[i+1]._predicate_type == PredicateType::LessThanExpressionValue) {
+        functors[i+1]._predicate_type = PredicateType::BetweenExpression;
+        functors[i+1]._indexValue2 = functors[i+1]._indexValue1;
+        functors[i+1]._indexValue1 = functors[i]._indexValue1;
+        functors[i]._flagged_for_removal = true;
+      } else if ( functors[i+1]._predicate_type == PredicateType::GreaterThanExpressionValue &&
+                  functors[i]._predicate_type == PredicateType::LessThanExpressionValue) {
+        functors[i+1]._predicate_type = PredicateType::BetweenExpression;
+        functors[i+1]._indexValue2 = functors[i]._indexValue1;
+        functors[i]._flagged_for_removal = true;
+      }
+    }
+  }
+
+  // delete consolidated functors
+  functors.erase(
+    std::remove_if(functors.begin(), functors.end(),
+        [](const GroupkeyIndexFunctor & f) { return f._flagged_for_removal; }),
+    functors.end());
+}
 
 void IndexAwareTableScan::executePlanOperation() {
 
@@ -120,104 +242,22 @@ void IndexAwareTableScan::executePlanOperation() {
   if (!t_store)
     throw std::runtime_error("IndexAwareTableScan only works on stores");
 
-  // execute table scan for the delta
-  std::shared_ptr<SimpleTableScan> _ts = std::make_shared<SimpleTableScan>();
-  _ts->disablePapiTrace(); // disable papi trace as nested operators breaks it
-  _ts->setPredicate(_predicate);
-  _ts->setProducesPositions(true);
-  _ts->addInput(t_store->getDeltaTable());
-  _ts->setOperatorId("__SimpleTableScanIATS");
-  _ts->setPlanOperationName("SimpleTableScanIATS");
-  auto responseTask = getResponseTask();
-  if (responseTask)
-    responseTask->registerPlanOperation(_ts);
-  _ts->execute();
+  // consolidate functors, basically rewriting GT and LT on the same column to BETWEEN
+  this->_consolidateFunctors(t_store, _idx_functors_main);
+  this->_consolidateFunctors(t_store, _idx_functors_delta);
 
-  // calculate the index results
-  std::vector<PositionRange> idx_results;
-  storage::type_switch<hyrise_basic_types> ts;
-  std::vector<size_t> columns;
+  // get main and delta results from indices
+  pos_list_t *main_result = new pos_list_t;
+  pos_list_t *delta_result = new pos_list_t;
+  this->_getIndexResults(t_store, main_result, _idx_functors_main);
+  this->_getIndexResults(t_store, delta_result, _idx_functors_delta);
 
-  size_t i = 0;
-  for (auto functor : _idx_functors) {
-    auto column = _field_definition[i++];
-    auto idx_result = ts(t->typeOfColumn(column), functor);
+  // union results
+  main_result->reserve(main_result->size() + delta_result->size());
+  std::copy(delta_result->begin(), delta_result->end(), std::back_inserter(*main_result));
+  addResult(PointerCalculator::create(t, main_result));  
 
-    // check if we already have a result for this column
-    auto other_result_it = std::find(columns.begin(),columns.end(),column);
-    if (other_result_it == columns.end()) {
-      // no result for this column, so just add it
-      columns.push_back(column);
-      idx_results.push_back(idx_result);
-    } else {
-      // we already have a result. pos range are on
-      // the same vector, so we can directly intersect them
-      // by adjusting the iterators for the range
-      size_t other_result_index = other_result_it - columns.begin();
-      PositionRange *other_result = &idx_results[other_result_index];
-      if (idx_result.begin > other_result->begin)
-        other_result->begin = idx_result.begin;
-      if (idx_result.end < other_result->end)
-        other_result->end = idx_result.end;
-      if (other_result->begin > other_result->end)
-        other_result->end = other_result->end;
-
-      // remember to sort the result later
-      other_result->sorted = false;
-    }
-  }
-
-  // sort so we start with the smallest range
-  if (idx_results.size() > 2) {
-    std::sort(
-      begin(idx_results), end(idx_results),
-      [] (PositionRange a, PositionRange b) {
-        return (a.end-a.begin)<(b.end-b.begin);
-      });
-  }
-    
-  pos_list_t *base = new pos_list_t;
-  pos_list_t *tmp_result = new pos_list_t;
-
-  // if we only have one idx result, this is the final one
-  if (idx_results.size() == 1) {
-    auto r = idx_results[0];
-    std::copy(r.begin, r.end, std::back_inserter(*base));
-  } 
-  // otherwise we intersect the first two results
-  else if (idx_results.size() >= 2) {
-    auto a = idx_results[0];
-    auto b = idx_results[1];
-    PointerCalculator::intersect_pos_list(a.begin, a.end, b.begin, b.end, base, a.sorted, b.sorted);
-  }
-
-  // if we have more than two results, intersect them too
-  if (idx_results.size() > 2) {
-    std::vector<PositionRange>::iterator it = idx_results.begin();
-    std::vector<PositionRange>::iterator it_end = idx_results.end();
-    ++it; ++it;
-    for (;it != it_end; ++it) {
-      if (base->empty()) break; // when base is empty, final intersect is empty too
-      auto r = *it;
-      PointerCalculator::intersect_pos_list(r.begin, r.end, base->begin(), base->end(), tmp_result, r.sorted, true);
-      *base = *tmp_result;
-      tmp_result->clear();
-    }
-  }
-  
-  // correct offset for delta and add delta result to idx result
-  auto pc_delta = checked_pointer_cast<const PointerCalculator>(_ts->getResultTable());
-  const pos_list_t *delta_pos_unadjusted = pc_delta->getPositions();
-  pos_t offset = t_store->getMainTable()->size();
-  size_t delta_result_size = delta_pos_unadjusted->size();
-  size_t idx_result_size = base->size();
-  base->resize(idx_result_size + delta_result_size);
-  for (size_t i=0; i<delta_result_size; ++i)
-    (*base)[i+idx_result_size] = (*delta_pos_unadjusted)[i] + offset;
-
-  addResult(PointerCalculator::create(t, base));  
-
-  delete tmp_result;
+  delete delta_result;
 }
 
 
@@ -254,10 +294,13 @@ std::shared_ptr<PlanOperation> IndexAwareTableScan::parse(const Json::Value &dat
         throw std::runtime_error("For now, IndexAwareScan requires fields to be specified via fieldnames");
 
     std::string fieldname = predicate["f"].asString();
-    std::string indexname = "idx__"+tablename+"__"+fieldname;
-    GroupkeyIndexFunctor groupkey_functor(predicate["value"], indexname, pred_type);
-    idx_scan->_idx_functors.push_back(groupkey_functor);
-    idx_scan->addField(fieldname);
+    std::string indexname_main = "idx__"+tablename+"__"+fieldname;
+    std::string indexname_delta = "idx_delta__"+tablename+"__"+fieldname;
+
+    GroupkeyIndexFunctor groupkey_functor_main(predicate["value"], indexname_main, pred_type, fieldname);
+    GroupkeyIndexFunctor groupkey_functor_delta(predicate["value"], indexname_delta, pred_type, fieldname);
+    idx_scan->_idx_functors_main.push_back(groupkey_functor_main);
+    idx_scan->_idx_functors_delta.push_back(groupkey_functor_delta);
   }
 
   return idx_scan;

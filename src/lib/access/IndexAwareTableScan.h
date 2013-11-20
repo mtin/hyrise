@@ -26,8 +26,12 @@ public:
   
 private:
   void _setPredicateFromJson(AbstractExpression *c);
+  void _getIndexResults(std::shared_ptr<const storage::Store> t_store, pos_list_t *result, std::vector<GroupkeyIndexFunctor> &functors);
+  void _consolidateFunctors(std::shared_ptr<const storage::Store> t_store, std::vector<GroupkeyIndexFunctor> &functors);
+  
   SimpleExpression *_predicate;
-  std::vector<GroupkeyIndexFunctor> _idx_functors;
+  std::vector<GroupkeyIndexFunctor> _idx_functors_main;
+  std::vector<GroupkeyIndexFunctor> _idx_functors_delta;
   std::string _tableName;
 };
 

@@ -114,10 +114,23 @@ public:
     }
   };
 
-  // PositionRange getPositionsForKeyBetween(T a, T b) {
-  //   auto it1 = _offsets.lower_bound(a);
-  //   auto it2 = _offsets.upper_bound(b);
-  //   return PositionRange(it1->second.begin, it2->second.end, false);
-  // };
+  PositionRange getPositionsForKeyBetween(T a, T b) {
+
+    // range ]a,b[
+
+    auto it1 = _offsets.lower_bound(a);
+    auto it2 = _offsets.lower_bound(b);
+
+    if (it1 != _offsets.end() && it2 != _offsets.end())
+      return PositionRange(it1->second.begin, it2->second.begin, false);
+    else if (it1 != _offsets.end())
+      return PositionRange(it1->second.begin, _postings.end(), false);
+    else if (it2 != _offsets.end())
+      return PositionRange(_postings.begin(), it2->second.begin, false);
+    else {
+      // empty
+      return PositionRange(_postings.end(), _postings.end(), false);
+    }
+  };
 };
 #endif  // SRC_LIB_STORAGE_GROUPKEYINDEX_H_

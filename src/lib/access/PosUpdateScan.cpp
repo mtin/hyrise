@@ -63,12 +63,16 @@ void PosUpdateScan::executePlanOperation() {
 
     // Copy the old row from the main
     store->copyRowToDelta(store, p, writeArea.first+counter, _txContext.tid);
+
     // Update all the necessary values
     for(const auto& kv : _raw_data) {
       const auto& fld = store->numberOfColumn(kv.first);
       fun.set(fld, writeArea.first+counter, kv.second);
       ts(store->typeOfColumn(fld), fun);
     }
+
+    // Update delta indices
+    store->addRowToDeltaIndices(beforSize+counter);
 
     // Insert the new one
     modRecord.insertPos(store, beforSize+counter);

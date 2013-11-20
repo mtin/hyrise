@@ -6,6 +6,8 @@
 #include <io/TransactionManager.h>
 #include <storage/storage_types.h>
 #include <storage/PrettyPrinter.h>
+#include <storage/DeltaIndex.h>
+#include <storage/meta_storage.h>
 
 #include <helper/vector_helpers.h>
 #include <helper/locking.h>
@@ -361,5 +363,56 @@ void Store::persist_scattered(const pos_list_t& elements, bool new_elements) con
   }
 #endif
 }
+
+void Store::addDeltaIndex(std::shared_ptr<AbstractIndex> index, size_t column) {
+  _index_lock.lock();
+  _delta_indices.push_back(std::make_pair(index, column));
+  _index_lock.unlock();
+}
+
+struct AddValueToDeltaIndexFunctor {
+  typedef bool value_type;
+
+  Store *_store;
+  std::shared_ptr<AbstractIndex> _index;
+  pos_t _row;
+  size_t _column;
+
+  AddValueToDeltaIndexFunctor(Store *store,
+                              std::shared_ptr<AbstractIndex> index,
+                              pos_t row,
+                              size_t column):
+    _store(store),
+    _index(index),
+    _row(row),
+    _column(column) {}
+
+  template<typename ValueType>
+  value_type operator()() {
+    auto idx = std::dynamic_pointer_cast<DeltaIndex<ValueType> >(_index);
+    if (!idx)
+      throw std::runtime_error("Index on delta of store needs to be of type DeltaIndex");
+
+    ValueType value = _store->getValue<ValueType>(_column, _row);
+    idx->add(value, _row);
+    return true;
+  }
+};
+
+void Store::addRowToDeltaIndices(pos_t row) {
+  // iterate over all delta indices of the store
+  // and add the respective new values of the row
+
+  // TODO: needs to makesure index vector is not modfied during iterating over it
+  
+  for (auto index_column_pair : _delta_indices ) {
+    auto index = index_column_pair.first;
+    auto column = index_column_pair.second;
+    storage::type_switch<hyrise_basic_types> ts;
+    AddValueToDeltaIndexFunctor functor(this, index, row, column);
+    ts(typeOfColumn(column), functor);
+  }
+}
+
 
 }}

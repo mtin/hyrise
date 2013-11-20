@@ -17,6 +17,7 @@
 #include <storage/PrettyPrinter.h>
 
 #include <helper/types.h>
+#include "helper/locking.h"
 
 #include <json.h>
 
@@ -94,6 +95,8 @@ public:
   const attr_vectors_t getAttributeVectors(size_t column) const override;
   void debugStructure(size_t level=0) const override;
   void persist_scattered(const pos_list_t& elements, bool new_elements = true) const override;
+  void addDeltaIndex(std::shared_ptr<AbstractIndex> index, size_t column);
+  void addRowToDeltaIndices(pos_t row);
 
  private:
   // RW-lock protecting store data structures
@@ -107,6 +110,10 @@ public:
 
   //* Current merger
   TableMerger *merger;
+
+  //* Indices for the Store
+  std::vector<std::pair<std::shared_ptr<AbstractIndex>, size_t> > _delta_indices;
+  locking::Spinlock _index_lock;
 
   typedef struct { const atable_ptr_t& table; size_t offset_in_table; size_t table_index; } table_offset_idx_t;
   table_offset_idx_t responsibleTable(size_t row) const;

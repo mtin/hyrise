@@ -1,6 +1,7 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
 #include "access/IndexAwareTableScan.h"
 #include "access/CreateGroupkeyIndex.h"
+#include "access/CreateDeltaIndex.h"
 #include "helper/types.h"
 #include "io/shortcuts.h"
 #include "testing/test.h"
@@ -21,11 +22,18 @@ public:
   virtual void SetUp() {
     AccessTest::SetUp();
     t = Loader::shortcuts::load("test/index_test.tbl");
+
     CreateGroupkeyIndex ci;
     ci.addInput(t);
     ci.addField(0);
     ci.setIndexName("idx__foo__col_0");
     ci.execute();
+
+    CreateDeltaIndex cd;
+    cd.addInput(t);
+    cd.addField(0);
+    cd.setIndexName("idx_delta__foo__col_0");
+    cd.execute();
 
     auto row = Loader::shortcuts::load("test/index_insert_test.tbl");
     storage::atable_ptr_t table(new storage::Store(row));

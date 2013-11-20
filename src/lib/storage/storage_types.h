@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <stdint.h>
 #include <ostream>
-
+#include <cassert>
 
 #define STORAGE_XSTR(x) STORAGE_STR(x)
 #define STORAGE_STR(x) #x
@@ -102,7 +102,9 @@ struct PositionRange {
   bool sorted;
 
   PositionRange() : begin(nullptr), end(nullptr), sorted(true) {}
-  PositionRange(pos_list_t::iterator _begin, pos_list_t::iterator _end, bool _sorted) : begin(_begin), end(_end), sorted(_sorted) {}
+  PositionRange(pos_list_t::iterator _begin, pos_list_t::iterator _end, bool _sorted) : begin(_begin), end(_end), sorted(_sorted) {
+    assert(_end >= _begin);
+  }
 
   size_t size() { return end-begin; }
 };

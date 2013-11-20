@@ -46,7 +46,6 @@ PosUpdateIncrementScan::PosUpdateIncrementScan(std::string column, Json::Value o
 
 std::shared_ptr<PlanOperation> PosUpdateIncrementScan::parse(const Json::Value& data) {
   return std::make_shared<PosUpdateIncrementScan>(data["column"].asString(), data["offset"]);
-
 }
 
 void PosUpdateIncrementScan::executePlanOperation() {
@@ -83,6 +82,9 @@ void PosUpdateIncrementScan::executePlanOperation() {
     fun.set(column_idx, delta_row, _offset);
     ts(store->typeOfColumn(column_idx), fun);
 
+    // Update delta indices
+    store->addRowToDeltaIndices(main_size+delta_row);
+    
     // add inserted pos to mod record. use absolute pos not pos in delta (!)
     modRecord.insertPos(store, main_size+delta_row);
  
