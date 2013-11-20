@@ -56,7 +56,7 @@ void PosUpdateScan::executePlanOperation() {
     bool deleteOk = store->markForDeletion(p, _txContext.tid) == hyrise::tx::TX_CODE::TX_OK;
     if(!deleteOk) {
       txmgr.rollbackTransaction(_txContext);
-      throw std::runtime_error("Aborted TX because TID of other TX found");
+      throw std::runtime_error("Aborted TX because TID of other TX found (Op: PosUpdateScan, Table: " + store->getName() + ")");
     }
     modRecord.deletePos(store, p);
     //store->setTid(p, _txContext.tid);
