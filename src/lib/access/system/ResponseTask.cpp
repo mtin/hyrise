@@ -128,11 +128,11 @@ Json::Value ResponseTask::generateResponseJson() {
   epoch_t responseStart = get_epoch_nanoseconds();
   Json::Value response;
 
-  PapiTracer pt;
-  if (_recordPerformanceData) {
-    pt.addEvent("PAPI_TOT_CYC");
-    pt.start();
-  }
+  // PapiTracer pt;
+  // if (_recordPerformanceData) {
+  //   pt.addEvent("PAPI_TOT_CYC");
+  //   pt.start();
+  // }
 
   if (getState() != OpFail) {
     if (tx::TransactionManager::isRunningTransaction(_txContext.tid)) {
@@ -174,10 +174,10 @@ Json::Value ResponseTask::generateResponseJson() {
         element["executingThread"] = Json::Value(attr->executingThread);
         json_perf.append(element);
       }
-      pt.stop();
+      // pt.stop();
 
       Json::Value responseElement;
-      responseElement["duration"] = Json::Value((Json::UInt64) pt.value("PAPI_TOT_CYC"));
+      // responseElement["duration"] = Json::Value((Json::UInt64) pt.value("PAPI_TOT_CYC"));
       responseElement["name"] = Json::Value("ResponseTask");
       responseElement["id"] = Json::Value("respond");
       responseElement["startTime"] = Json::Value((double)(responseStart - queryStart) / 1000000);
