@@ -210,8 +210,7 @@ Json::Value TpccNewOrderProcedure::execute() {
     result["items"] = items;
 
     return result;
-  } catch(std::runtime_error e) {
-    std::cout << "Unlocking because of exception\n" << e.what();
+  } catch(std::runtime_error &e) {
     if(holds_district_lock) std::const_pointer_cast<storage::Store>(getTpccTable("DISTRICT"))->unlock();
     throw e;
     // TODO: Switch to scoped spinlock

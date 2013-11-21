@@ -213,7 +213,7 @@ transaction_cid_t TransactionManager::commitTransaction(TXContext ctx) {
       if (tx::TX_CODE::TX_OK != store->checkForConcurrentCommit(kv.second, ctx.tid)) {
         txmgr.rollbackTransaction(ctx);
         txmgr.abort();
-        throw std::runtime_error("Aborted TX because concurrent commit found");
+        throw std::runtime_error("Aborted TX because concurrent commit found (Table: " + store->getName() + ")");
       }
     }
   }

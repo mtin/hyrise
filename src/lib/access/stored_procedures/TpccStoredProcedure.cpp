@@ -13,6 +13,7 @@
 #include <io/TransactionManager.h>
 #include <access.h>
 #include "access/storage/GetTable.h"
+#include "io/TransactionError.h"
 
 
 namespace hyrise { namespace access {
@@ -29,7 +30,11 @@ void TpccStoredProcedure::operator()() {
     auto d = data();
     setData(d);
   }
-  catch (std::runtime_error e) {
+  catch (tx::transaction_error &e) {
+    _connection->respond(std::string("transaction aborted: ") + e.what(), 501);
+    return;
+  }
+  catch (std::runtime_error &e) {
     _connection->respond(std::string("error: ") + e.what(), 500);
     return;
   }
@@ -47,7 +52,12 @@ void TpccStoredProcedure::operator()() {
     Json::StyledWriter writer;
     _connection->respond(writer.write(result));
   }
-  catch (std::runtime_error e) {
+  catch (tx::transaction_error &e) {
+    rollback();
+    _connection->respond(std::string("transaction aborted: ") + e.what(), 501);
+    return;
+  }
+  catch (std::runtime_error &e) {
     rollback();
     _connection->respond(std::string("error: ") + e.what(), 500);
       std::cout << std::string("error: ") + e.what();

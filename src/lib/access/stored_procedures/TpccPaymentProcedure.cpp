@@ -163,7 +163,7 @@ Json::Value TpccPaymentProcedure::execute() {
     //only if BC? don't know
     result["C_DATA"]        = _c_data;
     return result;
-  } catch(std::runtime_error e) {
+  } catch(std::runtime_error &e) {
     std::cout << "Unlocking because of exception\n" << e.what();
     if(holds_district_lock) std::const_pointer_cast<storage::Store>(getTpccTable("DISTRICT"))->unlock();
     if(holds_warehouse_lock) std::const_pointer_cast<storage::Store>(getTpccTable("WAREHOUSE"))->unlock();

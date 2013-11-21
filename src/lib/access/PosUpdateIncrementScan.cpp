@@ -9,6 +9,7 @@
 #include "storage/Store.h"
 #include "access/json_converters.h"
 #include "storage/meta_storage.h"
+#include "io/TransactionError.h"
 
 using namespace hyrise;
 using namespace access;
@@ -69,7 +70,7 @@ void PosUpdateIncrementScan::executePlanOperation() {
   for (const auto& old_row: *positions) {
     if (store->markForDeletion(old_row, _txContext.tid) != tx::TX_CODE::TX_OK) {
       txmgr.rollbackTransaction(_txContext);
-      throw std::runtime_error("Aborted TX because TID of other TX found (Op: PosUpdateIncrementScan, Table: " + store->getName() + ")");
+      throw tx::transaction_error("Aborted TX because TID of other TX found (Op: PosUpdateIncrementScan, Table: " + store->getName() + ")");
     }
     modRecord.deletePos(store, old_row);
     
