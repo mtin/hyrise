@@ -83,7 +83,7 @@ Json::Value TpccNewOrderProcedure::execute() {
   }
   const float w_tax = tWarehouse->getValue<hyrise_float_t>("W_TAX", 0);
 
-  bool holds_district_lock;
+  bool holds_district_lock = false;
   try {
     std::const_pointer_cast<storage::Store>(getTpccTable("DISTRICT"))->lock();
     holds_district_lock = true;
