@@ -28,7 +28,7 @@ class VolatileAttributeVector : public FixedLengthVector<T> {
   using Strategy = MallocStrategy;
  public:
   typedef T value_type;
-  
+
   VolatileAttributeVector(size_t columns,  size_t rows)  :
       _values(nullptr), _rows(0), _columns(columns), _allocated_bytes(0) {
     if (rows > 0) {
@@ -128,9 +128,9 @@ class VolatileAttributeVector : public FixedLengthVector<T> {
   void allocate(size_t bytes) {
     std::lock_guard<std::mutex> guard(_allocate_mtx);
 
-    if (bytes != _allocated_bytes) {
+    if (bytes > _allocated_bytes) {
       void *new_values = Strategy::reallocate(_values, bytes, _allocated_bytes);
-    
+
       if (bytes > _allocated_bytes)
         memset(((char*) new_values) + _allocated_bytes, 0, bytes - _allocated_bytes);
 

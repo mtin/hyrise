@@ -13,6 +13,8 @@
 #include <helper/locking.h>
 #include <helper/cas.h>
 
+#define INITIAL_RESERVE 1000000
+
 namespace hyrise { namespace storage {
 
 TableMerger* createDefaultMerger() {
@@ -68,7 +70,7 @@ void Store::merge() {
   delta = new_delta;
 
   // TODO: hotfix !!
-  size_t num = 100000;
+  size_t num = INITIAL_RESERVE;
   size_t start = delta->size();
   delta->reserve(start + num);
   auto main_tables_size = _main_table->size();
@@ -272,6 +274,10 @@ std::pair<size_t, size_t> Store::appendToDelta(size_t num) {
   std::pair<size_t, size_t> result = {start, start + num};
 
   // Update Delta, CID, TID and valid
+  if(start+num > INITIAL_RESERVE) {
+    std::cout << "WARNING: " << getName() << ": resize delta to " << start+num << std::endl;
+    throw std::runtime_error("Should not resize beyond initial reserve!");
+  }
   delta->resize(start + num);
   auto main_tables_size = _main_table->size();
   _cidBeginVector.resize(main_tables_size + start + num, tx::INF_CID);
@@ -404,7 +410,7 @@ void Store::addRowToDeltaIndices(pos_t row) {
   // and add the respective new values of the row
 
   // TODO: needs to makesure index vector is not modfied during iterating over it
-  
+
   for (auto index_column_pair : _delta_indices ) {
     auto index = index_column_pair.first;
     auto column = index_column_pair.second;
