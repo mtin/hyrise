@@ -33,8 +33,6 @@ const std::string TpccDeliveryProcedure::vname() {
 Json::Value TpccDeliveryProcedure::execute() {
   _date = getDate();
 
-  Json::Value rows;
-
   storage::c_atable_ptr_t tNewOrder;
   for(int i = 0; i < 10; i++) {
 
@@ -65,18 +63,12 @@ Json::Value TpccDeliveryProcedure::execute() {
 
     commit();
 
-    Json::Value row;
-    row[0] = _w_id;
-    row[1] = _o_id;
-    rows.append(row);
   }
 
+  //todo write output file?
   Json::Value result;
-  Json::Value header;
-  header[0] = "W_ID";
-  header[1] = "NO_O_ID";
-  result["header"] = header;
-  result["rows"] = rows;
+  result["W_ID"] = _w_id;
+  result["O_CARRIER_ID"] = _o_carrier_id;
   result["Execution Status"] = "Delivery has been queued";
 
   return result;
