@@ -317,10 +317,10 @@ void Store::commitPositions(const pos_list_t& pos, const tx::transaction_cid_t c
   for(const auto& p : pos) {
     if(valid) {
       _cidBeginVector[p] = cid;
+      _tidVector[p] = tx::START_TID;
     } else {
       _cidEndVector[p] = cid;
     }
-    _tidVector[p] = tx::START_TID;
   }
 
   persist_scattered(pos, valid);
