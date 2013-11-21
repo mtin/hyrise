@@ -81,77 +81,95 @@ Json::Value TpccPaymentProcedure::execute() {
   _c_ytd_payment = tCustomer->getValue<hyrise_float_t>("C_YTD_PAYMENT", _chosenOne) + _h_amount;
   _c_data = tCustomer->getValue<hyrise_string_t>("C_DATA", _chosenOne);
 
-  auto tWarehouse = getWarehouse();
-  if (tWarehouse->size() == 0) {
-    std::ostringstream os;
-    os << "no such warehouse: " << _w_id;
-    throw std::runtime_error(os.str());
+  bool holds_warehouse_lock = false, holds_district_lock = false;
+
+  try {
+    std::const_pointer_cast<storage::Store>(getTpccTable("WAREHOUSE"))->lock();
+    holds_warehouse_lock = true;
+    auto tWarehouse = getWarehouse();
+    if (tWarehouse->size() == 0) {
+      std::ostringstream os;
+      os << "no such warehouse: " << _w_id;
+      throw std::runtime_error(os.str());
+    }
+    _w_ytd = tWarehouse->getValue<hyrise_float_t>("W_YTD", 0) + _h_amount;
+    const std::string w_name = tWarehouse->getValue<hyrise_string_t>("W_NAME", 0);
+
+    std::const_pointer_cast<storage::Store>(getTpccTable("DISTRICT"))->lock();
+    holds_district_lock = true;
+    auto tDistrict = getDistrict();
+    if (tDistrict->size() == 0) {
+      std::ostringstream os;
+      os << "internal error: no district " << _d_id << " for warehouse " << _w_id;
+      throw std::runtime_error(os.str());
+    }
+    _d_ytd = tDistrict->getValue<hyrise_float_t>("D_YTD", 0) + _h_amount;
+    const std::string d_name = tDistrict->getValue<hyrise_string_t>("D_NAME", 0);
+    _h_data = w_name + "    " + d_name;
+
+    updateWarehouseBalance(std::const_pointer_cast<AbstractTable>(tWarehouse));
+    updateDistrictBalance(std::const_pointer_cast<AbstractTable>(tDistrict));
+
+    if (bc_customer)
+      updateBCCustomer(std::const_pointer_cast<AbstractTable>(tCustomer));
+    else
+      updateGCCustomer(std::const_pointer_cast<AbstractTable>(tCustomer));
+
+    insertHistory();
+
+    commit();
+
+    std::const_pointer_cast<storage::Store>(getTpccTable("DISTRICT"))->unlock();
+    holds_district_lock = false;
+    std::const_pointer_cast<storage::Store>(getTpccTable("WAREHOUSE"))->unlock();
+    holds_warehouse_lock = false;
+
+    Json::Value result;
+    result["W_ID"]          = _w_id;
+    result["D_ID"]          = _d_id;
+    result["C_ID"]          = _c_id;
+    result["C_W_ID"]        = _c_w_id;
+    result["C_D_ID"]        = _c_d_id;
+    result["H_AMOUNT"]      = _h_amount;
+    result["H_DATE"]        = _date;
+
+    result["W_STREET_1"]    = tWarehouse->getValue<hyrise_string_t>("W_STREET_1", 0);
+    result["W_STREET_2"]    = tWarehouse->getValue<hyrise_string_t>("W_STREET_2", 0);
+    result["W_CITY"]        = tWarehouse->getValue<hyrise_string_t>("W_CITY", 0);
+    result["W_STATE"]       = tWarehouse->getValue<hyrise_string_t>("W_STATE", 0);
+    result["W_ZIP"]         = tWarehouse->getValue<hyrise_string_t>("W_ZIP", 0);
+
+    result["D_STREET_1"]    = tDistrict->getValue<hyrise_string_t>("D_STREET_1", 0);
+    result["D_STREET_2"]    = tDistrict->getValue<hyrise_string_t>("D_STREET_2", 0);
+    result["D_CITY"]        = tDistrict->getValue<hyrise_string_t>("D_CITY", 0);
+    result["D_STATE"]       = tDistrict->getValue<hyrise_string_t>("D_STATE", 0);
+    result["D_ZIP"]         = tDistrict->getValue<hyrise_string_t>("D_ZIP", 0);
+
+    result["C_FIRST"]       = tCustomer->getValue<hyrise_string_t>("C_FIRST", _chosenOne);
+    result["C_MIDDLE"]      = tCustomer->getValue<hyrise_string_t>("C_MIDDLE", _chosenOne);
+    result["C_LAST"]        = _c_last;
+    result["C_STREET_1"]    = tCustomer->getValue<hyrise_string_t>("C_STREET_1", _chosenOne);
+    result["C_STREET_2"]    = tCustomer->getValue<hyrise_string_t>("C_STREET_2", _chosenOne);
+    result["C_CITY"]        = tCustomer->getValue<hyrise_string_t>("C_CITY", _chosenOne);
+    result["C_STATE"]       = tCustomer->getValue<hyrise_string_t>("C_STATE", _chosenOne);
+    result["C_ZIP"]         = tCustomer->getValue<hyrise_string_t>("C_ZIP", _chosenOne);
+    result["C_PHONE"]       = tCustomer->getValue<hyrise_string_t>("C_PHONE", _chosenOne);
+    result["C_SINCE"]       = tCustomer->getValue<hyrise_string_t>("C_SINCE", _chosenOne);
+    result["C_CREDIT"]      = c_credit;
+    result["C_CREDIT_LIM"]  = tCustomer->getValue<hyrise_float_t>("C_CREDIT_LIM", _chosenOne);
+    result["C_DISCOUNT"]    = tCustomer->getValue<hyrise_float_t>("C_DISCOUNT", _chosenOne);
+    result["C_BALANCE"]     = _c_balance;
+
+    //only if BC? don't know
+    result["C_DATA"]        = _c_data;
+    return result;
+  } catch(std::runtime_error e) {
+    std::cout << "Unlocking because of exception\n" << e.what();
+    if(holds_district_lock) std::const_pointer_cast<storage::Store>(getTpccTable("DISTRICT"))->unlock();
+    if(holds_warehouse_lock) std::const_pointer_cast<storage::Store>(getTpccTable("WAREHOUSE"))->unlock();
+    throw e;
+    // TODO: Switch to scoped spinlock
   }
-  _w_ytd = tWarehouse->getValue<hyrise_float_t>("W_YTD", 0) + _h_amount;
-  const std::string w_name = tWarehouse->getValue<hyrise_string_t>("W_NAME", 0);
-
-  auto tDistrict = getDistrict();
-  if (tDistrict->size() == 0) {
-    std::ostringstream os;
-    os << "internal error: no district " << _d_id << " for warehouse " << _w_id;
-    throw std::runtime_error(os.str());
-  }
-  _d_ytd = tDistrict->getValue<hyrise_float_t>("D_YTD", 0) + _h_amount;
-  const std::string d_name = tDistrict->getValue<hyrise_string_t>("D_NAME", 0);
-  _h_data = w_name + "    " + d_name;
-
-  updateWarehouseBalance(std::const_pointer_cast<AbstractTable>(tWarehouse));
-  updateDistrictBalance(std::const_pointer_cast<AbstractTable>(tDistrict));
-
-  if (bc_customer)
-    updateBCCustomer(std::const_pointer_cast<AbstractTable>(tCustomer));
-  else
-    updateGCCustomer(std::const_pointer_cast<AbstractTable>(tCustomer));
-
-  insertHistory();
-
-
-  commit();
-
-  Json::Value result;
-  result["W_ID"]          = _w_id;
-  result["D_ID"]          = _d_id;
-  result["C_ID"]          = _c_id;
-  result["C_W_ID"]        = _c_w_id;
-  result["C_D_ID"]        = _c_d_id;
-  result["H_AMOUNT"]      = _h_amount;
-  result["H_DATE"]        = _date;
-
-  result["W_STREET_1"]    = tWarehouse->getValue<hyrise_string_t>("W_STREET_1", 0);
-  result["W_STREET_2"]    = tWarehouse->getValue<hyrise_string_t>("W_STREET_2", 0);
-  result["W_CITY"]        = tWarehouse->getValue<hyrise_string_t>("W_CITY", 0);
-  result["W_STATE"]       = tWarehouse->getValue<hyrise_string_t>("W_STATE", 0);
-  result["W_ZIP"]         = tWarehouse->getValue<hyrise_string_t>("W_ZIP", 0);
-
-  result["D_STREET_1"]    = tDistrict->getValue<hyrise_string_t>("D_STREET_1", 0);
-  result["D_STREET_2"]    = tDistrict->getValue<hyrise_string_t>("D_STREET_2", 0);
-  result["D_CITY"]        = tDistrict->getValue<hyrise_string_t>("D_CITY", 0);
-  result["D_STATE"]       = tDistrict->getValue<hyrise_string_t>("D_STATE", 0);
-  result["D_ZIP"]         = tDistrict->getValue<hyrise_string_t>("D_ZIP", 0);
-
-  result["C_FIRST"]       = tCustomer->getValue<hyrise_string_t>("C_FIRST", _chosenOne);
-  result["C_MIDDLE"]      = tCustomer->getValue<hyrise_string_t>("C_MIDDLE", _chosenOne);
-  result["C_LAST"]        = _c_last;
-  result["C_STREET_1"]    = tCustomer->getValue<hyrise_string_t>("C_STREET_1", _chosenOne);
-  result["C_STREET_2"]    = tCustomer->getValue<hyrise_string_t>("C_STREET_2", _chosenOne);
-  result["C_CITY"]        = tCustomer->getValue<hyrise_string_t>("C_CITY", _chosenOne);
-  result["C_STATE"]       = tCustomer->getValue<hyrise_string_t>("C_STATE", _chosenOne);
-  result["C_ZIP"]         = tCustomer->getValue<hyrise_string_t>("C_ZIP", _chosenOne);
-  result["C_PHONE"]       = tCustomer->getValue<hyrise_string_t>("C_PHONE", _chosenOne);
-  result["C_SINCE"]       = tCustomer->getValue<hyrise_string_t>("C_SINCE", _chosenOne);
-  result["C_CREDIT"]      = c_credit;
-  result["C_CREDIT_LIM"]  = tCustomer->getValue<hyrise_float_t>("C_CREDIT_LIM", _chosenOne);
-  result["C_DISCOUNT"]    = tCustomer->getValue<hyrise_float_t>("C_DISCOUNT", _chosenOne);
-  result["C_BALANCE"]     = _c_balance;
-
-  //only if BC? don't know
-  result["C_DATA"]        = _c_data;
-  return result;
 }
 
 storage::c_atable_ptr_t TpccPaymentProcedure::getCustomerByCId() {

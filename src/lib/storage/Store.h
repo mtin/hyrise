@@ -97,10 +97,15 @@ public:
   void persist_scattered(const pos_list_t& elements, bool new_elements = true) const override;
   void addDeltaIndex(std::shared_ptr<AbstractIndex> index, size_t column);
   void addRowToDeltaIndices(pos_t row);
+  void lock() {_write_lock.lock();std::cout<<"\nLocked " + getName() + "\n";};
+  void unlock() {_write_lock.unlock();std::cout<<"\nUnlocked " + getName() + "\n";};
 
  private:
   // RW-lock protecting store data structures
   mutable pthread_rwlock_t _rw_lock;
+
+  // lock for high congestion tables
+  locking::Spinlock _write_lock;
 
   //* Vector containing the main tables
   atable_ptr_t _main_table;
