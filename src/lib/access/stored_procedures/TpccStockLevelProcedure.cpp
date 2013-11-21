@@ -40,7 +40,7 @@ Json::Value TpccStockLevelProcedure::execute() {
   _next_o_id = t1->getValue<hyrise_int_t>("D_NEXT_O_ID", 0);
 
   auto t2 = getStockCount();
-  commit();
+  // commit();
 
   // Output
   int low_stock = 0;

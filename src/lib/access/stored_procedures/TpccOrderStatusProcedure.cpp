@@ -83,7 +83,7 @@ Json::Value TpccOrderStatusProcedure::execute() {
   if (tOrderLines->size() < 5 || tOrderLines->size() > 15)
     throw std::runtime_error("internal error: there must be between 5 and 15 orderlines for every order");
 
-  commit();
+  // commit();
 
   // Output
   Json::Value result;
