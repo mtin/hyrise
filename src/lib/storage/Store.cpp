@@ -13,7 +13,7 @@
 #include <helper/locking.h>
 #include <helper/cas.h>
 
-#define INITIAL_RESERVE 1000000
+#define INITIAL_RESERVE 5000000
 
 namespace hyrise { namespace storage {
 
@@ -71,12 +71,11 @@ void Store::merge() {
 
   // TODO: hotfix !!
   size_t num = INITIAL_RESERVE;
-  size_t start = delta->size();
-  delta->reserve(start + num);
+  delta->reserve(num);
   auto main_tables_size = _main_table->size();
-  _cidBeginVector.reserve(main_tables_size + start + num);
-  _cidEndVector.reserve(main_tables_size + start + num);
-  _tidVector.reserve(main_tables_size + start + num);
+  _cidBeginVector.reserve(main_tables_size + num);
+  _cidEndVector.reserve(main_tables_size + num);
+  _tidVector.reserve(main_tables_size + num);
 }
 
 
@@ -275,8 +274,8 @@ std::pair<size_t, size_t> Store::appendToDelta(size_t num) {
 
   // Update Delta, CID, TID and valid
   if(start+num > INITIAL_RESERVE) {
-    std::cout << "WARNING: " << getName() << ": resize delta to " << start+num << std::endl;
-    throw std::runtime_error("Should not resize beyond initial reserve!");
+    std::cout << "WARNING: " << getName() << ": resize delta to " << start+num << ", exiting.." << std::endl;
+    exit(-1);
   }
   delta->resize(start + num);
   auto main_tables_size = _main_table->size();
