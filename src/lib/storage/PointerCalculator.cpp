@@ -62,8 +62,8 @@ hyrise::storage::atable_ptr_t PointerCalculator::copy() const {
 }
 
 PointerCalculator::~PointerCalculator() {
-  // delete fields;
-  // delete pos_list;
+  delete fields;
+  delete pos_list;
 }
 
 void PointerCalculator::updateFieldMapping() {
