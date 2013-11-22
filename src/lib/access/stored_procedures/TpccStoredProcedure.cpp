@@ -60,7 +60,6 @@ void TpccStoredProcedure::operator()() {
   catch (std::runtime_error &e) {
     rollback();
     _connection->respond(std::string("error: ") + e.what(), 500);
-      std::cout << std::string("error: ") + e.what();
     return;
   }
 }
