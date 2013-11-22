@@ -325,7 +325,7 @@ std::shared_ptr<PointerCalculator> PointerCalculator::intersect(const std::share
   intersect_pos_list(
     pos_list->begin(), pos_list->end(),
     other->pos_list->begin(), other->pos_list->end(),
-    result);
+    std::back_inserter(*result));
 
   assert((other->table == this->table) && "Should point to same table");
   return create(table, result, fields);
@@ -408,7 +408,7 @@ void PointerCalculator::debugStructure(size_t level) const {
 
 
 void PointerCalculator::validate(hyrise::tx::transaction_id_t tid, hyrise::tx::transaction_id_t cid) {
-  const auto& store = checked_pointer_cast<const hyrise::storage::Store>(table);
+  const auto& store = checked_pointer_cast<const Store>(table);
   if (pos_list == nullptr) {
     pos_list = new pos_list_t(store->buildValidPositions(cid, tid));
   } else {
