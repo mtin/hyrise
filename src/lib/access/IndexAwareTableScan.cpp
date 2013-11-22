@@ -17,6 +17,7 @@
 #include "storage/DeltaIndex.h"
 
 #include "helper/checked_cast.h"
+#include "helper/PositionsIntersect.h"
 
 #include "access/expressions/pred_buildExpression.h"
 #include "access/expressions/pred_GreaterThanExpression.h"
@@ -175,7 +176,7 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
   else if (idx_results.size() >= 2) {
     auto a = idx_results[0];
     auto b = idx_results[1];
-    PointerCalculator::intersect_pos_list(a.begin, a.end, b.begin, b.end, result, a.sorted, b.sorted);
+    intersect_pos_list(a.begin, a.end, b.begin, b.end, result, a.sorted, b.sorted);
   }
 
   // if we have more than two results, intersect them too
@@ -186,7 +187,7 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
     for (;it != it_end; ++it) {
       if (result->empty()) break; // when result is empty, final intersect is empty too
       auto r = *it;
-      PointerCalculator::intersect_pos_list(r.begin, r.end, result->begin(), result->end(), tmp_result, r.sorted, true);
+      intersect_pos_list(r.begin, r.end, result->begin(), result->end(), tmp_result, r.sorted, true);
       *result = *tmp_result;
       tmp_result->clear();
     }

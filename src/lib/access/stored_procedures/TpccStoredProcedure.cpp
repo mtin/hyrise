@@ -194,14 +194,8 @@ void TpccStoredProcedure::startTransaction() {
 }
 
 storage::atable_ptr_t TpccStoredProcedure::newRowFrom(storage::c_atable_ptr_t table) const {
-  const auto metadata = table->metadata();
-  storage::TableBuilder::param_list list;
-  for (const auto& columnData : metadata) {
-    list.append(storage::TableBuilder::param(columnData.getName(), data_type_to_string(columnData.getType())));
-  }
-  auto newRow = storage::TableBuilder::build(list);
+  auto newRow = table->copy_structure_modifiable();
   newRow->resize(1);
-
   return newRow;
 }
 
