@@ -167,7 +167,7 @@ Json::Value TpccPaymentProcedure::execute() {
     std::cout << "Unlocking because of exception\n" << e.what();
     if(holds_district_lock) std::const_pointer_cast<storage::Store>(getTpccTable("DISTRICT"))->unlock();
     if(holds_warehouse_lock) std::const_pointer_cast<storage::Store>(getTpccTable("WAREHOUSE"))->unlock();
-    throw e;
+    throw;
     // TODO: Switch to scoped spinlock
   }
 }
@@ -228,7 +228,7 @@ void TpccPaymentProcedure::insertHistory() {
   newRow->setValue<hyrise_string_t>("H_DATE", 0, _date);
   newRow->setValue<hyrise_float_t>("H_AMOUNT", 0, _h_amount);
   newRow->setValue<hyrise_string_t>("H_DATA", 0, _h_data);
-  
+
   insert(history, newRow);
 }
 

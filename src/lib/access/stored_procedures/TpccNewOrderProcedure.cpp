@@ -212,7 +212,7 @@ Json::Value TpccNewOrderProcedure::execute() {
     return result;
   } catch(std::runtime_error &e) {
     if(holds_district_lock) std::const_pointer_cast<storage::Store>(getTpccTable("DISTRICT"))->unlock();
-    throw e;
+    throw;
     // TODO: Switch to scoped spinlock
   }
 
@@ -224,7 +224,7 @@ void TpccNewOrderProcedure::createNewOrder() {
   newRow->setValue<hyrise_int_t>("NO_O_ID", 0, _o_id);
   newRow->setValue<hyrise_int_t>("NO_D_ID", 0, _d_id);
   newRow->setValue<hyrise_int_t>("NO_W_ID", 0, _w_id);
-  
+
   insert(newOrder, newRow);
 }
 
@@ -241,7 +241,7 @@ void TpccNewOrderProcedure::createOrderLine(const ItemInfo& item, const int ol_n
   newRow->setValue<hyrise_int_t>("OL_QUANTITY", 0, item.quantity);
   newRow->setValue<hyrise_float_t>("OL_AMOUNT", 0, item.amount());
   newRow->setValue<hyrise_string_t>("OL_DIST_INFO", 0, _ol_dist_info);
-  
+
   insert(orderLine, newRow);
 }
 
@@ -256,7 +256,7 @@ void TpccNewOrderProcedure::createOrder() {
   newRow->setValue<hyrise_int_t>("O_CARRIER_ID", 0, _carrier_id);
   newRow->setValue<hyrise_int_t>("O_OL_CNT", 0, _ol_cnt);
   newRow->setValue<hyrise_int_t>("O_ALL_LOCAL", 0, _all_local);
-  
+
   insert(orders, newRow);
 }
 
