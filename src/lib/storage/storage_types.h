@@ -9,6 +9,8 @@
 #include <ostream>
 #include <cassert>
 
+#include "helper/AssembledContainer.h"
+
 #define STORAGE_XSTR(x) STORAGE_STR(x)
 #define STORAGE_STR(x) #x
 #define STORAGE_DEBUG_WHERE_WHAT(file, line)  std::string(#file ":" #line)
@@ -95,20 +97,7 @@ typedef std::vector<const ColumnMetadata *> metadata_list;
 typedef std::vector<metadata_list *> compound_metadata_list;
 typedef std::vector<ColumnMetadata> metadata_vec_t;
 
-
-struct PositionRange {
-  pos_list_t::iterator begin;
-  pos_list_t::iterator end;
-  bool sorted;
-
-  PositionRange() : begin(nullptr), end(nullptr), sorted(true) {}
-  PositionRange(pos_list_t::iterator _begin, pos_list_t::iterator _end, bool _sorted) : begin(_begin), end(_end), sorted(_sorted) {
-    assert(_end >= _begin);
-  }
-
-  size_t size() { return end-begin; }
-};
-
+typedef AssembledContainer<pos_list_t, pos_t> PositionRange;
 
 #endif  // SRC_LIB_STORAGE_STORAGE_TYPES_H_
 
