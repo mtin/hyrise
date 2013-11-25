@@ -20,6 +20,7 @@ void simpleLoggerTestWorker(uint64_t tx) {
   vids.push_back(ValueId(2, 0));
   SimpleLogger::getInstance().logValue(tx,'a',2,3,4,&vids);
   SimpleLogger::getInstance().logCommit(tx);
+  SimpleLogger::getInstance().flush();
 }
 
 TEST_F(SimpleLoggerTests, simple_log_test) {

@@ -20,6 +20,7 @@ void bufferedLoggerTestWorker(uint64_t tx) {
   vids.push_back(ValueId(2, 0));
   BufferedLogger::getInstance().logValue(tx,'a',2,3,4,&vids);
   BufferedLogger::getInstance().logCommit(tx);
+  BufferedLogger::getInstance().flush();
 }
 
 TEST_F(BufferedLoggerTests, simple_log_test) {
