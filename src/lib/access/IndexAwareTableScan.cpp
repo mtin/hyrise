@@ -85,61 +85,39 @@ struct GroupkeyIndexFunctor {
   template<typename ValueType>
   value_type operator()() {
     auto index = StorageManager::getInstance()->getInvertedIndex(_indexname);
+    
+    if (auto idx_main = std::dynamic_pointer_cast<GroupkeyIndex<ValueType>>(index))
+      return callIndex<ValueType>(idx_main);
+    else if (auto idx_delta = std::dynamic_pointer_cast<DeltaIndex<ValueType>>(index))
+      return callIndex<ValueType>(idx_delta);
+    else throw std::runtime_error("IndexAwareTable scan only supports GroupKeyIndex and DeltaIndex: " + _indexname);
+  }
+
+  template<typename ValueType, typename IndexType>
+  value_type callIndex(const IndexType& idx) {
     ValueType v1 = json_converter::convert<ValueType>(_indexValue1);
     ValueType v2 = json_converter::convert<ValueType>(_indexValue2);
-
-    auto idx = std::dynamic_pointer_cast<GroupkeyIndex<ValueType>>(index);
-    if (idx) {
-      switch (_predicate_type) {
-        case PredicateType::EqualsExpressionValue:
-          return idx->getPositionsForKey(v1);
-          break;
-        case PredicateType::GreaterThanExpressionValue:
-          return idx->getPositionsForKeyGT(v1);
-          break;
-        case PredicateType::GreaterThanEqualsExpressionValue:
-          return idx->getPositionsForKeyGTE(v1);
-          break;
-        case PredicateType::LessThanExpressionValue:
-          return idx->getPositionsForKeyLT(v1);
-          break;
-        case PredicateType::LessThanEqualsExpressionValue:
-          return idx->getPositionsForKeyLTE(v1);
-          break;
-        case PredicateType::BetweenExpression:
-          return idx->getPositionsForKeyBetween(v1, v2);
-          break;
-        default:
-          throw std::runtime_error("Unsupported predicate type in InvertedIndex");
-      }
-    } else {
-      auto idx_delta = std::dynamic_pointer_cast<DeltaIndex<ValueType>>(index);
-      if (idx_delta) {
-        switch (_predicate_type) {
-          case PredicateType::EqualsExpressionValue:
-            return idx_delta->getPositionsForKey(v1);
-            break;
-          case PredicateType::GreaterThanExpressionValue:
-            return idx_delta->getPositionsForKeyGT(v1);
-            break;
-          case PredicateType::GreaterThanEqualsExpressionValue:
-            return idx_delta->getPositionsForKeyGTE(v1);
-            break;
-          case PredicateType::LessThanExpressionValue:
-            return idx_delta->getPositionsForKeyLT(v1);
-            break;
-          case PredicateType::LessThanEqualsExpressionValue:
-            return idx_delta->getPositionsForKeyLTE(v1);
-            break;
-          case PredicateType::BetweenExpression:
-            return idx_delta->getPositionsForKeyBetween(v1, v2);
-            break;
-          default:
-            throw std::runtime_error("Unsupported predicate type in InvertedIndex");
-        }
-      } else  {
-        throw std::runtime_error("IndexAwareTable scan only supports GroupKeyIndex and DeltaIndex: " + _indexname);
-      }
+    switch (_predicate_type) {
+      case PredicateType::EqualsExpressionValue:
+        return idx->getPositionsForKey(v1);
+        break;
+      case PredicateType::GreaterThanExpressionValue:
+        return idx->getPositionsForKeyGT(v1);
+        break;
+      case PredicateType::GreaterThanEqualsExpressionValue:
+        return idx->getPositionsForKeyGTE(v1);
+        break;
+      case PredicateType::LessThanExpressionValue:
+        return idx->getPositionsForKeyLT(v1);
+        break;
+      case PredicateType::LessThanEqualsExpressionValue:
+        return idx->getPositionsForKeyLTE(v1);
+        break;
+      case PredicateType::BetweenExpression:
+        return idx->getPositionsForKeyBetween(v1, v2);
+        break;
+      default:
+        throw std::runtime_error("Unsupported predicate type in IndexAwareTableScan");
     }
   }
 };
@@ -161,39 +139,70 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
     std::sort(
       begin(idx_results), end(idx_results),
       [] (const PositionRange &a, const PositionRange &b) {
-        return (a.end-a.begin)<(b.end-b.begin);
+        return a.size()<b.size();
       });
   }
-  
-  pos_list_t *tmp_result = new pos_list_t;
 
   // if we only have one idx result, this is the final one
   if (idx_results.size() == 1) {
     auto r = idx_results[0];
-    std::copy(r.begin, r.end, std::back_inserter(*result));
+    result->reserve(r.size());
+    r.copyInto(*result);
+    if (!r.isSorted())
+      std::sort(result->begin(), result->end());
   } 
   // otherwise we intersect the first two results
   else if (idx_results.size() >= 2) {
     auto a = idx_results[0];
     auto b = idx_results[1];
-    intersect_pos_list(a.begin, a.end, b.begin, b.end, std::back_inserter(*result), a.sorted, b.sorted);
+    pos_list_t *a_sorted = nullptr;
+    pos_list_t *b_sorted = nullptr;
+
+    if (!a.isSorted()) {
+      // copy and sort
+      a_sorted = new pos_list_t;
+      a.copyInto(*a_sorted);
+      std::sort(a_sorted->begin(), a_sorted->end());
+      a = PositionRange(a_sorted->begin(), a_sorted->end(), true);
+    }
+    if (!b.isSorted()) {
+      // copy and sort
+      b_sorted = new pos_list_t;
+      b.copyInto(*b_sorted);
+      std::sort(b_sorted->begin(), b_sorted->end());
+      b = PositionRange(b_sorted->begin(), b_sorted->end(), true);
+    }
+
+    intersect_pos_list(a.begin(), a.end(), b.begin(), b.end(), std::back_inserter(*result));
+    if (a_sorted == nullptr) delete a_sorted;
+    if (b_sorted == nullptr) delete b_sorted;
   }
 
   // if we have more than two results, intersect them too
   if (idx_results.size() > 2) {
-    std::vector<PositionRange>::iterator it = idx_results.begin();
-    std::vector<PositionRange>::iterator it_end = idx_results.end();
-    ++it; ++it;
+    pos_list_t *tmp_result = new pos_list_t;
+    pos_list_t *idx_result_sorted = nullptr;
+    auto it = idx_results.begin(); ++it; ++it;
+    auto it_end = idx_results.end();
+
     for (;it != it_end; ++it) {
       if (result->empty()) break; // when result is empty, final intersect is empty too
-      auto r = *it;
-      intersect_pos_list(r.begin, r.end, result->begin(), result->end(), std::back_inserter(*tmp_result), r.sorted, true);
+      if (!it->isSorted()) {
+        // copy and sort
+        idx_result_sorted = new pos_list_t;
+        it->copyInto(*idx_result_sorted);
+        std::sort(idx_result_sorted->begin(), idx_result_sorted->end());
+        intersect_pos_list(idx_result_sorted->begin(), idx_result_sorted->end(), result->begin(), result->end(), std::back_inserter(*tmp_result));
+        delete idx_result_sorted;
+      } else {
+        PositionRange tmp_range(result->begin(), result->end(), true);
+        intersect_pos_list(it->begin(), it->end(), tmp_range.begin(), tmp_range.end(), std::back_inserter(*tmp_result));
+      }
       *result = *tmp_result;
       tmp_result->clear();
     }
+    delete tmp_result;
   }
-
-  delete tmp_result;
 }
 
 void IndexAwareTableScan::_consolidateFunctors(std::shared_ptr<const storage::Store> t_store, std::vector<GroupkeyIndexFunctor> &functors) {

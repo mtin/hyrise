@@ -11,27 +11,8 @@
 template <typename IterT, typename OutputIter>
 void intersect_pos_list(IterT beg1, IterT end1, IterT beg2, IterT end2, OutputIter resultIter, bool first_sorted=true, bool second_sorted=true)
 {
-  std::vector<typename std::iterator_traits<IterT>::value_type> input1_sorted, input2_sorted;
-
-  auto size_1 = std::distance(beg1, end1);
-  auto size_2 = std::distance(beg2, end2);
-
-  if (!first_sorted) {
-    // copy input 1 and sort it
-    input1_sorted.reserve(size_1);
-    input1_sorted.insert(input1_sorted.end(), beg1, end1);
-    std::sort(input1_sorted.begin(), input1_sorted.end());
-    beg1 = input1_sorted.begin();
-    end1 = input1_sorted.end();
-  }
-  if (!second_sorted) {
-    // copy input 2 and sort it
-    input2_sorted.reserve(size_2);
-    input2_sorted.insert(input2_sorted.end(), beg2, end2);
-    std::sort(input2_sorted.begin(), input2_sorted.end());
-    beg2 = input2_sorted.begin();
-    end2 = input2_sorted.end();
-  }
+  auto size_1 = end1 - beg1; // not using std::distance on purpose
+  auto size_2 = end2 - beg2; // not using std::distance on purpose
 
   // if one of the inputs is empty,
   // return as intersect is empty

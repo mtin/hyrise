@@ -18,9 +18,11 @@
 template<typename T>
 class GroupkeyIndex : public AbstractIndex {
 private:
-  typedef std::map<T, pos_list_t> inverted_index_mutable_t;
-  typedef std::map<T, PositionRange> groupkey_offsets_t;
   typedef pos_list_t groupkey_postings_t;
+  typedef std::pair<pos_list_t::iterator, pos_list_t::iterator> postings_range_t;
+  typedef std::map<T, pos_list_t> inverted_index_mutable_t;
+  typedef std::map<T, postings_range_t> groupkey_offsets_t;
+  
 
   groupkey_offsets_t _offsets;
   groupkey_postings_t _postings;
@@ -28,7 +30,9 @@ private:
 public:
   virtual ~GroupkeyIndex() {};
 
-  void shrink() { }
+  void shrink() {
+    throw std::runtime_error("Shrink not supported for GroupkeyIndex");
+  }
 
   explicit GroupkeyIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column) {
     if (in != nullptr) {
@@ -55,7 +59,8 @@ public:
         // set offsets
         auto offset_begin = _postings.end() - it.second.end() + it.second.begin();
         auto offset_end = _postings.end();
-        _offsets[it.first] = PositionRange(offset_begin, offset_end, true);
+        // _offsets[it.first] = PositionRange(offset_begin, offset_end, true);
+        _offsets[it.first] = std::make_pair(offset_begin, offset_end);
       }
     }
   };
@@ -67,7 +72,7 @@ public:
   PositionRange getPositionsForKey(T key) {
    auto it = _offsets.find(key);
     if (it != _offsets.end()) {
-      return PositionRange(it->second.begin, it->second.end, true);
+      return PositionRange(it->second.first, it->second.second, true);
     } else {
       // empty result
       return PositionRange(_postings.begin(), _postings.begin(), true);
@@ -77,7 +82,7 @@ public:
   PositionRange getPositionsForKeyLT(T key) {
     auto it = _offsets.lower_bound(key);
     if (it != _offsets.end()) {
-      return PositionRange(_postings.begin(), it->second.begin, false);
+      return PositionRange(_postings.begin(), it->second.first, false);
     } else {
       // all
       return PositionRange(_postings.begin(), _postings.end(), false);
@@ -87,7 +92,7 @@ public:
   PositionRange getPositionsForKeyLTE(T key) {
     auto it = _offsets.upper_bound(key);
     if (it != _offsets.end()) {
-      return PositionRange(_postings.begin(), it->second.begin, false);
+      return PositionRange(_postings.begin(), it->second.first, false);
     } else {
       // all
       return PositionRange(_postings.begin(), _postings.end(), false);
@@ -97,7 +102,7 @@ public:
   PositionRange getPositionsForKeyGT(T key) {
     auto it = _offsets.upper_bound(key);
     if (it != _offsets.end()) {
-      return PositionRange(it->second.begin, _postings.end(), false);
+      return PositionRange(it->second.first, _postings.end(), false);
     } else {
       // empty
       return PositionRange(_postings.end(), _postings.end(), false);
@@ -107,7 +112,7 @@ public:
   PositionRange getPositionsForKeyGTE(T key) {
     auto it = _offsets.lower_bound(key);
     if (it != _offsets.end()) {
-      return PositionRange(it->second.begin, _postings.end(), false);
+      return PositionRange(it->second.first, _postings.end(), false);
     } else {
       // empty
       return PositionRange(_postings.end(), _postings.end(), false);
@@ -122,11 +127,11 @@ public:
     auto it2 = _offsets.lower_bound(b);
 
     if (it1 != _offsets.end() && it2 != _offsets.end())
-      return PositionRange(it1->second.begin, it2->second.begin, false);
+      return PositionRange(it1->second.first, it2->second.first, false);
     else if (it1 != _offsets.end())
-      return PositionRange(it1->second.begin, _postings.end(), false);
+      return PositionRange(it1->second.first, _postings.end(), false);
     else if (it2 != _offsets.end())
-      return PositionRange(_postings.begin(), it2->second.begin, false);
+      return PositionRange(_postings.begin(), it2->second.first, false);
     else {
       // empty
       return PositionRange(_postings.end(), _postings.end(), false);

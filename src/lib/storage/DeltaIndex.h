@@ -6,6 +6,7 @@
 #include <map>
 #include <stdexcept>
 #include <algorithm>
+#include <memory>
 
 #include "tbb/concurrent_vector.h"
 #include "tbb/concurrent_hash_map.h"
@@ -15,8 +16,6 @@
 #include "storage/storage_types.h"
 #include "storage/AbstractIndex.h"
 #include "storage/AbstractTable.h"
-
-#include <memory>
 
 
 template<typename T>
@@ -32,30 +31,28 @@ private:
   const hyrise::storage::c_atable_ptr_t& _table;
   const field_t _column;
 
-
   PositionRange getPositionsBetween(typename inverted_index_t::const_iterator begin, const typename inverted_index_t::const_iterator end) {
-    pos_list_t * pos = new pos_list_t;
-
-    while(begin != end) {
-      pos->insert(pos->end(), begin->second.begin(), begin->second.end());
-      begin++;
+    PositionRange positionRange;
+    auto it = begin;
+    while(it != end) {
+      positionRange.add(it->second.begin(), it->second.end());
+      it++;
     }
-    std::sort(pos->begin(), pos->end());
-    return PositionRange(pos->begin(), pos->end(), true);
+    return positionRange;
   }
-
 
 public:
   virtual ~DeltaIndex() {
     pthread_rwlock_destroy(&_rw_lock);
   };
 
-  void shrink() { }
+  void shrink() {
+    throw std::runtime_error("Shrink not supported for DeltaIndex");
+  }
 
   explicit DeltaIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column) : _table(in), _column(column) {
     pthread_rwlock_init(&_rw_lock, NULL);
   };
-
 
   /**
    * add new pair of value and pos to index
