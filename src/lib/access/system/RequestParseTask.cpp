@@ -140,12 +140,17 @@ void RequestParseTask::operator()() {
         result = nullptr;
       }
 
+      auto group_commit_it = body_data.find("autocommit");
+      bool group_commit = (group_commit_it != body_data.end() && (group_commit_it->second == "true"));
+      _responseTask->setGroupCommit(group_commit);
+
       auto autocommit_it = body_data.find("autocommit");
       if (autocommit_it != body_data.end() && (autocommit_it->second == "true")) {
         auto commit = std::make_shared<Commit>();
         commit->setOperatorId("__autocommit");
         commit->setPlanOperationName("Commit");
         commit->addDependency(result);
+        commit->setFlushLog(!group_commit);
         result = commit;
         tasks.push_back(commit);
       }
@@ -172,6 +177,9 @@ void RequestParseTask::operator()() {
             // dangling tasks
             _responseTask->addDependency(task);
           }
+        }
+        if (auto commit = std::dynamic_pointer_cast<Commit>(func)) {
+          commit->setFlushLog(!group_commit);
         }
       }
     } else {

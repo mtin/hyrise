@@ -38,6 +38,8 @@ class ResponseTask : public Task {
 
   bool _recordPerformanceData = true;
 
+  bool _group_commit = false;
+
  public:
   explicit ResponseTask(net::AbstractConnection *connection) :
       connection(connection) {
@@ -98,6 +100,8 @@ class ResponseTask : public Task {
   task_states_t getState() const;
 
   std::shared_ptr<PlanOperation> getResultTask();
+
+  void setGroupCommit(bool group_commit);
 
   virtual void operator()();
 };

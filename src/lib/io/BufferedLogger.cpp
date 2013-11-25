@@ -67,7 +67,6 @@ void BufferedLogger::logCommit(const tx::transaction_id_t transaction_id) {
   char entry[24];
   unsigned int len = sprintf(entry, "(t,%li)", transaction_id);
   _append(entry, len);
-  _flush();
 }
 
 void BufferedLogger::_append(const char *str, const unsigned int len) {
@@ -91,11 +90,10 @@ void BufferedLogger::_append(const char *str, const unsigned int len) {
   --_writing;
 
   uint64_t s = _size.fetch_add(len);
-  if(s > LOG_BUFFER_SIZE/2)
-    _flush();
+  if(s > LOG_BUFFER_SIZE/2) flush();
 }
 
-void BufferedLogger::_flush() {
+void BufferedLogger::flush() {
   char *head = NULL;
   uint64_t written = 0;
 

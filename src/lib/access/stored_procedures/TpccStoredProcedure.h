@@ -61,6 +61,7 @@ class TpccStoredProcedure : public net::AbstractRequestHandler {
   bool _finished = false;
   bool _recordPerformance = false;
   std::map<std::string, storage::c_store_ptr_t> _tables;
+  bool _use_group_commit = false;
 };
 
 } } // namespace hyrise::access

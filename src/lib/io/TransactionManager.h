@@ -84,7 +84,7 @@ class TransactionManager {
   /// of the transaction context identified by tid
   /// \param tid transaction id to commit
   /// \returns commit id on success
-  static transaction_cid_t commitTransaction(TXContext ctx);
+  static transaction_cid_t commitTransaction(TXContext ctx, bool flush_log = true);
 
   /// Ends a transaction by leaving all changes invisible
   /// \param tid transaction id to abort
@@ -136,7 +136,7 @@ class TransactionManager {
   * This call relases the prepare commit lock and increments the commit ID
   * counter;
   */
-  void commit(transaction_id_t tid);
+  void commit(transaction_id_t tid, bool flush_log = true);
 
   void endTransaction(transaction_id_t tid);
 

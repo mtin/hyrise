@@ -14,7 +14,7 @@
 #include <access.h>
 #include "access/storage/GetTable.h"
 #include "io/TransactionError.h"
-
+#include "io/GroupCommitter.h"
 
 namespace hyrise { namespace access {
 
@@ -49,8 +49,12 @@ void TpccStoredProcedure::operator()() {
       result["performanceData"] = json_result_with_perf["performanceData"];
     }
 
-    Json::StyledWriter writer;
-    _connection->respond(writer.write(result));
+    Json::FastWriter fw;
+    if(_use_group_commit) {
+      io::GroupCommitter::getInstance().push(std::tuple<net::AbstractConnection*, size_t, std::string>(_connection, 200, fw.write(result)));
+    } else {
+      _connection->respond(fw.write(result), 200);
+    }
   }
   catch (tx::transaction_error &e) {
     rollback();
@@ -270,6 +274,7 @@ void TpccStoredProcedure::commit() {
   _responseTask->registerPlanOperation(commit);
 
   commit->setTXContext(_tx);
+  commit->setFlushLog(!_use_group_commit);
   commit->execute();
   _finished = true;
 }

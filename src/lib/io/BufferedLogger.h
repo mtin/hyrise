@@ -31,12 +31,12 @@ public:
                   uint64_t field_bitmask,
                   const ValueIdList *value_ids);
     void logCommit(tx::transaction_id_t transaction_id);
+    void flush();
 
 private:
     BufferedLogger();
 
     void _append(const char *str, const unsigned int len);
-    void _flush();
 
     FILE *_logfile;
     char *_buffer;

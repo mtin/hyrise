@@ -26,7 +26,6 @@ void SimpleLogger::logValue(const tx::transaction_id_t transaction_id,
     ss << "))";
     _mutex.lock();
     write(_fd, (void *) ss.str().c_str(), ss.str().length());
-    fsync(_fd);
     _mutex.unlock();
 }
 
@@ -35,8 +34,11 @@ void SimpleLogger::logCommit(const tx::transaction_id_t transaction_id) {
     ss << "(t," << transaction_id << ")";
     _mutex.lock();
     write(_fd, (void *) ss.str().c_str(), ss.str().length());
-    fsync(_fd);
     _mutex.unlock();
+}
+
+void SimpleLogger::flush() {
+    fsync(_fd);
 }
 
 SimpleLogger::SimpleLogger() {

@@ -34,6 +34,7 @@ public:
                 uint64_t field_bitmask,
                 const ValueIdList *value_ids);
   void logCommit(tx::transaction_id_t transaction_id);
+  void flush();
 
 private:
   SimpleLogger();
@@ -51,7 +52,6 @@ void SimpleLogger::logDictionary(const storage::table_id_t table_id,
   ss << "(d," << (int)table_id << "," << column << "," << value << "," << value_id << ")";
   _mutex.lock();
   write(_fd, (void *) ss.str().c_str(), ss.str().length());
-  fsync(_fd);
   _mutex.unlock();
 }
 

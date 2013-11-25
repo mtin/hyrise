@@ -34,6 +34,9 @@ public:
   void logCommit(tx::transaction_id_t transaction_id) {
     // do nothing
   }
+  void flush() {
+    // do nothing
+  }
 
 private:
   NoLogger() {

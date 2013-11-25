@@ -16,6 +16,7 @@
 #include "storage/AbstractTable.h"
 #include "storage/SimpleStore.h"
 #include "storage/meta_storage.h"
+#include "io/GroupCommitter.h"
 
 
 namespace hyrise {
@@ -222,7 +223,15 @@ void ResponseTask::operator()() {
   }
 
   Json::FastWriter fw;
-  connection->respond(fw.write(response), status);
+  if(_group_commit) {
+    io::GroupCommitter::getInstance().push(std::tuple<net::AbstractConnection*, size_t, std::string>(connection, status, fw.write(response)));
+  } else {
+    connection->respond(fw.write(response), status);
+  }
+}
+
+void ResponseTask::setGroupCommit(bool group_commit) {
+  _group_commit = group_commit;
 }
 
 }

@@ -114,11 +114,12 @@ TXModifications& TransactionManager::operator[](const transaction_id_t& key) {
     });
 }
 
-void TransactionManager::commit(transaction_id_t tid) {
+void TransactionManager::commit(transaction_id_t tid, bool flush_log) {
   if (!_txLock.is_locked())
     throw std::runtime_error("Double commit detected, possible TX corruption");
   ++_commitId;
   io::Logger::getInstance().logCommit(tid);
+  if(flush_log) io::Logger::getInstance().flush();
   _txLock.unlock();
 
   endTransaction(tid);
@@ -191,7 +192,7 @@ void TransactionManager::rollbackTransaction(TXContext ctx) {
   getInstance().endTransaction(ctx.tid);
 }
 
-transaction_cid_t TransactionManager::commitTransaction(TXContext ctx) {
+transaction_cid_t TransactionManager::commitTransaction(TXContext ctx, bool flush_log) {
   if (!isRunningTransaction(ctx.tid)) {
     throw std::runtime_error("Transaction is not currently running");
   }
@@ -232,7 +233,7 @@ transaction_cid_t TransactionManager::commitTransaction(TXContext ctx) {
     }
   }
 
-  txmgr.commit(ctx.tid);
+  txmgr.commit(ctx.tid, flush_log);
   return ctx.cid;
 }
 
