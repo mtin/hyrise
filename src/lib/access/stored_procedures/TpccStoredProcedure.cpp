@@ -16,6 +16,8 @@
 #include "io/TransactionError.h"
 #include "io/GroupCommitter.h"
 
+#include <storage/PointerCalculator.h>
+
 namespace hyrise { namespace access {
 
 TpccStoredProcedure::TpccStoredProcedure(net::AbstractConnection* connection) :
@@ -178,6 +180,17 @@ storage::c_atable_ptr_t TpccStoredProcedure::selectAndValidate(storage::c_atable
   select->setPredicate(bare);
   select->execute();
 
+  auto plist = std::dynamic_pointer_cast<const PointerCalculator>(select->getResultTable())->getPositions();
+  storage::pos_list_t *p = new storage::pos_list_t(*plist);
+  //auto p = *plist;
+  auto pc = PointerCalculator::create(table, p);
+
+  if(tablename == "CUSTOMER" && select->getResultTable()->size() == 0) {
+    std::cout << "TX " << _tx.tid << " SELECT on CUSTOMER returned nothing!!!" << std::endl;
+  } /*else if(tablename == "CUSTOMER") {
+    select->getResultTable()->print();
+  }*/
+
   std::shared_ptr<ValidatePositions> validate = std::make_shared<ValidatePositions>();
   validate->setOperatorId("__ValidatePositions");
   validate->setPlanOperationName("ValidatePositions");
@@ -186,6 +199,11 @@ storage::c_atable_ptr_t TpccStoredProcedure::selectAndValidate(storage::c_atable
   validate->setTXContext(_tx);
   validate->addInput(select->getResultTable());
   validate->execute();
+
+  if(tablename == "CUSTOMER" && validate->getResultTable()->size() == 0) {
+    std::cout << "TX " << _tx.tid << " VALIDATE after SELECT on CUSTOMER returned nothing!!!" << std::endl;
+    pc->print();
+  }
 
   return validate->getResultTable();
 }

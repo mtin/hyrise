@@ -73,6 +73,9 @@ void PosUpdateScan::executePlanOperation() {
     }
 
     // Update delta indices
+    if (store->getName() == "CUSTOMER") {
+      std::cout << "TX " << _txContext.tid << " adds row to delta " << beforSize+counter << std::endl;
+    }
     store->addRowToDeltaIndices(beforSize+counter);
 
     // Insert the new one

@@ -13,7 +13,7 @@
 
 template<class ContainerType, class ValueType>
 class AssembledContainer
-{ 
+{
 private:
   typedef ContainerType container_t;
   typedef typename container_t::const_iterator container_it_t;
@@ -168,8 +168,16 @@ public:
   // optimizations using memcpy instead of copying every single element throug the iterator.
   void copyInto(container_t &out) {
     out.reserve(_size);
-    for (auto pair : _meta_container)
-      out.insert(out.end(), pair.first, pair.second);
+    // TODO: memcpy optimize (!)
+    for (auto pair : _meta_container) {
+      auto it = pair.first;
+      while (it != pair.second) {
+        //std::cout << "pushing back "  << *it << std::endl;
+        out.push_back(*it);
+        ++it;
+      }
+    }
+      // out.insert(out.end(), pair.first, pair.second);
   }
 
   bool isSorted() const {

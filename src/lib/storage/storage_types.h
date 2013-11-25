@@ -9,12 +9,14 @@
 #include <ostream>
 #include <cassert>
 
+#include "tbb/concurrent_vector.h"
+
 #include "helper/AssembledContainer.h"
 
 #define STORAGE_XSTR(x) STORAGE_STR(x)
 #define STORAGE_STR(x) #x
 #define STORAGE_DEBUG_WHERE_WHAT(file, line)  std::string(#file ":" #line)
-#define STORAGE_NOT_IMPLEMENTED(class, method) throw std::runtime_error(#class "(" STORAGE_XSTR(__FILE__) ":" STORAGE_XSTR(__LINE__) ") does not "  #method); 
+#define STORAGE_NOT_IMPLEMENTED(class, method) throw std::runtime_error(#class "(" STORAGE_XSTR(__FILE__) ":" STORAGE_XSTR(__LINE__) ") does not "  #method);
 
 typedef enum {
   IntegerType,
@@ -97,7 +99,7 @@ typedef std::vector<const ColumnMetadata *> metadata_list;
 typedef std::vector<metadata_list *> compound_metadata_list;
 typedef std::vector<ColumnMetadata> metadata_vec_t;
 
-typedef AssembledContainer<pos_list_t, pos_t> PositionRange;
+typedef AssembledContainer<tbb::concurrent_vector<pos_t>, pos_t> PositionRange;
 
 #endif  // SRC_LIB_STORAGE_STORAGE_TYPES_H_
 

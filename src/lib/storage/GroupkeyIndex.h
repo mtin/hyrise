@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <algorithm>
 
+#include "tbb/concurrent_vector.h"
+
 #include "helper/types.h"
 
 #include "storage/storage_types.h"
@@ -18,11 +20,10 @@
 template<typename T>
 class GroupkeyIndex : public AbstractIndex {
 private:
-  typedef pos_list_t groupkey_postings_t;
-  typedef std::pair<pos_list_t::iterator, pos_list_t::iterator> postings_range_t;
-  typedef std::map<T, pos_list_t> inverted_index_mutable_t;
+  typedef tbb::concurrent_vector<pos_t> groupkey_postings_t;
+  typedef std::pair<tbb::concurrent_vector<pos_t>::iterator, tbb::concurrent_vector<pos_t>::iterator> postings_range_t;
+  typedef std::map<T, tbb::concurrent_vector<pos_t> > inverted_index_mutable_t;
   typedef std::map<T, postings_range_t> groupkey_offsets_t;
-  
 
   groupkey_offsets_t _offsets;
   groupkey_postings_t _postings;
@@ -43,7 +44,7 @@ public:
         T tmp = in->getValue<T>(column, row);
         typename inverted_index_mutable_t::iterator find = _index.find(tmp);
         if (find == _index.end()) {
-          pos_list_t pos;
+          tbb::concurrent_vector<pos_t> pos;
           pos.push_back(row);
           _index[tmp] = pos;
         } else {
@@ -54,7 +55,7 @@ public:
       // create readonly index
       _postings.reserve(in->size());
       for (auto it : _index) {
-        // copy positions 
+        // copy positions
         std::copy(it.second.begin(), it.second.end(), std::back_inserter(_postings));
         // set offsets
         auto offset_begin = _postings.end() - it.second.end() + it.second.begin();

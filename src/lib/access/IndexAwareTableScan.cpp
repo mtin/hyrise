@@ -85,7 +85,7 @@ struct GroupkeyIndexFunctor {
   template<typename ValueType>
   value_type operator()() {
     auto index = StorageManager::getInstance()->getInvertedIndex(_indexname);
-    
+
     if (auto idx_main = std::dynamic_pointer_cast<GroupkeyIndex<ValueType>>(index))
       return callIndex<ValueType>(idx_main);
     else if (auto idx_delta = std::dynamic_pointer_cast<DeltaIndex<ValueType>>(index))
@@ -122,7 +122,7 @@ struct GroupkeyIndexFunctor {
   }
 };
 
-void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store> t_store, pos_list_t *result, std::vector<GroupkeyIndexFunctor> &functors) {
+void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store> t_store, pos_list_t *final_result, std::vector<GroupkeyIndexFunctor> &functors) {
 
   // calculate the index results
   std::vector<PositionRange> idx_results;
@@ -130,7 +130,7 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
 
   for (auto functor : functors) {
     size_t column = t_store->numberOfColumn(functor._fieldname);
-    auto idx_result = ts(t_store->typeOfColumn(column), functor);  
+    auto idx_result = ts(t_store->typeOfColumn(column), functor);
     idx_results.push_back(idx_result);
   }
 
@@ -143,6 +143,8 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
       });
   }
 
+  tbb::concurrent_vector<pos_t> *result = new tbb::concurrent_vector<pos_t>();
+
   // if we only have one idx result, this is the final one
   if (idx_results.size() == 1) {
     auto r = idx_results[0];
@@ -150,24 +152,24 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
     r.copyInto(*result);
     if (!r.isSorted())
       std::sort(result->begin(), result->end());
-  } 
+  }
   // otherwise we intersect the first two results
   else if (idx_results.size() >= 2) {
     auto a = idx_results[0];
     auto b = idx_results[1];
-    pos_list_t *a_sorted = nullptr;
-    pos_list_t *b_sorted = nullptr;
+    tbb::concurrent_vector<pos_t> *a_sorted = nullptr;
+    tbb::concurrent_vector<pos_t> *b_sorted = nullptr;
 
     if (!a.isSorted()) {
       // copy and sort
-      a_sorted = new pos_list_t;
+      a_sorted = new tbb::concurrent_vector<pos_t>;
       a.copyInto(*a_sorted);
       std::sort(a_sorted->begin(), a_sorted->end());
       a = PositionRange(a_sorted->begin(), a_sorted->end(), true);
     }
     if (!b.isSorted()) {
       // copy and sort
-      b_sorted = new pos_list_t;
+      b_sorted = new tbb::concurrent_vector<pos_t>;
       b.copyInto(*b_sorted);
       std::sort(b_sorted->begin(), b_sorted->end());
       b = PositionRange(b_sorted->begin(), b_sorted->end(), true);
@@ -180,8 +182,8 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
 
   // if we have more than two results, intersect them too
   if (idx_results.size() > 2) {
-    pos_list_t *tmp_result = new pos_list_t;
-    pos_list_t *idx_result_sorted = nullptr;
+    tbb::concurrent_vector<pos_t> *tmp_result = new tbb::concurrent_vector<pos_t>;
+    tbb::concurrent_vector<pos_t> *idx_result_sorted = nullptr;
     auto it = idx_results.begin(); ++it; ++it;
     auto it_end = idx_results.end();
 
@@ -189,7 +191,7 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
       if (result->empty()) break; // when result is empty, final intersect is empty too
       if (!it->isSorted()) {
         // copy and sort
-        idx_result_sorted = new pos_list_t;
+        idx_result_sorted = new tbb::concurrent_vector<pos_t>;
         it->copyInto(*idx_result_sorted);
         std::sort(idx_result_sorted->begin(), idx_result_sorted->end());
         intersect_pos_list(idx_result_sorted->begin(), idx_result_sorted->end(), result->begin(), result->end(), std::back_inserter(*tmp_result));
@@ -201,7 +203,13 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
       *result = *tmp_result;
       tmp_result->clear();
     }
+
+    // copy to output
+    final_result->reserve(result->size());
+    for (auto v : *result)
+      final_result->push_back(v);
     delete tmp_result;
+    delete result;
   }
 }
 
@@ -209,7 +217,7 @@ void IndexAwareTableScan::_consolidateFunctors(std::shared_ptr<const storage::St
   // set columns
   for (auto functor : functors)
     functor._column = t_store->numberOfColumn(functor._fieldname);
-  
+
   std::sort(
     begin(functors), end(functors),
     [] (const GroupkeyIndexFunctor &a, const GroupkeyIndexFunctor &b) {
@@ -265,7 +273,7 @@ void IndexAwareTableScan::executePlanOperation() {
   // union results
   main_result->reserve(main_result->size() + delta_result->size());
   std::copy(delta_result->begin(), delta_result->end(), std::back_inserter(*main_result));
-  addResult(PointerCalculator::create(t, main_result));  
+  addResult(PointerCalculator::create(t, main_result));
 
   delete delta_result;
 }
@@ -293,13 +301,13 @@ std::shared_ptr<PlanOperation> IndexAwareTableScan::parse(const Json::Value &dat
 
     if (pred_type == PredicateType::AND) continue;
 
-    if (pred_type != PredicateType::EqualsExpressionValue && 
-        pred_type != PredicateType::LessThanExpressionValue && 
+    if (pred_type != PredicateType::EqualsExpressionValue &&
+        pred_type != PredicateType::LessThanExpressionValue &&
         pred_type != PredicateType::GreaterThanExpressionValue &&
         pred_type != PredicateType::LessThanEqualsExpressionValue &&
         pred_type != PredicateType::GreaterThanEqualsExpressionValue)
       throw std::runtime_error("IndexAwareScan: Unsupported predicate type");
-    
+
     if (predicate["f"].isNumeric())
         throw std::runtime_error("For now, IndexAwareScan requires fields to be specified via fieldnames");
 

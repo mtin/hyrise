@@ -209,15 +209,21 @@ void Store::debugStructure(size_t level) const {
 }
 
 bool Store::isVisibleForTransaction(pos_t pos, tx::transaction_cid_t last_commit_id, tx::transaction_id_t tid) const {
+  if(getName() == "CUSTOMER") {
+    std::cout << "\n----" << std::endl;
+    std::cout << "TX " << tid << " isVisibleForTransaction " << pos << ", cidBegin:" << _cidBeginVector[pos] << ", cidEnd:" << _cidEndVector[pos] << std::endl;
+  }
   if (_tidVector[pos] == tid) {
     if (last_commit_id >= _cidBeginVector[pos]) {
       // row was inserted and committed by another transaction, then deleted by our transaction
       // if we have a lock for it but someone else committed a delete, something is wrong
       assert(_cidEndVector[pos] == tx::INF_CID);
+      if(getName() == "CUSTOMER") std::cout << "TX " << tid << " isVisibleForTransaction("<<pos<<") = false" << std::endl;
       return false;
     } else {
       // we inserted this row - nobody should have deleted it yet
       assert(_cidEndVector[pos] == tx::INF_CID);
+      if(getName() == "CUSTOMER") std::cout << "TX " << tid << " isVisibleForTransaction("<<pos<<") = true" << std::endl;
       return true;
     }
   } else {
@@ -225,14 +231,17 @@ bool Store::isVisibleForTransaction(pos_t pos, tx::transaction_cid_t last_commit
       // we are looking at a row that was inserted and deleted before we started - we should see it unless it was already deleted again
       if(last_commit_id >= _cidEndVector[pos]) {
         // the row was deleted and the delete was committed before we started our transaction
+        if(getName() == "CUSTOMER") std::cout << "TX " << tid << " isVisibleForTransaction("<<pos<<") = false" << std::endl;
         return false;
       } else {
         // the row was deleted but the commit happened after we started our transaction (or the delete was not committed yet)
+        if(getName() == "CUSTOMER") std::cout << "TX " << tid << " isVisibleForTransaction("<<pos<<") = true" << std::endl;
         return true;
       }
     } else {
       // we are looking at a row that was inserted after we started
       assert(_cidEndVector[pos] > last_commit_id);
+      if(getName() == "CUSTOMER") std::cout << "TX " << tid << " isVisibleForTransaction("<<pos<<") = false" << std::endl;
       return false;
     }
   }
@@ -241,7 +250,7 @@ bool Store::isVisibleForTransaction(pos_t pos, tx::transaction_cid_t last_commit
 // This method iterates of the pos list and validates each position
 void Store::validatePositions(pos_list_t& pos, tx::transaction_cid_t last_commit_id, tx::transaction_id_t tid) const {
   // Make sure we captured all rows
-  assert(_cidBeginVector.size() == size() && _cidEndVector.size() == size() && _tidVector.size() == size());
+  //assert(_cidBeginVector.size() == size() && _cidEndVector.size() == size() && _tidVector.size() == size());
 
   // Pos is nullptr, we should circumvent
   auto end = std::remove_if(std::begin(pos), std::end(pos), [&](const pos_t& v){
@@ -409,7 +418,6 @@ void Store::addRowToDeltaIndices(pos_t row) {
   // and add the respective new values of the row
 
   // TODO: needs to makesure index vector is not modfied during iterating over it
-
   for (auto index_column_pair : _delta_indices ) {
     auto index = index_column_pair.first;
     auto column = index_column_pair.second;

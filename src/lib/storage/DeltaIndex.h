@@ -21,12 +21,12 @@
 template<typename T>
 class DeltaIndex : public AbstractIndex {
 private:
-
-  typedef std::map<T, pos_list_t> inverted_index_t;
+  typedef tbb::concurrent_vector<pos_t> vector_t;
+  typedef std::map<T, vector_t > inverted_index_t;
   inverted_index_t _index;
 
   pthread_rwlock_t _rw_lock;
-  pos_list_t _empty;
+  vector_t _empty;
 
   const hyrise::storage::c_atable_ptr_t& _table;
   const field_t _column;
@@ -61,10 +61,9 @@ public:
     pthread_rwlock_wrlock(&_rw_lock);
     typename inverted_index_t::iterator find = _index.find(value);
     if (find == _index.end()) {
-      pos_list_t *poslist = new pos_list_t;
+      vector_t *poslist = new vector_t;
       poslist->push_back(pos);
       _index.insert(std::make_pair(value, *poslist) );
-      // _index[value] = poslist;
     } else {
       find->second.push_back(pos);
     }
@@ -76,13 +75,13 @@ public:
   PositionRange getPositionsForKey(T key) {
     pthread_rwlock_rdlock(&_rw_lock);
     typename inverted_index_t::iterator it = _index.find(key);
+    auto begin = it->second.begin();
+    auto end = it->second.end();
     pthread_rwlock_unlock(&_rw_lock);
-    if (it != _index.end()) {
-      return PositionRange(it->second.begin(), it->second.end(), true);
-    } else {
-      // empty result
+    if (it != _index.end())
+      return PositionRange(begin, end, true);
+    else
       return PositionRange(_empty.begin(), _empty.end(), true);
-    }
   };
 
   PositionRange getPositionsForKeyLT(T key) {
