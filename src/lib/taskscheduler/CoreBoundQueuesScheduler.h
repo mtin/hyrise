@@ -32,7 +32,7 @@ class CoreBoundQueuesScheduler : public AbstractCoreBoundQueuesScheduler {
    virtual task_queue_t *createTaskQueue(int core);
 
 public:
-  CoreBoundQueuesScheduler(int queues = getNumberOfCoresOnSystem());
+  CoreBoundQueuesScheduler(int queues = getNumberOfCoresOnSystem()-2);
   virtual ~CoreBoundQueuesScheduler();
 
 };

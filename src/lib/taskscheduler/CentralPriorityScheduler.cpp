@@ -18,14 +18,14 @@ bool registered  =
 CentralPriorityScheduler::CentralPriorityScheduler(int threads) {
   _status = START_UP;
   // create and launch threads
-  if(threads > getNumberOfCoresOnSystem()){
-    fprintf(stderr, "Tried to use more threads then cores - no binding of threads takes place\n");
+  if(threads > getNumberOfCoresOnSystem()-2){
+    fprintf(stderr, "Tried to use more threads than cores - no binding of threads takes place\n");
     for(int i = 0; i < threads; i++){
       _worker_threads.emplace_back(PriorityWorkerThread(*this));
     }
   } else {
     // bind threads to cores
-    for(int i = 0; i < threads; i++){
+    for(int i = 2; i < threads+2; i++){
       //_worker_threads.push_back(new std::thread(WorkerThread(*this)));
       std::thread thread(PriorityWorkerThread(*this));
       hwloc_cpuset_t cpuset;
@@ -46,9 +46,9 @@ CentralPriorityScheduler::CentralPriorityScheduler(int threads) {
         fprintf(stderr, "Continuing as normal, however, no guarantees\n");
 	free(str);
       }
-      // assuming single machine system                                                                                                         
+      // assuming single machine system
       obj = hwloc_get_obj_by_type(topology, HWLOC_OBJ_MACHINE, 0);
-      // set membind policy interleave for this thread                                                                                          
+      // set membind policy interleave for this thread
       if (hwloc_set_membind_nodeset(topology, obj->nodeset, HWLOC_MEMBIND_INTERLEAVE, HWLOC_MEMBIND_STRICT | HWLOC_MEMBIND_THREAD)) {
 	char *str;
 	int error = errno;
@@ -80,7 +80,7 @@ void PriorityWorkerThread::operator()(){
 
     // lock queue to get task
     std::unique_lock<lock_t> ul(scheduler._queueMutex);
-    
+
     // get task and execute
     if (scheduler._runQueue.size() > 0) {
       std::shared_ptr<Task> task = scheduler._runQueue.top();
@@ -88,7 +88,7 @@ void PriorityWorkerThread::operator()(){
       scheduler._runQueue.pop();
 
       ul.unlock();
-      
+
       if (task) {
         (*task)();
         LOG4CXX_DEBUG(scheduler._logger, "Executed task " << task->vname() << "; hex " << std::hex << &task << std::dec);

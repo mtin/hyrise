@@ -21,17 +21,17 @@ WSCoreBoundPriorityQueuesScheduler::WSCoreBoundPriorityQueuesScheduler(const int
   // lock _queue mutex as queues are manipulated
   {
     std::lock_guard<lock_t> lk(_queuesMutex);
-    if (queues <= getNumberOfCoresOnSystem()) {
-      for (int i = 0; i < queues; ++i) {
+    if (queues <= getNumberOfCoresOnSystem()-2) {
+      for (int i = 2; i < queues+2; ++i) {
         _taskQueues.push_back(createTaskQueue(i));
       }
       _queues = queues;
     } else {
       LOG4CXX_WARN(_logger, "number of queues exceeds available cores; set it to max available cores, which equals to " << std::to_string(getNumberOfCoresOnSystem()));
-      for (int i = 0; i < getNumberOfCoresOnSystem(); ++i) {
+      for (int i = 2; i < getNumberOfCoresOnSystem(); ++i) {
         _taskQueues.push_back(createTaskQueue(i));
       }
-      _queues = getNumberOfCoresOnSystem();
+      _queues = getNumberOfCoresOnSystem()-2;
     }
   }
   for (unsigned i = 0; i < _taskQueues.size(); ++i) {

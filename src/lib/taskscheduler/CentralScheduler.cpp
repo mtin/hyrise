@@ -18,14 +18,14 @@ bool registered  =
 CentralScheduler::CentralScheduler(int threads) {
     _status = START_UP;
   // create and launch threads
-  if(threads > getNumberOfCoresOnSystem()){
+  if(threads > getNumberOfCoresOnSystem()-2){
     fprintf(stderr, "Tried to use more threads then cores - no binding of threads takes place\n");
     for(int i = 0; i < threads; i++){
       _worker_threads.emplace_back(WorkerThread(*this));
     }
   } else {
     // bind threads to cores
-    for(int i = 0; i < threads; i++){
+    for(int i = 2; i < threads+2; i++){
       //_worker_threads.push_back(new std::thread(WorkerThread(*this)));
       std::thread thread(WorkerThread(*this));
       hwloc_cpuset_t cpuset;
@@ -47,9 +47,9 @@ CentralScheduler::CentralScheduler(int threads) {
         free(str);
       }
 
-      // assuming single machine system                                                                                                         
+      // assuming single machine system
       obj = hwloc_get_obj_by_type(topology, HWLOC_OBJ_MACHINE, 0);
-      // set membind policy interleave for this thread                                                                                          
+      // set membind policy interleave for this thread
       if (hwloc_set_membind_nodeset(topology, obj->nodeset, HWLOC_MEMBIND_INTERLEAVE, HWLOC_MEMBIND_STRICT | HWLOC_MEMBIND_THREAD)) {
 	char *str;
 	int error = errno;
@@ -102,7 +102,7 @@ void WorkerThread::operator()(){
         if (scheduler._status != scheduler.RUN)
           continue;
 
-        
+
         scheduler._condition.wait(ul);
       }
     }

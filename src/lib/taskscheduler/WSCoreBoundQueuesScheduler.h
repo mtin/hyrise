@@ -25,7 +25,7 @@ class WSCoreBoundQueuesScheduler : public AbstractCoreBoundQueuesScheduler {
 
 
 public:
-  WSCoreBoundQueuesScheduler(int queues = getNumberOfCoresOnSystem());
+  WSCoreBoundQueuesScheduler(int queues = getNumberOfCoresOnSystem()-2);
   virtual ~WSCoreBoundQueuesScheduler();
 
   const std::vector<AbstractCoreBoundQueue *> *getTaskQueues();

@@ -35,7 +35,7 @@ public:
 /**
  * a central scheduler holds a task queue and n worker threads
  */
-class CentralPriorityScheduler : 
+class CentralPriorityScheduler :
   public AbstractTaskScheduler,
   public TaskReadyObserver,
   public std::enable_shared_from_this<TaskReadyObserver> {
@@ -62,7 +62,7 @@ class CentralPriorityScheduler :
 
 
 public:
-  CentralPriorityScheduler(int threads = getNumberOfCoresOnSystem());
+  CentralPriorityScheduler(int threads = getNumberOfCoresOnSystem()-2);
   virtual ~CentralPriorityScheduler();
 
   void worker_loop();
