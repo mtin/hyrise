@@ -2,9 +2,10 @@
 #ifndef SRC_LIB_IO_GROUPCOMMITER_H
 #define SRC_LIB_IO_GROUPCOMMITER_H
 
-#include "tbb/concurrent_queue.h"
-#include "net/AbstractConnection.h"
-#include "taskscheduler/Task.h"
+#include <net/AbstractConnection.h>
+#include <taskscheduler/Task.h>
+
+#include <tbb/concurrent_queue.h>
 
 namespace hyrise {
 namespace io {
@@ -15,13 +16,18 @@ public:
 
 	static GroupCommitter& getInstance();
 	void push(ENTRY_T entry);
-	void run();
 
 private:
 	GroupCommitter();
 	~GroupCommitter();
+
+    void run();
+    void respondClients();
+
+    bool _running;
 	std::thread _thread;
 	tbb::concurrent_queue<ENTRY_T> _queue;
+    std::vector<ENTRY_T> _toBeFlushed;
 };
 
 }}
