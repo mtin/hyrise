@@ -119,13 +119,15 @@ void BufferedLogger::flush() {
   }
   _size -= written;
   _last_write = head;
-  
+
+  #ifndef COMMIT_WITHOUT_FLUSH
   if (fflush(_logfile) != 0) {
     printf( "Something went wrong while flushing the logfile: %s\n", strerror( errno ) );
   }
   if (fsync(fileno(_logfile)) != 0) {
     printf( "Something went wrong while flushing the logfile: %s\n", strerror( errno ) );
   }
+  #endif
 
   _fileMutex.unlock();
 }

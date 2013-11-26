@@ -5,6 +5,7 @@
 #include <helper/HwlocHelper.h>
 #include <io/logging.h>
 
+#include <sys/time.h>
 #include <iostream>
 
 namespace hyrise {
@@ -44,22 +45,31 @@ GroupCommitter::~GroupCommitter() {
 }
 
 void GroupCommitter::run() {
+	struct timeval time_start, time_cur;
+	long long elapsed;
+	gettimeofday(&time_start, NULL);
+
 	while(_running) {
 		ENTRY_T tmp;
 		while(_queue.try_pop(tmp)) {
 			_toBeFlushed.push_back(tmp);
 		}
-		if(_toBeFlushed.empty()) {
-			usleep(10);
-			continue;
+
+		gettimeofday(&time_cur, NULL);
+		elapsed = (time_cur.tv_sec*1000000 + time_cur.tv_usec) - (time_start.tv_sec*1000000 + time_start.tv_usec);
+
+		if(elapsed > GROUP_COMMIT_WINDOW) {
+			#ifndef COMMIT_WITHOUT_FLUSH
+			Logger::getInstance().flush();
+			#endif
+			respondClients();
+			time_start = time_cur;
 		}
-		Logger::getInstance().flush();
-		respondClients();
 	}
 }
 
 void GroupCommitter::respondClients() {
-	for(ENTRY_T& entry: _toBeFlushed) {
+	for(ENTRY_T &entry: _toBeFlushed) {
 		net::AbstractConnection* connection;
 		size_t status;
 		std::string response;

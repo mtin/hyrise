@@ -178,6 +178,8 @@ WITH_PAPI := $(shell if [ "`papi_avail  2>&1 | grep Yes | wc -l`" -ne "0" ]; the
 WITH_MYSQL:= 1
 
 PERSISTENCY ?= NONE
+WITH_GROUP_COMMIT ?= 0
+GROUP_COMMIT_WINDOW ?= 1
 NVRAM_MOUNTPOINT ?= /mnt/pmfs
 NVRAM_FILENAME ?= hyrise
 NVRAM_FILESIZE ?= 1024
@@ -225,6 +227,17 @@ else ifeq ($(PERSISTENCY),NVRAM)
         COMMON_FLAGS += -lcpufreq -lrt -lpmem -lpmemalloc
 else
         COMMON_FLAGS += -D PERSISTENCY_NONE
+endif
+
+ifeq ($(WITH_GROUP_COMMIT), 1)
+    COMMON_FLAGS += -D WITH_GROUP_COMMIT
+endif
+
+ifeq ($(GROUP_COMMIT_WINDOW), unlimited)
+    COMMON_FLAGS += -D GROUP_COMMIT_WINDOW=0
+    COMMON_FLAGS += -D COMMIT_WITHOUT_FLUSH
+else
+    COMMON_FLAGS += -D GROUP_COMMIT_WINDOW=$(GROUP_COMMIT_WINDOW)
 endif
 
 ifeq ($(VERBOSE_BUILD),1)

@@ -18,7 +18,7 @@ class TpccStoredProcedure : public net::AbstractRequestHandler {
  public:
   TpccStoredProcedure(net::AbstractConnection* connection);
   virtual ~TpccStoredProcedure(){}
-  
+
   void operator()();
   virtual Json::Value execute() = 0;
   virtual void setData(const Json::Value& data) = 0;
@@ -46,7 +46,7 @@ class TpccStoredProcedure : public net::AbstractRequestHandler {
 
   typedef std::vector<SimpleExpression*> expr_list_t;
   static std::unique_ptr<AbstractExpression> connectAnd(expr_list_t expressions);
-  
+
   //transaction
   void commit();
   void rollback();
@@ -61,7 +61,12 @@ class TpccStoredProcedure : public net::AbstractRequestHandler {
   bool _finished = false;
   bool _recordPerformance = false;
   std::map<std::string, storage::c_store_ptr_t> _tables;
+
+  #ifdef WITH_GROUP_COMMIT
+  bool _use_group_commit = true;
+  #else
   bool _use_group_commit = false;
+  #endif
 };
 
 } } // namespace hyrise::access
