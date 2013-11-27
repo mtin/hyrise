@@ -71,6 +71,7 @@ struct GroupkeyIndexFunctor {
   std::string _fieldname;
   size_t _column;
   bool _flagged_for_removal;
+  std::shared_ptr<AbstractIndex> _index;
 
   GroupkeyIndexFunctor( Json::Value indexValue1,
                         std::string indexname,
@@ -84,12 +85,11 @@ struct GroupkeyIndexFunctor {
 
   template<typename ValueType>
   value_type operator()() {
-    auto index = StorageManager::getInstance()->getInvertedIndex(_indexname);
-    
-    if (auto idx_main = std::dynamic_pointer_cast<GroupkeyIndex<ValueType>>(index))
+    if (auto idx_main = std::dynamic_pointer_cast<GroupkeyIndex<ValueType>>(_index))
       return callIndex<ValueType>(idx_main);
-    else if (auto idx_delta = std::dynamic_pointer_cast<DeltaIndex<ValueType>>(index))
+    else if (auto idx_delta = std::dynamic_pointer_cast<DeltaIndex<ValueType>>(_index)) {
       return callIndex<ValueType>(idx_delta);
+    }
     else throw std::runtime_error("IndexAwareTable scan only supports GroupKeyIndex and DeltaIndex: " + _indexname);
   }
 
@@ -127,9 +127,24 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
   // calculate the index results
   std::vector<PositionRange> idx_results;
   storage::type_switch<hyrise_basic_types> ts;
+  std::vector<std::shared_ptr<AbstractIndex>> indices;
+
+  indices.reserve(functors.size());
+  idx_results.reserve(functors.size());
+
+  // sort functors after name, so locking is deterministic
+  std::sort(
+    begin(functors), end(functors),
+    [] (const GroupkeyIndexFunctor &a, const GroupkeyIndexFunctor &b) {
+      return a._indexname < b._indexname;
+    });
 
   for (auto functor : functors) {
+    auto index = StorageManager::getInstance()->getInvertedIndex(functor._indexname);
+    indices.push_back(index);
+    functor._index = index;
     size_t column = t_store->numberOfColumn(functor._fieldname);
+    index->read_lock();
     auto idx_result = ts(t_store->typeOfColumn(column), functor);  
     idx_results.push_back(idx_result);
   }
@@ -203,6 +218,10 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
     }
     delete tmp_result;
   }
+
+  // unlock indices
+  for (auto index : indices)
+    index->unlock();
 }
 
 void IndexAwareTableScan::_consolidateFunctors(std::shared_ptr<const storage::Store> t_store, std::vector<GroupkeyIndexFunctor> &functors) {
@@ -243,7 +262,6 @@ void IndexAwareTableScan::_consolidateFunctors(std::shared_ptr<const storage::St
 }
 
 void IndexAwareTableScan::executePlanOperation() {
-
   // auto start = std::chrono::system_clock::now();
   auto t = input.getTables()[0];
   auto t_store = std::dynamic_pointer_cast<const storage::Store>(t);

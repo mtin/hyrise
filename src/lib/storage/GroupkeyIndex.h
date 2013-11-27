@@ -15,6 +15,10 @@
 
 #include <memory>
 
+// An inverted index for the main that is created once
+// on the main, manually or during a merge.
+// The index is readonly.
+
 template<typename T>
 class GroupkeyIndex : public AbstractIndex {
 private:
@@ -33,6 +37,12 @@ public:
   void shrink() {
     throw std::runtime_error("Shrink not supported for GroupkeyIndex");
   }
+
+  void write_lock() {}
+ 
+  void read_lock() {}
+
+  void unlock() {}
 
   explicit GroupkeyIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column) {
     if (in != nullptr) {

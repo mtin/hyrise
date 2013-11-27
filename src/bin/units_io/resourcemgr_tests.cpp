@@ -24,6 +24,9 @@ namespace {
   class FakeIndex : public AbstractIndex {
    public:
     void shrink() {}
+    void write_lock() {}
+    void read_lock() {}
+    void unlock() {}
   };
 
   storage::aindex_ptr_t emptyIndex() {

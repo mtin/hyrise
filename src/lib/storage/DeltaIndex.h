@@ -17,6 +17,10 @@
 #include "storage/AbstractIndex.h"
 #include "storage/AbstractTable.h"
 
+// An inverted index for the delta that can be queried and
+// is modifiable to add new values. However, the structure
+// is not threadsafe and needs to be synchronized via
+// read_lock and write_lock.
 
 template<typename T>
 class DeltaIndex : public AbstractIndex {
@@ -54,29 +58,36 @@ public:
     pthread_rwlock_init(&_rw_lock, NULL);
   };
 
+  void write_lock() {
+    pthread_rwlock_wrlock(&_rw_lock);
+  }
+  
+  void read_lock() {
+    pthread_rwlock_rdlock(&_rw_lock);
+  }
+
+  void unlock() {
+    pthread_rwlock_unlock(&_rw_lock);
+  }
+
   /**
    * add new pair of value and pos to index
    */
   void add(T value, pos_t pos) {
-    pthread_rwlock_wrlock(&_rw_lock);
     typename inverted_index_t::iterator find = _index.find(value);
     if (find == _index.end()) {
       pos_list_t *poslist = new pos_list_t;
       poslist->push_back(pos);
       _index.insert(std::make_pair(value, *poslist) );
-      // _index[value] = poslist;
     } else {
       find->second.push_back(pos);
     }
-    pthread_rwlock_unlock(&_rw_lock);
   };
 
 
 
   PositionRange getPositionsForKey(T key) {
-    pthread_rwlock_rdlock(&_rw_lock);
     typename inverted_index_t::iterator it = _index.find(key);
-    pthread_rwlock_unlock(&_rw_lock);
     if (it != _index.end()) {
       return PositionRange(it->second.begin(), it->second.end(), true);
     } else {
@@ -86,39 +97,24 @@ public:
   };
 
   PositionRange getPositionsForKeyLT(T key) {
-    pthread_rwlock_rdlock(&_rw_lock);
-    auto r = getPositionsBetween(_index.cbegin(), _index.lower_bound(key));
-    pthread_rwlock_unlock(&_rw_lock);
-    return r;
+    return getPositionsBetween(_index.cbegin(), _index.lower_bound(key));
   };
 
   PositionRange getPositionsForKeyLTE(T key) {
-    pthread_rwlock_rdlock(&_rw_lock);
-    auto r = getPositionsBetween(_index.cbegin(), _index.upper_bound(key));
-    pthread_rwlock_unlock(&_rw_lock);
-    return r;
+    return getPositionsBetween(_index.cbegin(), _index.upper_bound(key));
   };
 
   PositionRange getPositionsForKeyBetween(T a, T b) {
     // return range ]a,b[
-    pthread_rwlock_rdlock(&_rw_lock);
-    auto r = getPositionsBetween(_index.lower_bound(a), _index.lower_bound(b));
-    pthread_rwlock_unlock(&_rw_lock);
-    return r;
+    return getPositionsBetween(_index.lower_bound(a), _index.lower_bound(b));
   };
 
   PositionRange getPositionsForKeyGT(T key) {
-    pthread_rwlock_rdlock(&_rw_lock);
-    auto r = getPositionsBetween(_index.upper_bound(key), _index.cend());
-    pthread_rwlock_unlock(&_rw_lock);
-    return r;
+    return getPositionsBetween(_index.upper_bound(key), _index.cend());
   };
 
   PositionRange getPositionsForKeyGTE(T key) {
-    pthread_rwlock_rdlock(&_rw_lock);
-    auto r = getPositionsBetween(_index.lower_bound(key), _index.cend());
-    pthread_rwlock_unlock(&_rw_lock);
-    return r;
+    return getPositionsBetween(_index.lower_bound(key), _index.cend());
   };
 
 };

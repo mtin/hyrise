@@ -19,6 +19,12 @@ public:
   virtual ~AbstractIndex();
 
   virtual void shrink() = 0;
+
+  virtual void write_lock() = 0;
+  
+  virtual void read_lock() = 0;
+
+  virtual void unlock() = 0;
 };
 
 #endif  // SRC_LIB_STORAGE_ABSTRACTINDEX_H_

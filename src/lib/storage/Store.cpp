@@ -241,7 +241,7 @@ bool Store::isVisibleForTransaction(pos_t pos, tx::transaction_cid_t last_commit
 // This method iterates of the pos list and validates each position
 void Store::validatePositions(pos_list_t& pos, tx::transaction_cid_t last_commit_id, tx::transaction_id_t tid) const {
   // Make sure we captured all rows
-  assert(_cidBeginVector.size() == size() && _cidEndVector.size() == size() && _tidVector.size() == size());
+  // assert(_cidBeginVector.size() == size() && _cidEndVector.size() == size() && _tidVector.size() == size());
 
   // Pos is nullptr, we should circumvent
   auto end = std::remove_if(std::begin(pos), std::end(pos), [&](const pos_t& v){
@@ -415,7 +415,10 @@ void Store::addRowToDeltaIndices(pos_t row) {
     auto column = index_column_pair.second;
     storage::type_switch<hyrise_basic_types> ts;
     AddValueToDeltaIndexFunctor functor(this, index, row, column);
+    
+    index->write_lock();
     ts(typeOfColumn(column), functor);
+    index->unlock();
   }
 }
 

@@ -35,9 +35,15 @@ public:
   virtual ~InvertedIndex() {};
 
   void shrink() {
-for (auto & e : _index)
+    for (auto & e : _index)
       e.second.shrink_to_fit();
-  }
+  };
+
+  void write_lock() {};
+ 
+  void read_lock() {};
+
+  void unlock() {};
 
   explicit InvertedIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column) {
     if (in != nullptr) {
