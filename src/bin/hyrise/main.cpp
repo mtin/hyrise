@@ -133,8 +133,8 @@ int main(int argc, char *argv[]) {
   desc.add_options()("help", "Shows this help message")
   ("port,p", po::value<size_t>(&port)->default_value(DEFAULT_PORT), "Server Port")
   ("logdef,l", po::value<std::string>(&logPropertyFile)->default_value("build/log.properties"), "Log4CXX Log Properties File")
-  ("scheduler,s", po::value<std::string>(&scheduler_name)->default_value("ThreadPerTaskScheduler"), "Name of the scheduler to use")
-  ("threads,t", po::value<int>(&worker_threads)->default_value(getNumberOfCoresOnSystem()), "Number of worker threads for scheduler (only relevant for scheduler with fixed number of threads)");
+  ("scheduler,s", po::value<std::string>(&scheduler_name)->default_value("CentralScheduler"), "Name of the scheduler to use")
+  ("threads,t", po::value<int>(&worker_threads)->default_value(getNumberOfCoresOnSystem()-3), "Number of worker threads for scheduler (only relevant for scheduler with fixed number of threads)");
   po::variables_map vm;
 
   try {

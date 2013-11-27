@@ -17,15 +17,16 @@ bool registered  =
 
 CentralScheduler::CentralScheduler(int threads) {
     _status = START_UP;
+    auto _available_cores = getNumberOfCoresOnSystem()-3;
   // create and launch threads
-  if(threads > getNumberOfCoresOnSystem()-2){
-    fprintf(stderr, "Tried to use more threads then cores - no binding of threads takes place\n");
+  if(threads > _available_cores){
+    std::cout << "Tried to use more threads (" << threads << ") then cores (" << _available_cores << ") - no binding of threads takes place" << std::endl;
     for(int i = 0; i < threads; i++){
       _worker_threads.emplace_back(WorkerThread(*this));
     }
   } else {
     // bind threads to cores
-    for(int i = 2; i < threads+2; i++){
+    for(int i = 3; i < threads+3; i++){
       //_worker_threads.push_back(new std::thread(WorkerThread(*this)));
       std::thread thread(WorkerThread(*this));
       hwloc_cpuset_t cpuset;
