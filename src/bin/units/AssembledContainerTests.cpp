@@ -105,7 +105,7 @@ TEST_F(AssembledContainerTest, iterator_plus_minus) {
   ASSERT_EQ(*it2, 1);
 }
 
-TEST_F(AssembledContainerTest, forward_iterate) {
+TEST_F(AssembledContainerTest, forward_iterate_prefix) {
   auto it = c.begin();
   size_t i = 0;
   while (it != c.end()) {
@@ -115,7 +115,51 @@ TEST_F(AssembledContainerTest, forward_iterate) {
   ASSERT_EQ(i, 9);
 }
 
-TEST_F(AssembledContainerTest, reverse_iterate) {
+TEST_F(AssembledContainerTest, forward_iterate_postfix) {
+  auto it = c.begin();
+  size_t i = 0;
+  while (it != c.end()) {
+    ASSERT_EQ(*it, ++i);
+    it++;
+  }
+  ASSERT_EQ(i, 9);
+}
+
+TEST_F(AssembledContainerTest, forward_iterate_assign) {
+  auto it = c.begin();
+  size_t i = 0;
+  while (it != c.end()) {
+    ASSERT_EQ(*it, ++i);
+    it = it + 1;
+  }
+  ASSERT_EQ(i, 9);
+}
+
+TEST_F(AssembledContainerTest, reverse_iterate_prefix) {
+  auto it = c.end();
+  size_t i = 10;
+  size_t count = 0;
+  while (it != c.begin()) {
+    --it;
+    ASSERT_EQ(*it, --i);
+    ++count;
+  }
+  ASSERT_EQ(count, 9);
+}
+
+TEST_F(AssembledContainerTest, reverse_iterate_postfix) {
+  auto it = c.end();
+  size_t i = 10;
+  size_t count = 0;
+  while (it != c.begin()) {
+    it--;
+    ASSERT_EQ(*it, --i);
+    ++count;
+  }
+  ASSERT_EQ(count, 9);
+}
+
+TEST_F(AssembledContainerTest, reverse_iterate_assign) {
   auto it = c.end();
   size_t i = 10;
   size_t count = 0;
@@ -141,10 +185,26 @@ TEST_F(AssembledContainerTest, compare_iterators) {
 }
 
 TEST_F(AssembledContainerTest, iterator_difference) {
-  // TODO: distance checks
-  // ASSERT_EQ(c.end() - c.begin(), 9);
+  ASSERT_EQ(c.end() - c.begin(), 9);
   ASSERT_EQ(std::distance( c.begin(), c.end() ) , 9);
   ASSERT_EQ(c.size(), 9);
 }
+
+TEST_F(AssembledContainerTest, iterator_access) {
+
+  auto it = c.begin();
+
+  ASSERT_EQ(it[0], 1);
+  ASSERT_EQ(it[1], 2);
+  ASSERT_EQ(it[2], 3);
+  ASSERT_EQ(it[3], 4);
+  ASSERT_EQ(it[4], 5);
+  ASSERT_EQ(it[5], 6);
+  ASSERT_EQ(it[6], 7);
+  ASSERT_EQ(it[7], 8);
+  ASSERT_EQ(it[8], 9);
+
+}
+
 
 
