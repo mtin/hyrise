@@ -21,7 +21,7 @@
 // is modifiable to add new values. However, the structure
 // is not threadsafe and needs to be synchronized via
 // read_lock and write_lock.
-
+// Individual pos_lists for one key are stored sorted.
 template<typename T>
 class DeltaIndex : public AbstractIndex {
 private:
@@ -59,19 +59,25 @@ public:
   };
 
   void write_lock() {
-    pthread_rwlock_wrlock(&_rw_lock);
+    if (pthread_rwlock_wrlock(&_rw_lock) != 0)
+      std::cout << "ERROR while write locking delta index" <<std::endl;
   }
   
   void read_lock() {
-    pthread_rwlock_rdlock(&_rw_lock);
+    if (pthread_rwlock_rdlock(&_rw_lock) != 0)
+      std::cout << "ERROR while read locking delta index" <<std::endl;
   }
 
   void unlock() {
-    pthread_rwlock_unlock(&_rw_lock);
+    if (pthread_rwlock_unlock(&_rw_lock) != 0)
+      std::cout << "ERROR while unlocking delta index" <<std::endl;
   }
 
   /**
-   * add new pair of value and pos to index
+   * add new pair of value and pos to index. as it is not guaranteed that
+   * positions are inserted in sorted order, we need to make sure that the
+   * last element of the respective pos_list is smaller than the inserted
+   * position.
    */
   void add(T value, pos_t pos) {
     typename inverted_index_t::iterator find = _index.find(value);
@@ -80,7 +86,13 @@ public:
       poslist->push_back(pos);
       _index.insert(std::make_pair(value, *poslist) );
     } else {
-      find->second.push_back(pos);
+      // find position to insert...
+      auto it = find->second.end(); 
+      --it;
+      while (*it > pos) --it;
+      ++it;
+      // ... and insert
+      find->second.insert(it, pos);
     }
   };
 
