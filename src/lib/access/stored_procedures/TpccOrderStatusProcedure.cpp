@@ -147,7 +147,7 @@ storage::c_atable_ptr_t TpccOrderStatusProcedure::getLastOrder() {
   expressions.push_back(new GenericExpressionValue<hyrise_int_t, std::equal_to<hyrise_int_t>>(orders->getDeltaTable(), "O_C_ID", _c_id));
   auto validated = selectAndValidate(orders, "ORDERS", connectAnd(expressions));
 
-  auto sorted = sort(validated, "O_ID", true);
+  auto sorted = sort(validated, "O_ID", false);
   return sorted;
 }
 
