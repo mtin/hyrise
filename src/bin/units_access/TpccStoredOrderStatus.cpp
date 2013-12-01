@@ -82,7 +82,15 @@ Json::Value TpccStoredOrderStatusTest::doOrderStatus(int w_id, int d_id, int c_i
   T_OrderStatus_check_values(w_id, d_id, c_id, c_last)\
 }
 
-TEST_F(TpccStoredOrderStatusTest, OrderStatus) {
+TEST_F(TpccStoredOrderStatusTest, minimal) {
+  //             (w_id, d_id, c_id);
+  T_OrderStatusId(1   , 1   , 5   );
+
+  //                (w_id, d_id, c_last         );
+  T_OrderStatusCLast(2   , 3   , "CLName2"      );
+}
+
+TEST_F(TpccStoredOrderStatusTest, DISABLED_OrderStatus) {
   //             (w_id, d_id, c_id);
   T_OrderStatusId(1   , 1   , 5   );
   T_OrderStatusId(2   , 1   , 2   );
@@ -96,7 +104,7 @@ TEST_F(TpccStoredOrderStatusTest, OrderStatus) {
   T_OrderStatusCLast(2   , 1   , "CLName1"      );
 }
 
-TEST_F(TpccStoredOrderStatusTest, OrderStatus_wrongD_ID) {
+TEST_F(TpccStoredOrderStatusTest, DISABLED_wrongD_ID) {
   //                        (w_id, d_id, c_id, c_last         );
   EXPECT_THROW(doOrderStatus(1   , 0   , 1   , ""             ), TpccError);
   EXPECT_THROW(doOrderStatus(1   , 11  , 1   , ""             ), TpccError);

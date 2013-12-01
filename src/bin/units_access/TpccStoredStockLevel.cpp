@@ -39,7 +39,12 @@ Json::Value TpccStoredStockLevelTest::doStockLevel(int w_id, int d_id, int thres
   return doStoredProcedure(data, "TPCC-StockLevel");
 }
 
-TEST_F(TpccStoredStockLevelTest, StockLevel) {
+TEST_F(TpccStoredStockLevelTest, minimal) {
+  //          (w_id, d_id, threshold);
+  T_StockLevel(1   , 1   , 15       );
+}
+
+TEST_F(TpccStoredStockLevelTest, DISABLED_StockLevel) {
   //          (w_id, d_id, threshold);
   T_StockLevel(1   , 1   , 15       );
   T_StockLevel(1   , 2   , 20       );
@@ -51,13 +56,13 @@ TEST_F(TpccStoredStockLevelTest, StockLevel) {
   T_StockLevel(2   , 3   , 15       );
 }
 
-TEST_F(TpccStoredStockLevelTest, StockLevel_WrongDistrict) {
+TEST_F(TpccStoredStockLevelTest, DISABLED_WrongDistrict) {
   //                       (w_id, d_id, threshold);
   EXPECT_THROW(doStockLevel(1   , 0   , 10       ), TpccError);
   EXPECT_THROW(doStockLevel(1   , 11  , 10       ), TpccError);
 }
 
-TEST_F(TpccStoredStockLevelTest, StockLevel_WrongThreshold) {
+TEST_F(TpccStoredStockLevelTest, DISABLED_WrongThreshold) {
   //                       (w_id, d_id, threshold);
   EXPECT_THROW(doStockLevel(1   , 1   , 9        ), TpccError);
   EXPECT_THROW(doStockLevel(1   , 1   , 21       ), TpccError);

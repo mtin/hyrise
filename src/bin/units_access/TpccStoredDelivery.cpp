@@ -39,7 +39,12 @@ Json::Value TpccStoredDeliveryTest::doDelivery(int w_id, int d_id, int o_carrier
   EXPECT_EQ(getTable(History)->size()  , i_history_size);\
 }
 
-TEST_F(TpccStoredDeliveryTest, Delivery) {
+TEST_F(TpccStoredDeliveryTest, minimal) {
+  //        (w_id, d_id, o_carrier_id);
+  T_Delivery(2   , 1   , 5           );
+}
+
+TEST_F(TpccStoredDeliveryTest, DISABLED_Delivery) {
   //        (w_id, d_id, o_carrier_id);
   T_Delivery(1   , 1   , 1           );
   T_Delivery(2   , 3   , 5           );
@@ -53,7 +58,7 @@ TEST_F(TpccStoredDeliveryTest, Delivery) {
   T_Delivery(1   , 10  , 8           );
 }
 
-TEST_F(TpccStoredDeliveryTest, Delivery_WrongCARRIER_ID) {
+TEST_F(TpccStoredDeliveryTest, DISABLED_WrongCARRIER_ID) {
   //                     (w_id, d_id, o_carrier_id);
   EXPECT_THROW(doDelivery(1   , 1   , 0           ), TpccError);
   EXPECT_THROW(doDelivery(1   , 1   , 11          ), TpccError);

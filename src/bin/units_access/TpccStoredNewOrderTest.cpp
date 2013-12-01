@@ -155,7 +155,13 @@ const item_list_t itemsw2 = {{1   , 1     , 10      },
 
 } // namespace
 
-TEST_F(TpccStoredNewOrderTest, NewOrder) {
+TEST_F(TpccStoredNewOrderTest, minimal) {
+//                   (w_id, d_id, c_id, ol_dist_info, itemlist, o_id)
+  T_NewOrder         (1   , 1   , 1   , "info1"     , items1  , 6   ); //1st
+  T_NewOrder_Rollback(1   , 1   , 1   , "info"      , itemsw1 , 7   ); //2nd
+}
+
+TEST_F(TpccStoredNewOrderTest, DISABLED_NewOrder) {
 //          (w_id, d_id, c_id, ol_dist_info, itemlist, o_id)
   T_NewOrder(1   , 1   , 1   , "info1"     , items1  , 6   ); //1st
   T_NewOrder(1   , 2   , 1   , "info2"     , items1  , 5   ); //1st
@@ -165,7 +171,7 @@ TEST_F(TpccStoredNewOrderTest, NewOrder) {
   T_NewOrder(2   , 1   , 1   , "info6"     , items2  , 4   ); //2nd
 }
 
-TEST_F(TpccStoredNewOrderTest, NewOrder_rollback) {
+TEST_F(TpccStoredNewOrderTest, DISABLED_rollback) {
 //                  (w_id, d_id, c_id , ol_dist_info, itemlist, o_id)
   T_NewOrder_Rollback(1   , 1   , 1   , "info"      , itemsw1 , 6   );
   T_NewOrder_Rollback(1   , 1   , 1   , "info"      , itemsw1 , 6   );
@@ -178,7 +184,7 @@ TEST_F(TpccStoredNewOrderTest, NewOrder_rollback) {
   T_NewOrder_Rollback(1   , 8   , 1   , "info"      , itemsw1 , 3   );
 }
 
-TEST_F(TpccStoredNewOrderTest, NewOrder_wrongItemCount) {
+TEST_F(TpccStoredNewOrderTest, DISABLED_wrongItemCount) {
   //                     (w_id, d_id, c_id, ol_dist_info, {{i_id, i_w_id, quantity}});
   EXPECT_THROW(doNewOrder(1   , 1   , 1   , "info"      , {{1   , 1     , 1       },
                                                            {2   , 1     , 1       },
@@ -203,7 +209,7 @@ TEST_F(TpccStoredNewOrderTest, NewOrder_wrongItemCount) {
                                                            {16  , 1     , 1       }}), TpccError); //16 items
 }
 
-TEST_F(TpccStoredNewOrderTest, NewOrder_wrongQuantity) {
+TEST_F(TpccStoredNewOrderTest, DISABLED_wrongQuantity) {
   //                     (w_id, d_id, c_id, ol_dist_info, {{i_id, i_w_id, quantity}});
   EXPECT_THROW(doNewOrder(1   , 1   , 1   , "info"      , {{1   , 1     , 1       },
                                                            {2   , 1     , 1       },
@@ -218,7 +224,7 @@ TEST_F(TpccStoredNewOrderTest, NewOrder_wrongQuantity) {
                                                            {5   , 1     , 0       }, }), TpccError);
 }
 
-TEST_F(TpccStoredNewOrderTest, NewOrder_invalidItemNotLast) {
+TEST_F(TpccStoredNewOrderTest, DISABLED_invalidItemNotLast) {
   //                     (w_id, d_id, c_id, ol_dist_info, {{i_id, i_w_id, quantity}});
   EXPECT_THROW(doNewOrder(1   , 1   , 1   , "info"      , {{1   , 1     , 1       },
                                                            {-2  , 1     , 1       },
