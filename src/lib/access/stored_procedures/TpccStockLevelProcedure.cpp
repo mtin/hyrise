@@ -44,7 +44,7 @@ Json::Value TpccStockLevelProcedure::execute() {
 
   // Output
   int low_stock = 0;
-  if (t2->size() != 0) 
+  if (t2->size() != 0)
     low_stock = t2->getValue<hyrise_int_t>(0, 0);
 
   Json::Value result;
@@ -102,13 +102,24 @@ storage::c_atable_ptr_t TpccStockLevelProcedure::getStockCount() {
   hjp->addField("S_I_ID");
   hjp->addInput(hb->getResultHashTable());
   hjp->execute();
+  auto joined = hjp->getResultTable();
+
+  std::shared_ptr<HashBuild> hash = std::make_shared<HashBuild>();
+  hash->setOperatorId("__HashBuild2");
+  hash->setPlanOperationName("HashBuild");
+  _responseTask->registerPlanOperation(hash);
+  hash->addInput(joined);
+  hash->addNamedField("OL_I_ID");
+  hash->setKey("groupby");
+  hash->execute();
 
 
   std::shared_ptr<GroupByScan> groupby = std::make_shared<GroupByScan>();
   groupby->setOperatorId("__GroupByScan");
   groupby->setPlanOperationName("GroupByScan");
   _responseTask->registerPlanOperation(groupby);
-  groupby->addInput(hjp->getResultTable());
+  groupby->addInput(joined);
+  groupby->addInput(hash->getResultHashTable());
   auto count = new CountAggregateFun("OL_I_ID");
   count->setDistinct(true);
   groupby->addFunction(count);
