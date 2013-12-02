@@ -487,21 +487,21 @@ void TpccExecuteTest::doStockLevel(int w_id, int d_id, int threshold) {
 
 //===========================Delivery Tests
 
-TEST_F(TpccExecuteTest, Delivery_W1D1) {
+TEST_F(TpccExecuteTest, DISABLED_Delivery_W1D1) {
   //        (w_id, d_id, o_carrier_id, date      );
   doDelivery(1   , 1   , 1           , niceDate  );
 }
 
 //===========================New Order Tests
 
-TEST_F(TpccExecuteTest, NewOrder_W1D1C1) {
+TEST_F(TpccExecuteTest, DISABLED_NewOrder_W1D1C1) {
   //        (w_id, d_id, c_id, o_carrier_id, ol_dist_info, rollback, date     , {{i_id, i_w_id, quantity}});
   doNewOrder(1   , 1   , 1   , 1           , "info"      , false   , niceDate , {{1   , 1     , 10      },
                                                                                  {5   , 1     , 30      },
                                                                                  {7   , 1     , 90      }});
 }
 
-TEST_F(TpccExecuteTest, NewOrder_W1D1C1rollback) {
+TEST_F(TpccExecuteTest, DISABLED_NewOrder_W1D1C1rollback) {
   //        (w_id, d_id, c_id, o_carrier_id, ol_dist_info, rollback, date     , {{i_id, i_w_id, quantity}});
   doNewOrder(1   , 1   , 1   , 1           , "info"      , true   , niceDate ,  {{3   , 1     , 40      },
                                                                                  {11  , 1     , 20      },
@@ -510,36 +510,36 @@ TEST_F(TpccExecuteTest, NewOrder_W1D1C1rollback) {
 
 //===========================Order Status Tests
 
-TEST_F(TpccExecuteTest, OrderStatus_W1D1C1) {
+TEST_F(TpccExecuteTest, DISABLED_OrderStatus_W1D1C1) {
   //           (w_id, d_id, c_id, c_last    );
   doOrderStatus(1   , 1   , 1   , ""        );
 }
 
-TEST_F(TpccExecuteTest, OrderStatus_W1D1BARBARBAR) {
+TEST_F(TpccExecuteTest, DISABLED_OrderStatus_W1D1BARBARBAR) {
   //           (w_id, d_id, c_id, c_last    );
   doOrderStatus(1   , 1   , 1   , "CLName2" );
 }
 
 //============================Payment Tests
 
-TEST_F(TpccExecuteTest, Payment_W1D1C1localBC) {
+TEST_F(TpccExecuteTest, DISABLED_Payment_W1D1C1localBC) {
   //       (w_id, d_id, c_id, c_last    , c_w_id, c_d_id, bc_customer, date      );
   doPayment(1   , 1   , 1   , ""        , 1     , 1     , true       , niceDate  );
 }
 
-TEST_F(TpccExecuteTest, Payment_W1D1BARBARATIONlocalGC) {
+TEST_F(TpccExecuteTest, DISABLED_Payment_W1D1BARBARATIONlocalGC) {
   //       (w_id, d_id, c_id, c_last    , c_w_id, c_d_id, bc_customer, date      );
   doPayment(1   , 1   , 1   , "CLName1" , 1     , 1     , false      , niceDate  );
 }
 
 //============================Stock Level Tests
 
-TEST_F(TpccExecuteTest, StockLevel_W1D1T90) {
+TEST_F(TpccExecuteTest, DISABLED_StockLevel_W1D1T90) {
   //          (w_id, d_id, threshold);
   doStockLevel(1   , 1   , 90       );
 }
 
-TEST_F(TpccExecuteTest, StockLevel_W1D1T50) {
+TEST_F(TpccExecuteTest, DISABLED_StockLevel_W1D1T50) {
   //          (w_id, d_id, threshold);
   doStockLevel(1   , 1   , 50       );
 }
