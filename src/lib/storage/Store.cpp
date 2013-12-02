@@ -28,7 +28,7 @@ Store::Store() :
 
 Store::Store(atable_ptr_t main_table) :
     _main_table(main_table),
-    delta(main_table->copy_structure_modifiable()),
+    delta(main_table->copy_structure_modifiable(nullptr, 0, true, true)),
     merger(createDefaultMerger()),
     _cidBeginVector(main_table->size(), 0),
     _cidEndVector(main_table->size(), tx::INF_CID),
@@ -46,7 +46,7 @@ void Store::merge() {
   }
 
   // Create new delta and merge
-  atable_ptr_t new_delta = delta->copy_structure_modifiable();
+  atable_ptr_t new_delta = delta->copy_structure_modifiable(nullptr, 0, true, true);
 
   // Prepare the merge
   std::vector<c_atable_ptr_t> tmp {_main_table, delta};
@@ -415,7 +415,7 @@ void Store::addRowToDeltaIndices(pos_t row) {
     auto column = index_column_pair.second;
     storage::type_switch<hyrise_basic_types> ts;
     AddValueToDeltaIndexFunctor functor(this, index, row, column);
-    
+
     index->write_lock();
     ts(typeOfColumn(column), functor);
     index->unlock();

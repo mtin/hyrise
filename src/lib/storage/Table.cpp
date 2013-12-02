@@ -16,7 +16,8 @@ Table::Table(
   std::vector<SharedDictionary> *d,
   size_t initial_size,
   bool sorted,
-  bool compressed) :
+  bool compressed,
+  bool nonvolatile) :
   _metadata(m->size()),
   _dictionaries(m->size()),
   width(m->size()),
@@ -49,14 +50,14 @@ Table::Table(
 
   /** Build the attribute vector */
   if (!sorted) {
-    tuples = AttributeVectorFactory::getAttributeVector<value_id_t>(width, initial_size, 1, false, true);
+    tuples = AttributeVectorFactory::getAttributeVector<value_id_t>(width, initial_size, 1, false, nonvolatile);
   } else {
     std::vector<uint64_t> bits(_dictionaries.size(), 0);
     if (d) {
       for (size_t i = 0; i < _dictionaries.size(); ++i)
         bits[i] = _dictionaries[i]->size() == 1 ? 1 : ceil(log(_dictionaries[i]->size()) / log(2.0));
     }
-    tuples = AttributeVectorFactory::getAttributeVector2<value_id_t>(width, initial_size, compressed, bits, false);
+    tuples = AttributeVectorFactory::getAttributeVector2<value_id_t>(width, initial_size, compressed, bits, nonvolatile);
   }
 }
 

@@ -92,7 +92,7 @@ public:
    * @param initial_size    Initial size of the returned table (default=0).
    * @param with_containers Only used by derived classes.
    */
-  virtual hyrise::storage::atable_ptr_t copy_structure_modifiable(const field_list_t *fields = nullptr, size_t initial_size = 0, bool with_containers = true) const;
+  virtual hyrise::storage::atable_ptr_t copy_structure_modifiable(const field_list_t *fields = nullptr, size_t initial_size = 0, bool with_containers = true, bool nonvolatile = false) const;
 
 
   /**

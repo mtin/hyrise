@@ -51,7 +51,7 @@ for (const field_t & field: *fields) {
   return res;
 }
 
-hyrise::storage::atable_ptr_t AbstractTable::copy_structure_modifiable(const field_list_t *fields, const size_t initial_size, const bool with_containers) const {
+hyrise::storage::atable_ptr_t AbstractTable::copy_structure_modifiable(const field_list_t *fields, const size_t initial_size, const bool with_containers, const bool nonvolatile) const {
   std::vector<const ColumnMetadata *> metadata;
   std::vector<AbstractTable::SharedDictionaryPtr > *dictionaries = new std::vector<AbstractTable::SharedDictionaryPtr >;
 

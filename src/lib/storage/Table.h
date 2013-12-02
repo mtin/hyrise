@@ -68,7 +68,8 @@ public:
         std::vector<SharedDictionary> *d = nullptr,
         size_t initial_size = 0,
         bool sorted = true,
-        bool compressed = true);
+        bool compressed = true,
+        bool nonvolatile = false);
 
   ~Table();
 

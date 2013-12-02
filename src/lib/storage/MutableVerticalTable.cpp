@@ -174,13 +174,13 @@ atable_ptr_t MutableVerticalTable::copy_structure(const field_list_t *fields, co
   return r;
 }
 
-atable_ptr_t MutableVerticalTable::copy_structure_modifiable(const field_list_t *fields, const size_t initial_size, const bool with_containers) const {
+atable_ptr_t MutableVerticalTable::copy_structure_modifiable(const field_list_t *fields, const size_t initial_size, const bool with_containers, const bool nonvolatile) const {
   std::vector< atable_ptr_t > new_containers;
   size_t offset = 0;
   size_t i = 0;
 
   if (!with_containers) {
-    return AbstractTable::copy_structure_modifiable(fields, initial_size, with_containers);
+    return AbstractTable::copy_structure_modifiable(fields, initial_size, with_containers, nonvolatile);
   }
 
   for (size_t c = 0; c < containers.size(); c++) {
@@ -200,7 +200,7 @@ atable_ptr_t MutableVerticalTable::copy_structure_modifiable(const field_list_t 
     offset += containers[c]->columnCount();
 
     if (!temp_field_list.empty()) {
-      atable_ptr_t new_table = containers[c]->copy_structure_modifiable(&temp_field_list, initial_size, with_containers);
+      atable_ptr_t new_table = containers[c]->copy_structure_modifiable(&temp_field_list, initial_size, with_containers, nonvolatile);
       new_containers.push_back(new_table);
     }
   }
@@ -226,7 +226,7 @@ atable_ptr_t MutableVerticalTable::copy() const {
   return new_table;
 }
 
-const attr_vectors_t MutableVerticalTable::getAttributeVectors(size_t column) const {  
+const attr_vectors_t MutableVerticalTable::getAttributeVectors(size_t column) const {
   return containerAt(column)->getAttributeVectors(offset_in_container[column]);
 }
 
