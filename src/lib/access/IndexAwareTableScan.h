@@ -10,6 +10,8 @@
 namespace hyrise {
 namespace access {
 
+extern thread_local IndexAwareTableScan* lastIATS;
+
 struct GroupkeyIndexFunctor;
 
 /// Scan an existing index for the result. Currently only EQ predicates
@@ -23,6 +25,7 @@ public:
   const std::string vname();
   void setPredicate(AbstractExpression *c);
   void setTableName(std::string name);
+  void debug();
   
 private:
   void _setPredicateFromJson(AbstractExpression *c);
@@ -33,6 +36,7 @@ private:
   std::vector<GroupkeyIndexFunctor> _idx_functors_main;
   std::vector<GroupkeyIndexFunctor> _idx_functors_delta;
   std::string _tableName;
+  std::vector<PositionRange> idx_results;
 };
 
 }

@@ -92,6 +92,8 @@ Json::Value TpccNewOrderProcedure::execute() {
     if (tDistrict->size() == 0) {
       std::ostringstream os;
       os << "no district with id " << _d_id << " for warehouse " << _w_id;
+      lastIATS->debug();
+      
       throw std::runtime_error(os.str());
     }
     const float d_tax = tDistrict->getValue<hyrise_float_t>("D_TAX", 0);
@@ -101,6 +103,7 @@ Json::Value TpccNewOrderProcedure::execute() {
     if (tCustomer->size() == 0) {
       std::ostringstream os;
       os << "no customer with id: " << _c_id;
+      lastIATS->debug();
       throw std::runtime_error(os.str());
     }
 

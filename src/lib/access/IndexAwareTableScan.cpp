@@ -57,6 +57,8 @@ namespace {
   auto _ = QueryParser::registerPlanOperation<IndexAwareTableScan>("IndexAwareTableScan");
 }
 
+thread_local IndexAwareTableScan* lastIATS;
+
 IndexAwareTableScan::IndexAwareTableScan() {}
 
 IndexAwareTableScan::~IndexAwareTableScan() {}
@@ -123,9 +125,9 @@ struct GroupkeyIndexFunctor {
 };
 
 void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store> t_store, pos_list_t *result, std::vector<GroupkeyIndexFunctor> &functors) {
+  // std::vector<PositionRange> idx_results;
 
   // calculate the index results
-  std::vector<PositionRange> idx_results;
   storage::type_switch<hyrise_basic_types> ts;
   std::vector<std::shared_ptr<AbstractIndex>> indices;
 
@@ -197,7 +199,9 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
   if (idx_results.size() > 2) {
     pos_list_t *tmp_result = new pos_list_t;
     pos_list_t *idx_result_sorted = nullptr;
-    auto it = idx_results.begin(); ++it; ++it;
+    auto it = idx_results.begin();
+    ++it;
+    ++it;
     auto it_end = idx_results.end();
 
     for (;it != it_end; ++it) {
@@ -261,7 +265,23 @@ void IndexAwareTableScan::_consolidateFunctors(std::shared_ptr<const storage::St
     functors.end());
 }
 
+void IndexAwareTableScan::debug() {
+  printf("DEEEBUG!\n");
+  auto it_end = idx_results.end();
+
+  for(auto it = idx_results.begin(); it != it_end; ++it) {
+    long unsigned int last = 0;
+    auto it_end2 = it->end();
+    for(auto it2 = it->begin(); it2 != it_end2; ++it2) {
+      std::cout << *it2 << std::endl;
+      if(*it2 <= last) {std::cout << *it2 << "<=" << last << std::endl;}
+      last=*it2;
+    }
+  }
+}
+
 void IndexAwareTableScan::executePlanOperation() {
+  lastIATS = this;
   // auto start = std::chrono::system_clock::now();
   auto t = input.getTables()[0];
   auto t_store = std::dynamic_pointer_cast<const storage::Store>(t);
@@ -277,7 +297,7 @@ void IndexAwareTableScan::executePlanOperation() {
   // get main and delta results from indices
   pos_list_t *main_result = new pos_list_t;
   pos_list_t *delta_result = new pos_list_t;
-  this->_getIndexResults(t_store, main_result, _idx_functors_main);
+  // this->_getIndexResults(t_store, main_result, _idx_functors_main);
   this->_getIndexResults(t_store, delta_result, _idx_functors_delta);
 
   // union results

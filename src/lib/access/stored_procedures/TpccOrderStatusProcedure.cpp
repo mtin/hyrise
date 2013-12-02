@@ -73,6 +73,7 @@ Json::Value TpccOrderStatusProcedure::execute() {
   if (tOrders->size() == 0) {
     std::ostringstream os;
     os << "no active order for customer " << _c_id << " in district " << _d_id << " of warehouse " << _w_id;
+    lastIATS->debug();
     throw std::runtime_error(os.str());
   }
   _o_id = tOrders->getValue<hyrise_int_t>("O_ID", 0);

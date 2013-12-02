@@ -45,8 +45,10 @@ Json::Value TpccDeliveryProcedure::execute() {
     _o_id = tNewOrder->getValue<hyrise_int_t>("NO_O_ID", 0);
 
     auto tOrder = getCId();
-    if (tOrder->size() == 0) {
+      if (tOrder->size() == 0) {
+    lastIATS->debug();
       throw std::runtime_error("internal error: new order is associated with non-existing order");
+      
     }
     _c_id = tOrder->getValue<hyrise_int_t>("O_C_ID", 0);
 
