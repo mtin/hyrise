@@ -20,6 +20,7 @@ class PagedIndex : public AbstractIndex {
 private:
   typedef std::map<T, pos_list_t> paged_index_t;
   paged_index_t _index;
+  int _pageSize;
 
 public:
   virtual ~PagedIndex() {};
@@ -29,7 +30,7 @@ for (auto & e : _index)
       e.second.shrink_to_fit();
   }
 
-  explicit PagedIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column) {
+  explicit PagedIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column, int pageSize = 4): _pageSize(pageSize) {
     if (in != nullptr) {
       for (size_t row = 0; row < in->size(); ++row) {
         T tmp = in->getValue<T>(column, row);

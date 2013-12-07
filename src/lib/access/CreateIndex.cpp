@@ -39,12 +39,15 @@ struct CreatePagedIndexFunctor {
   typedef std::shared_ptr<AbstractIndex> value_type;
   const storage::c_atable_ptr_t& in;
   size_t column;
+  int _pageSize;
 
-  CreatePagedIndexFunctor(const storage::c_atable_ptr_t& t, size_t c):
-    in(t), column(c) {}
+  CreatePagedIndexFunctor(const storage::c_atable_ptr_t& t, size_t c, int pageSize):
+    in(t), column(c), _pageSize(pageSize) {}
 
   template<typename R>
   value_type operator()() {
+    if (_pageSize>0)
+      return std::make_shared<PagedIndex<R>>(in, column, _pageSize);
     return std::make_shared<PagedIndex<R>>(in, column);
   }
 };
@@ -64,7 +67,7 @@ void CreateIndex::executePlanOperation() {
   storage::type_switch<hyrise_basic_types> ts;
 
   if (_index_type == "paged") {
-    CreatePagedIndexFunctor fun(in, column);
+    CreatePagedIndexFunctor fun(in, column, _index_paged_page_size);
     _index = ts(in->typeOfColumn(column), fun);
   } else { // if (_index_type == "inverted")
     CreateIndexFunctor fun(in, column);
@@ -78,8 +81,15 @@ void CreateIndex::executePlanOperation() {
 std::shared_ptr<PlanOperation> CreateIndex::parse(const Json::Value &data) {
   auto i = BasicParser<CreateIndex>::parse(data);
   i->setIndexName(data["index_name"].asString());
+
   if (data.isMember("index_type"))
     i->setIndexType(data["index_type"].asString());
+
+  if (data.isMember("page_size"))
+    i->setIndexPageSize(data["page_size"].asInt());
+  else
+    i->setIndexPageSize(-1);
+
   return i;
 }
 
@@ -89,6 +99,10 @@ void CreateIndex::setIndexName(const std::string &t) {
 
 void CreateIndex::setIndexType(const std::string &t) {
   _index_type = t;
+}
+
+void CreateIndex::setIndexPageSize(int pageSize) {
+  _index_paged_page_size = pageSize;
 }
 
 }
