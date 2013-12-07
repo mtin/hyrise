@@ -16,6 +16,7 @@
 #include "storage/PointerCalculator.h"
 #include "storage/AbstractIndex.h"
 #include "storage/InvertedIndex.h"
+#include "storage/PagedIndex.h"
 
 namespace hyrise {
 namespace access {
@@ -34,6 +35,20 @@ struct CreateIndexFunctor {
   }
 };
 
+struct CreatePagedIndexFunctor {
+  typedef std::shared_ptr<AbstractIndex> value_type;
+  const storage::c_atable_ptr_t& in;
+  size_t column;
+
+  CreatePagedIndexFunctor(const storage::c_atable_ptr_t& t, size_t c):
+    in(t), column(c) {}
+
+  template<typename R>
+  value_type operator()() {
+    return std::make_shared<PagedIndex<R>>(in, column);
+  }
+};
+
 namespace {
   auto _ = QueryParser::registerPlanOperation<CreateIndex>("CreateIndex");
 }
@@ -46,9 +61,15 @@ void CreateIndex::executePlanOperation() {
   std::shared_ptr<AbstractIndex> _index;
   auto column = _field_definition[0];
 
-  CreateIndexFunctor fun(in, column);
   storage::type_switch<hyrise_basic_types> ts;
-  _index = ts(in->typeOfColumn(column), fun);
+
+  if (_index_type == "paged") {
+    CreatePagedIndexFunctor fun(in, column);
+    _index = ts(in->typeOfColumn(column), fun);
+  } else { // if (_index_type == "inverted")
+    CreateIndexFunctor fun(in, column);
+    _index = ts(in->typeOfColumn(column), fun);
+  }
 
   StorageManager *sm = StorageManager::getInstance();
   sm->addInvertedIndex(_index_name, _index);
@@ -57,11 +78,17 @@ void CreateIndex::executePlanOperation() {
 std::shared_ptr<PlanOperation> CreateIndex::parse(const Json::Value &data) {
   auto i = BasicParser<CreateIndex>::parse(data);
   i->setIndexName(data["index_name"].asString());
+  if (data.isMember("index_type"))
+    i->setIndexType(data["index_type"].asString());
   return i;
 }
 
 void CreateIndex::setIndexName(const std::string &t) {
   _index_name = t;
+}
+
+void CreateIndex::setIndexType(const std::string &t) {
+  _index_type = t;
 }
 
 }
