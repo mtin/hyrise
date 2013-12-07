@@ -19,6 +19,7 @@
 #include <storage/TableGenerator.h>
 #include <storage/TableFactory.h>
 #include <storage/InvertedIndex.h>
+#include <storage/PagedIndex.h>
 #include <storage/HashTable.h>
 #include <storage/AbstractHashTable.h>
 

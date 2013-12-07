@@ -16,9 +16,11 @@ public:
   /// set column in field "fields"
   static std::shared_ptr<PlanOperation> parse(const Json::Value &data);
   void setIndexName(const std::string &t);
+  void setIndexType(const std::string &t);
 
 private:
   std::string _index_name;
+  std::string _index_type;
 };
 
 }
