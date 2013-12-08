@@ -17,12 +17,12 @@ public:
   static std::shared_ptr<PlanOperation> parse(const Json::Value &data);
   void setIndexName(const std::string &t);
   void setIndexType(const std::string &t);
-  void setIndexPageSize(int pageSize);
+  void setIndexPageSize(size_t pageSize);
 
 private:
   std::string _index_name;
   std::string _index_type;
-  int _index_paged_page_size;
+  size_t _index_paged_page_size;
 };
 
 }
