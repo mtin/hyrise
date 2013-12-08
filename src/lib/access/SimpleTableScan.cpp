@@ -8,6 +8,8 @@
 
 #include "helper/checked_cast.h"
 
+#include <chrono>
+
 namespace hyrise {
 namespace access {
 
@@ -64,11 +66,16 @@ void SimpleTableScan::executeMaterialized() {
 }
 
 void SimpleTableScan::executePlanOperation() {
+  auto start_time = std::chrono::high_resolution_clock::now();
   if (producesPositions) {
     executePositional();
   } else {
     executeMaterialized();
   }
+  auto end_time = std::chrono::high_resolution_clock::now();
+  std::cout << std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count() << "s " << 
+               std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() % 1000 << "ms " << 
+               std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() % 1000 << "us " << std::endl;
 }
 
 std::shared_ptr<PlanOperation> SimpleTableScan::parse(const Json::Value &data) {

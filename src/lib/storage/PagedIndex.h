@@ -18,46 +18,67 @@
 template<typename T>
 class PagedIndex : public AbstractIndex {
 private:
-  typedef std::map<T, pos_list_t> paged_index_t;
+  typedef std::vector<bool> bitvector;
+  typedef std::map<T, bitvector> paged_index_t;
   paged_index_t _index;
-  int _pageSize;
+  size_t _pageSize;
 
 public:
   virtual ~PagedIndex() {};
 
   void shrink() {
-for (auto & e : _index)
-      e.second.shrink_to_fit();
+      std::cout << "SHRINK NOT IMPLEMENTED YEY: " <<std::endl;
+//for (auto & e : _index)
+      //e.second.shrink_to_fit();
   }
 
-  explicit PagedIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column, int pageSize = 4): _pageSize(pageSize) {
+  explicit PagedIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column, size_t pageSize = 4): _pageSize(pageSize) {
     if (in != nullptr) {
+      size_t num_of_pages = std::ceil(in->size() / (double)_pageSize);
+      // std::cout << "table_size: " << in->size() << std::endl;
+      // std::cout << "page_size: " << _pageSize << std::endl;
+      // std::cout << "num_of_pages: " << num_of_pages << std::endl;
+      
+        
       for (size_t row = 0; row < in->size(); ++row) {
         T tmp = in->getValue<T>(column, row);
+        // if (b[row/_pageSize] > 0) // optimization?
+        //   continue;
         typename paged_index_t::iterator find = _index.find(tmp);
         if (find == _index.end()) {
-          pos_list_t pos;
-          pos.push_back(row);
-          _index[tmp] = pos;
+          bitvector b(num_of_pages, 0); // create bitvector with 1 bit per page
+          b[row/_pageSize] = 1; // set bit to 1 for page where we found the current entry
+          _index[tmp] = b;
         } else {
-          find->second.push_back(row);
+          find->second[row/_pageSize] = 1;
         }
       }
+
+      // for (const auto & e : _index) {
+      //   std::cout << e.first << " - ";
+      //   for (const auto & t : e.second)
+      //     std::cout << t;
+      //   std::cout << std::endl;
+      // }
     }
   };
 
   /**
    * returns a list of positions where key was found.
    */
-  pos_list_t getPositionsForKey(T key) {
+  std::vector<bool> getPagesForKey(T key) {
     typename paged_index_t::iterator it = _index.find(key);
     if (it != _index.end()) {
       return it->second;
     } else {
-      pos_list_t empty;
+      std::vector<bool> empty;
       return empty;
     }
   };
 
+  size_t getPageSize() {
+    return _pageSize;
+  }
+
 };
-#endif  // SRC_LIB_STORAGE_INVERTEDINDEX_H_
+#endif  // SRC_LIB_STORAGE_PAGEDINDEX_H_

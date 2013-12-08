@@ -39,9 +39,9 @@ struct CreatePagedIndexFunctor {
   typedef std::shared_ptr<AbstractIndex> value_type;
   const storage::c_atable_ptr_t& in;
   size_t column;
-  int _pageSize;
+  size_t _pageSize;
 
-  CreatePagedIndexFunctor(const storage::c_atable_ptr_t& t, size_t c, int pageSize):
+  CreatePagedIndexFunctor(const storage::c_atable_ptr_t& t, size_t c, size_t pageSize):
     in(t), column(c), _pageSize(pageSize) {}
 
   template<typename R>
@@ -101,7 +101,7 @@ void CreateIndex::setIndexType(const std::string &t) {
   _index_type = t;
 }
 
-void CreateIndex::setIndexPageSize(int pageSize) {
+void CreateIndex::setIndexPageSize(size_t pageSize) {
   _index_paged_page_size = pageSize;
 }
 
