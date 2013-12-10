@@ -34,10 +34,10 @@ void InsertScan::executePlanOperation() {
   // Cast the constness away
   auto store = std::const_pointer_cast<storage::Store>(c_store);
 
-  const size_t beforeSize = store->size();
   const size_t columnCount = store->columnCount();
   const size_t rowCount = _data ? _data->size() : _raw_data.size();
   const auto &writeArea = store->appendToDelta(rowCount);
+  const size_t firstPosition = store->getMainTable()->size() + writeArea.first;
   auto &mods = tx::TransactionManager::getInstance()[_txContext.tid];
 
   if (!_data) {
@@ -74,14 +74,14 @@ void InsertScan::executePlanOperation() {
       store->copyRowToDeltaFromJSONVector(_raw_data[i], writeArea.first+i, _txContext.tid);
 
       // Update delta indices
-      store->addRowToDeltaIndices(beforeSize+i);
+      store->addRowToDeltaIndices(firstPosition+i);
 
-      mods.insertPos(store, beforeSize+i);
+      mods.insertPos(store, firstPosition+i);
 
 #ifdef PERSISTENCY_BUFFEREDLOGGER
       uint64_t bitmask = (1 << (columnCount + 1)) - 1;
-      std::vector<ValueId> vids = store->copyValueIds(beforeSize+i);
-      io::Logger::getInstance().logValue(mods.tid, reinterpret_cast<uintptr_t>(store.get()), beforeSize+i, 0, bitmask, &vids);
+      std::vector<ValueId> vids = store->copyValueIds(firstPosition+i);
+      io::Logger::getInstance().logValue(mods.tid, reinterpret_cast<uintptr_t>(store.get()), firstPosition+i, 0, bitmask, &vids);
 #endif
     }
   } else {
@@ -89,14 +89,14 @@ void InsertScan::executePlanOperation() {
       store->copyRowToDelta(_data, i, writeArea.first+i, _txContext.tid);
       
       // Update delta indices
-      store->addRowToDeltaIndices(beforeSize+i);
+      store->addRowToDeltaIndices(firstPosition+i);
 
-      mods.insertPos(store, beforeSize+i);
+      mods.insertPos(store, firstPosition+i);
 
 #ifdef PERSISTENCY_BUFFEREDLOGGER
       uint64_t bitmask = (1 << (columnCount + 1)) - 1;
       std::vector<ValueId> vids = _data.get()->copyValueIds(i);
-      io::Logger::getInstance().logValue(mods.tid, reinterpret_cast<uintptr_t>(store.get()), beforeSize+i, 0, bitmask, &vids);
+      io::Logger::getInstance().logValue(mods.tid, reinterpret_cast<uintptr_t>(store.get()), firstPosition+i, 0, bitmask, &vids);
 #endif
     }
   }
