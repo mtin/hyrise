@@ -205,20 +205,6 @@ transaction_cid_t TransactionManager::commitTransaction(TXContext ctx, bool flus
 
   ctx.cid = txmgr.prepareCommit();
 
-  // Only update the required positions
-  for (auto& kv: modifications.deleted) {
-    auto weak_table = kv.first;
-    // Only deleted records have to be checked for validity as newly inserted
-    // records will be always only written by us
-    if (auto store = getStore(weak_table.lock())) {
-      if (tx::TX_CODE::TX_OK != store->checkForConcurrentCommit(kv.second, ctx.tid)) {
-        txmgr.rollbackTransaction(ctx);
-        txmgr.abort();
-        throw std::runtime_error("Aborted TX because concurrent commit found (Table: " + store->getName() + ")");
-      }
-    }
-  }
-
   for (auto& kv: modifications.inserted) {
     auto weak_table = kv.first;
     if (auto store = getStore(weak_table.lock())) {
