@@ -14,6 +14,7 @@
 #include <helper/cas.h>
 
 #define INITIAL_RESERVE 5000000
+#define REUSE_MAIN_DICTS
 
 namespace hyrise { namespace storage {
 
@@ -65,6 +66,24 @@ void Store::merge() {
   _cidBeginVector.assign(_main_table->size(), tx::UNKNOWN_CID);
   _cidEndVector.assign(_main_table->size(), tx::INF_CID);
   _tidVector.assign(_main_table->size(), tx::START_TID);
+
+  #ifdef REUSE_MAIN_DICTS
+  // copy merged main's dictionaries for delta
+  for(size_t column=0; column < columnCount(); ++column) {
+    const AbstractDictionary* dict = _main_table->dictionaryAt(column).get();
+    switch(typeOfColumn(column)) {
+      case IntegerType:
+        new_delta->setDictionaryAt(std::make_shared<OrderIndifferentDictionary<hyrise_int_t>>(((OrderPreservingDictionary<hyrise_int_t>*)dict)->getValueList()), column);
+        break;
+      case FloatType:
+        new_delta->setDictionaryAt(std::make_shared<OrderIndifferentDictionary<hyrise_float_t>>(((OrderPreservingDictionary<hyrise_float_t>*)dict)->getValueList()), column);
+        break;
+      case StringType:
+        new_delta->setDictionaryAt(std::make_shared<OrderIndifferentDictionary<hyrise_string_t>>(((OrderPreservingDictionary<hyrise_string_t>*)dict)->getValueList()), column);
+        break;
+    }
+  }
+  #endif
 
   // Replace the delta partition
   delta = new_delta;
@@ -289,10 +308,16 @@ std::pair<size_t, size_t> Store::appendToDelta(size_t num) {
 void Store::copyRowToDelta(const c_atable_ptr_t& source, const size_t src_row, const size_t dst_row, tx::transaction_id_t tid) {
   auto main_tables_size = _main_table->size();
 
+  #ifdef REUSE_MAIN_DICTS
+  bool copy_values = source.get() != this;
+  #else
+  bool copy_values = true;
+  #endif
+
   // Update the validity
   _tidVector[main_tables_size + dst_row] = tid;
 
-  delta->copyRowFrom(source, src_row, dst_row, true);
+  delta->copyRowFrom(source, src_row, dst_row, copy_values);
 }
 
 void Store::copyRowToDeltaFromJSONVector(const std::vector<Json::Value>& source, size_t dst_row, tx::transaction_id_t tid) {

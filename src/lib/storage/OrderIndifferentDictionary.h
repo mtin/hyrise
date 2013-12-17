@@ -43,7 +43,7 @@ public:
 
   value_id_t getValueId() const {
     return (*_it).second;
-  }  
+  }
 
 };
 
@@ -71,6 +71,10 @@ public:
     if (s > 0) {
       reserve(s);
     }
+  }
+
+  OrderIndifferentDictionary(const std::shared_ptr<vector_type> &value_list) {
+    _value_list = *(value_list.get());
   }
 
   virtual ~OrderIndifferentDictionary() {

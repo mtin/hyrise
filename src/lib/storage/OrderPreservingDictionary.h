@@ -37,7 +37,7 @@ public:
   OrderPreservingDictionary() {
     _values = std::make_shared<vector_type>();
   }
-  
+
   explicit OrderPreservingDictionary(size_t size) {
     _values = std::make_shared<vector_type>();
     _values->reserve(size);
@@ -77,7 +77,7 @@ public:
 #endif
     return (*_values)[value_id];
   }
-      
+
   value_id_t getValueIdForValue(const T &value) const {
     auto binary_search = std::lower_bound(_values->begin(), _values->end(), value);
     size_t index = binary_search - _values->begin();
@@ -87,7 +87,7 @@ public:
   value_id_t getValueIdForValueSmaller(T other) {
     auto binary_search = std::lower_bound(_values->begin(), _values->end(), other);
     size_t index = binary_search - _values->begin();
-    
+
     assert(index > 0);
     return index - 1;
   }
@@ -95,7 +95,7 @@ public:
   value_id_t getValueIdForValueGreater(T other) {
     auto binary_search = std::upper_bound(_values->begin(), _values->end(), other);
     size_t index = binary_search - _values->begin();
-    
+
     return index;
   }
 
@@ -103,7 +103,7 @@ public:
     assert(_values->size() > 0);
     return (*_values)[0];
   }
-    
+
   const T getGreatestValue() {
     assert(_values->size() > 0);
     return (*_values)[_values->size() - 1];
@@ -120,7 +120,7 @@ public:
   void reserve(size_t size) {
     _values->reserve(size);
   }
-  
+
   size_t size() {
     return _values->size();
   }
@@ -132,7 +132,7 @@ public:
   std::shared_ptr<AbstractDictionary> copy_empty() {
     return std::make_shared<OrderPreservingDictionary<T> >();
   }
-  
+
   bool isOrdered() {
     return true;
   }
@@ -145,6 +145,10 @@ public:
 
   iterator end() {
     return iterator(std::make_shared<OrderPreservingDictionaryIterator<T>>(_values, _values->size()));
+  }
+
+  const shared_vector_type& getValueList() const {
+    return _values;
   }
 
 };
