@@ -171,6 +171,7 @@ storage::c_atable_ptr_t TpccStoredProcedure::selectAndValidate(storage::c_atable
   select->setPlanOperationName("IndexAwareTableScan");
   _responseTask->registerPlanOperation(select);
 
+  select->setPerformValidation(true);
   select->addInput(table);
   select->setTXContext(_tx);
   select->setTableName(tablename);
@@ -178,7 +179,7 @@ storage::c_atable_ptr_t TpccStoredProcedure::selectAndValidate(storage::c_atable
   select->setPredicate(bare);
   select->execute();
 
-  std::shared_ptr<ValidatePositions> validate = std::make_shared<ValidatePositions>();
+  /*std::shared_ptr<ValidatePositions> validate = std::make_shared<ValidatePositions>();
   validate->setOperatorId("__ValidatePositions");
   validate->setPlanOperationName("ValidatePositions");
   _responseTask->registerPlanOperation(validate);
@@ -187,7 +188,8 @@ storage::c_atable_ptr_t TpccStoredProcedure::selectAndValidate(storage::c_atable
   validate->addInput(select->getResultTable());
   validate->execute();
 
-  return validate->getResultTable();
+  return validate->getResultTable();*/
+  return select->getResultTable();
 }
 
 void TpccStoredProcedure::startTransaction() {

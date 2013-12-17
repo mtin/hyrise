@@ -22,17 +22,19 @@ public:
   static std::shared_ptr<PlanOperation> parse(const Json::Value &data);
   const std::string vname();
   void setPredicate(AbstractExpression *c);
-  void setTableName(std::string name);
-  
+  void setTableName(const std::string &name);
+  void setPerformValidation(bool validate);
+
 private:
   void _setPredicateFromJson(AbstractExpression *c);
-  void _getIndexResults(std::shared_ptr<const storage::Store> t_store, pos_list_t *result, std::vector<GroupkeyIndexFunctor> &functors);
+  void _getIndexResults(std::shared_ptr<const storage::Store> t_store, pos_list_t*& result, std::vector<GroupkeyIndexFunctor> &functors);
   void _consolidateFunctors(std::shared_ptr<const storage::Store> t_store, std::vector<GroupkeyIndexFunctor> &functors);
-  
+
   SimpleExpression *_predicate;
   std::vector<GroupkeyIndexFunctor> _idx_functors_main;
   std::vector<GroupkeyIndexFunctor> _idx_functors_delta;
   std::string _tableName;
+  bool _performValidation;
 };
 
 }
