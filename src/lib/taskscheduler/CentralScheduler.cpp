@@ -6,6 +6,7 @@
  */
 
 #include "CentralScheduler.h"
+#include <thread>
 
 namespace hyrise {
 namespace taskscheduler {
@@ -99,16 +100,19 @@ void WorkerThread::operator()(){
     }
     // no task in runQueue -> sleep and wait for new tasks
     else {
+
+      std::this_thread::yield();
+
       //if queue still empty go to sleep and wait until new tasks have been arrived
-      if (scheduler._runQueue.size() < 1) {
+      // if (scheduler._runQueue.size() < 1) {
         // if thread is about to stop, break execution loop
 
-        if (scheduler._status != scheduler.RUN)
-          continue;
+        // if (scheduler._status != scheduler.RUN)
+          // continue;
 
 
-        scheduler._condition.wait(ul);
-      }
+        // scheduler._condition.wait(ul);
+      // }
     }
   }
 }
