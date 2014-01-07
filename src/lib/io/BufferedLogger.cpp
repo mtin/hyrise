@@ -1,15 +1,18 @@
 #include "io/BufferedLogger.h"
+
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <dirent.h>
 
+#include <helper/Settings.h>
+
 namespace hyrise {
 namespace io {
 
 constexpr uint64_t LOG_BUFFER_SIZE = 16384;
-constexpr char LOG_DIR_NAME[] = ".";
-constexpr char LOG_FILE_NAME[] = "logfile"; // must include directory
+//constexpr char LOG_DIR_NAME[] = ".";
+//constexpr char LOG_FILE_NAME[] = (Settings::getInstance()->getDBPath() + "/log/").c_str(); // must include directory
 
 BufferedLogger &BufferedLogger::getInstance() {
   static BufferedLogger instance;
@@ -133,9 +136,9 @@ void BufferedLogger::flush() {
 }
 
 BufferedLogger::BufferedLogger() {
-  _logfile = fopen(LOG_FILE_NAME, "w");
+  _logfile = fopen((Settings::getInstance()->getDBPath() + "/log/log.txt").c_str(), "w");
   fsync(fileno(_logfile));
-  fsync(dirfd(opendir(LOG_DIR_NAME)));
+  fsync(dirfd(opendir((Settings::getInstance()->getDBPath() + "/log/").c_str())));
 
   _buffer_size = LOG_BUFFER_SIZE;
   _buffer = (char*) malloc(_buffer_size);

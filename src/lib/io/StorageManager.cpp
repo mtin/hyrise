@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <dirent.h>
 #include <map>
 #include <iostream>
 #include <sstream>
@@ -18,6 +19,7 @@
 #include "helper/Environment.h"
 #include "io/Loader.h"
 #include "io/CSVLoader.h"
+#include "io/TableDump.h"
 #include "storage/AbstractIndex.h"
 #include "storage/AbstractTable.h"
 #include "storage/ColumnMetadata.h"
@@ -140,6 +142,46 @@ void StorageManager::addInvertedIndex(std::string name, std::shared_ptr<Abstract
 
 std::shared_ptr<AbstractIndex> StorageManager::getInvertedIndex(std::string name) {
   return get<AbstractIndex>(name);
+}
+
+void StorageManager::persistTable(const std::string &name) {
+  if (!exists(name)) {
+    throw std::runtime_error("Cannot persist nonexisting table");
+  }
+
+  auto table = getTable(name);
+  std::string basePath = Settings::getInstance()->getDBPath() + "/log/";
+  storage::SimpleTableDump td(basePath);
+
+  td.dump(name, table);
+}
+
+void StorageManager::recoverTables() {
+  std::string basePath = Settings::getInstance()->getDBPath() + "/log/";
+  std::vector<std::string> tableNames;
+
+  // walk log directory to find tables
+  struct dirent *entry;
+  DIR *dp = opendir(basePath.c_str());
+  if (dp == NULL) {
+    std::runtime_error("Cannot recover tables, log directory not found or not accessible");
+  }
+  while ((entry = readdir(dp)) != NULL) {
+    if (entry->d_type == DT_DIR && entry->d_name[0] != '.') {
+      tableNames.push_back(entry->d_name);
+    }
+  }
+  closedir(dp);
+
+  for (auto &tableName : tableNames) {
+    std::cout << "recovering table '" << tableName << "'" << std::endl;
+
+    storage::TableDumpLoader loader(basePath, tableName);
+    CSVHeader header(basePath + tableName + "/header.dat", CSVHeader::params().setCSVParams(csv::HYRISE_FORMAT));
+    auto t = Loader::load(Loader::params().setInput(loader).setHeader(header));
+
+    add(tableName, t);
+  }
 }
 
 }

@@ -15,7 +15,7 @@ public:
   virtual void SetUp() {
     sm->removeAll();
   }
-  
+
   StorageManager *sm;
 };
 
@@ -70,4 +70,14 @@ TEST_F(StorageManagerTests, load_table_header_data) {
   sm->removeTable("HEADERDATA");
 
   ASSERT_EQ(0u, sm->getTableNames().size());
+}
+
+TEST_F(StorageManagerTests, load_persist_and_recover_table) {
+  sm->loadTableFile("LINXXS", "lin_xxs.tbl");
+  ASSERT_TRUE(sm->exists("LINXXS"));
+  sm->persistTable("LINXXS");
+  sm->removeTable("LINXXS");
+  ASSERT_FALSE(sm->exists("LINXXS"));
+  sm->recoverTables();
+  ASSERT_TRUE(sm->exists("LINXXS"));
 }

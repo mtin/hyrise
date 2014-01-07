@@ -1,6 +1,9 @@
 #include "io/SimpleLogger.h"
+
 #include <errno.h>
 #include <string.h>
+
+#include <helper/Settings.h>
 
 namespace hyrise {
 namespace io {
@@ -43,7 +46,7 @@ void SimpleLogger::flush() {
 
 SimpleLogger::SimpleLogger() {
     mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-    _fd = open("logfile", O_WRONLY | O_CREAT | O_TRUNC, mode);
+    _fd = open((Settings::getInstance()->getDBPath() + "/log/log.txt").c_str(), O_WRONLY | O_CREAT | O_TRUNC, mode);
     if (_fd == -1)
         printf( "Something went wrong while creating the logfile: %s\n", strerror( errno ) );
 }

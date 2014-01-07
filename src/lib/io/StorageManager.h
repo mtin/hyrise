@@ -15,7 +15,7 @@ class AbstractTable;
 class AbstractIndex;
 class AbstractResource;
 
-namespace Loader { class params; }                                            
+namespace Loader { class params; }
 
 namespace hyrise {
 namespace io {
@@ -85,6 +85,10 @@ class StorageManager : public ResourceManager {
   /// Get full path for fileName
   /// @param[in] fileName fileName
   std::string makePath(std::string fileName);
+
+  void persistTable(const std::string &name);
+
+  void recoverTables();
 };
 
 }
