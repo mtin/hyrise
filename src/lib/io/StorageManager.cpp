@@ -35,6 +35,9 @@ namespace io {
 template<typename... Args>
 void StorageManager::addStorageTable(std::string name, Args && ... args) {
   add(name, Loader::load(std::forward<Args>(args)...));
+  #ifdef PERSISTENCY_BUFFEREDLOGGER
+  persistTable(name);
+  #endif
 }
 
 StorageManager *StorageManager::getInstance() {
@@ -46,10 +49,16 @@ StorageManager *StorageManager::getInstance() {
 
 void StorageManager::loadTable(std::string name, std::shared_ptr<AbstractTable> table) {
   add(name, table);
+  #ifdef PERSISTENCY_BUFFEREDLOGGER
+  persistTable(name);
+  #endif
 }
 
 void StorageManager::replaceTable(std::string name, std::shared_ptr<AbstractTable> table) {
   replace(name, table);
+  #ifdef PERSISTENCY_BUFFEREDLOGGER
+  persistTable(name);
+  #endif
 }
 
 void StorageManager::loadTable(std::string name, const Loader::params &parameters) {
@@ -149,6 +158,8 @@ void StorageManager::persistTable(const std::string &name) {
     throw std::runtime_error("Cannot persist nonexisting table");
   }
 
+  std::cout << "persisting table '" << name << "'" << std::endl;
+
   auto table = getTable(name);
   std::string basePath = Settings::getInstance()->getDBPath() + "/log/";
   storage::SimpleTableDump td(basePath);
@@ -180,6 +191,9 @@ void StorageManager::recoverTables() {
     CSVHeader header(basePath + tableName + "/header.dat", CSVHeader::params().setCSVParams(csv::HYRISE_FORMAT));
     auto t = Loader::load(Loader::params().setInput(loader).setHeader(header));
 
+    if (exists(tableName)) {
+      throw std::runtime_error("cannot recover already loaded table");
+    }
     add(tableName, t);
   }
 }

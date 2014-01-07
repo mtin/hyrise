@@ -4,6 +4,7 @@
 
 
 #include <io/TransactionManager.h>
+#include <io/StorageManager.h>
 #include <storage/storage_types.h>
 #include <storage/PrettyPrinter.h>
 #include <storage/DeltaIndex.h>
@@ -87,6 +88,14 @@ void Store::merge() {
 
   // Replace the delta partition
   delta = new_delta;
+
+  // if enabled, persist new main onto disk
+  #ifdef PERSISTENCY_BUFFEREDLOGGER
+  auto *sm = io::StorageManager::getInstance();
+  if(sm->exists(getName())) {
+    sm->persistTable(getName());
+  }
+  #endif
 
   // TODO: hotfix !!
   size_t num = INITIAL_RESERVE;
