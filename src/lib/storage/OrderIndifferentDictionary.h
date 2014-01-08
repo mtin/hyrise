@@ -186,6 +186,14 @@ public:
     }
   }
 
+  virtual void setValue(T value, value_id_t value_id) {
+    // this is used when restoring the database. You probably don't want to use this during regular
+    // operations
+    if(_value_list.size() <= value_id) _value_list.resize(value_id + 1);
+    _value_list[value_id] = value;
+    _index.insert(std::pair<T, value_id_t>(value, value_id));
+  }
+
 };
 
 #endif  // SRC_LIB_STORAGE_ORDERINDIFFERENTDICTIONARY_H_

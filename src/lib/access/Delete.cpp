@@ -40,10 +40,9 @@ void DeleteOp::executePlanOperation() {
 		modRecord.deletePos(tab->getActualTable(), p);
 
 #ifdef PERSISTENCY_BUFFEREDLOGGER
-    const size_t columnCount = store->columnCount();
-    uint64_t bitmask = (1 << (columnCount + 1)) - 1;
+    uint64_t bitmask = 0;
     // std::vector<ValueId> vids;
-    io::Logger::getInstance().logValue(_txContext.tid, reinterpret_cast<uintptr_t>(store.get()), 0, p, bitmask, nullptr);
+    if(store->loggingEnabled()) io::Logger::getInstance().logValue(_txContext.tid, store->getName(), 0, p, bitmask, nullptr);
 #endif
 
 	}

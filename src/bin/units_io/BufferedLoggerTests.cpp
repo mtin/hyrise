@@ -1,51 +1,92 @@
 #include "testing/test.h"
 #include "io/BufferedLogger.h"
+#include "io/shortcuts.h"
+#include "io/StorageManager.h"
+#include "storage/Store.h"
+#include "io/TransactionManager.h"
+#include "access/InsertScan.h"
+#include "access/tx/Commit.h"
 
 #include <fstream>
 #include <thread>
 #include <vector>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+
+#include <helper/Settings.h>
 
 namespace hyrise {
 namespace io {
 
 class BufferedLoggerTests : public ::hyrise::Test {};
 
-void bufferedLoggerTestWorker(uint64_t tx) {
-  BufferedLogger::getInstance().logDictionary<int64_t>('a', 1, 2, 3);
-  BufferedLogger::getInstance().logDictionary<float>('a', 1, 2.0f, 3);
-  BufferedLogger::getInstance().logDictionary<std::string>('a', 1, "zwei", 3);
+TEST_F(BufferedLoggerTests, simple_log_test) {
+  uint64_t tx = 17;
+  std::string table_name("Tabelle");
+
+  BufferedLogger::getInstance().logDictionary<int64_t>(table_name, 1, 2, 31);
+  BufferedLogger::getInstance().logDictionary<float>(table_name, 2, 2.0f, 42);
+  BufferedLogger::getInstance().logDictionary<std::string>(table_name, 3, "zwei", 53);
   std::vector<ValueId> vids;
-  vids.push_back(ValueId(0, 0));
-  vids.push_back(ValueId(1, 0));
-  vids.push_back(ValueId(2, 0));
-  BufferedLogger::getInstance().logValue(tx,'a',2,3,4,&vids);
+  vids.push_back(ValueId(31, 1));
+  vids.push_back(ValueId(42, 2));
+  vids.push_back(ValueId(53, 3));
+  BufferedLogger::getInstance().logValue(tx, table_name, 3, 2, (1<<3)-1, &vids);
   BufferedLogger::getInstance().logCommit(tx);
   BufferedLogger::getInstance().flush();
+
+  int log_fd = open((Settings::getInstance()->getDBPath() + "/log/log.bin").c_str(), O_RDONLY);
+  int reference_fd = open((Settings::getInstance()->getDBPath() + "/buffered_logger_logfile.bin").c_str(), O_RDONLY);
+  ASSERT_TRUE(log_fd);
+  ASSERT_TRUE(reference_fd);
+
+  struct stat log_s, reference_s;
+  fstat(log_fd, &log_s);
+  fstat(reference_fd, &reference_s);
+  ASSERT_EQ(log_s.st_size, reference_s.st_size);
+
+  auto log = (char*)mmap(NULL, log_s.st_size, PROT_READ, MAP_PRIVATE, log_fd, 0);
+  auto reference = (char*)mmap(NULL, reference_s.st_size, PROT_READ, MAP_PRIVATE, reference_fd, 0);
+
+  ASSERT_FALSE(memcmp(log, reference, log_s.st_size));
 }
 
-TEST_F(BufferedLoggerTests, simple_log_test) {
-  std::vector<std::thread> threadpool;
-  uint64_t tx = 1;
+TEST_F(BufferedLoggerTests, simple_restore_test) {
+  BufferedLogger::getInstance().restore((Settings::getInstance()->getDBPath() + "/buffered_logger_logfile.bin").c_str());
+}
 
-  // let 100 threads log concurrently into logfile
-  for(int i=0; i<100; i++)
-    threadpool.push_back(std::thread(bufferedLoggerTestWorker, tx++));
-  for(auto it=threadpool.begin(); it!=threadpool.end(); ++it)
-    it->join();
+TEST_F(BufferedLoggerTests, insert_and_restore_test) {
+  auto rows = Loader::shortcuts::load("test/alltypes.tbl");
+  auto empty = Loader::shortcuts::load("test/alltypes_empty.tbl");
 
-  // now read the logfile and compare number of opening and closing brackets (should be the same)
-  int64_t numLB=0, numRB=0;
-  char c;
-  std::ifstream is("logfile");
-  while(is.good()) {
-    c = is.get();
-    if(c == '(')      ++numLB;
-    else if(c == ')') ++numRB;
-  }
-  is.close();
+  storage::atable_ptr_t orig(new storage::Store(empty));
+  orig->setName("TABELLE");
+  StorageManager::getInstance()->add("TABELLE", orig);
+  StorageManager::getInstance()->persistTable("TABELLE");
 
-  ASSERT_EQ(numLB, 600);
-  ASSERT_EQ(numRB, 600);
+  auto ctx = tx::TransactionManager::getInstance().buildContext();
+
+  access::InsertScan is;
+  is.setTXContext(ctx);
+  is.addInput(orig);
+  is.setInputData(rows);
+  is.execute();
+
+  access::Commit c;
+  c.addInput(orig);
+  c.setTXContext(ctx);
+  c.execute();
+
+  StorageManager::getInstance()->removeTable("TABELLE");
+
+  storage::atable_ptr_t restored(new storage::Store(rows->copy_structure_modifiable()));
+  StorageManager::getInstance()->add("TABELLE", restored);
+
+  BufferedLogger::getInstance().restore();
+
+  ASSERT_TABLE_EQUAL(orig, restored);
 }
 
 }

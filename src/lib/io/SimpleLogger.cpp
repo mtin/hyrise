@@ -14,13 +14,13 @@ SimpleLogger &SimpleLogger::getInstance() {
 }
 
 void SimpleLogger::logValue(const tx::transaction_id_t transaction_id,
-                            const storage::table_id_t table_id,
+                            const std::string& table_name,
                             const storage::pos_t row,
                             const storage::pos_t invalidated_row,
                             const uint64_t field_bitmask,
                             const ValueIdList *value_ids) {
     std::stringstream ss;
-    ss << "(v," << (int)transaction_id << "," << (int)table_id << "," << (int)row << "," << (int)invalidated_row << "," << field_bitmask << ",(";
+    ss << "(v," << (int)transaction_id << "," << table_name << "," << (int)row << "," << (int)invalidated_row << "," << field_bitmask << ",(";
     if(value_ids != nullptr) {
         ss << (*value_ids)[0].valueId;
         for(auto it = ++value_ids->cbegin(); it != value_ids->cend(); it++)

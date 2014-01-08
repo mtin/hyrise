@@ -99,6 +99,9 @@ public:
   void addRowToDeltaIndices(pos_t row);
   void lock() {_write_lock.lock();;};
   void unlock() {_write_lock.unlock();};
+  virtual void enableLogging();
+  virtual void setName(const std::string name);
+
 
  private:
   // RW-lock protecting store data structures

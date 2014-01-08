@@ -49,6 +49,8 @@ void Store::merge() {
 
   // Create new delta and merge
   atable_ptr_t new_delta = delta->copy_structure_modifiable(nullptr, 0, true, true);
+  new_delta->setName(getName());
+  if(loggingEnabled()) new_delta->enableLogging();
 
   // Prepare the merge
   std::vector<c_atable_ptr_t> tmp {_main_table, delta};
@@ -456,5 +458,16 @@ void Store::addRowToDeltaIndices(pos_t row) {
   }
 }
 
+void Store::enableLogging() {
+  logging = true;
+  _main_table->enableLogging();
+  delta->enableLogging();
+}
+
+void Store::setName(const std::string name) {
+  _name = name;
+  _main_table->setName(name);
+  delta->setName(name);
+}
 
 }}

@@ -17,14 +17,14 @@ public:
   }
 
   template <typename T>
-  void logDictionary(storage::table_id_t table_id,
+  void logDictionary(const std::string& table_name,
                      storage::field_t column,
                      const T &value,
                      storage::value_id_t value_id) {
     // do nothing
   }
   void logValue(tx::transaction_id_t transaction_id,
-                storage::table_id_t table_id,
+                const std::string& table_name,
                 storage::pos_t row,
                 storage::pos_t invalidated_row,
                 uint64_t field_bitmask,
@@ -35,6 +35,10 @@ public:
     // do nothing
   }
   void flush() {
+    // do nothing
+  }
+
+  void restore(const char* logfile = NULL) {
     // do nothing
   }
 

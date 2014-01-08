@@ -79,9 +79,9 @@ void InsertScan::executePlanOperation() {
       mods.insertPos(store, firstPosition+i);
 
 #ifdef PERSISTENCY_BUFFEREDLOGGER
-      uint64_t bitmask = (1 << (columnCount + 1)) - 1;
+      uint64_t bitmask = (1 << (columnCount)) - 1;
       std::vector<ValueId> vids = store->copyValueIds(firstPosition+i);
-      io::Logger::getInstance().logValue(mods.tid, reinterpret_cast<uintptr_t>(store.get()), firstPosition+i, 0, bitmask, &vids);
+      if(store->loggingEnabled()) io::Logger::getInstance().logValue(_txContext.tid, store->getName(), firstPosition+i, 0, bitmask, &vids);
 #endif
     }
   } else {
@@ -94,9 +94,9 @@ void InsertScan::executePlanOperation() {
       mods.insertPos(store, firstPosition+i);
 
 #ifdef PERSISTENCY_BUFFEREDLOGGER
-      uint64_t bitmask = (1 << (columnCount + 1)) - 1;
-      std::vector<ValueId> vids = _data.get()->copyValueIds(i);
-      io::Logger::getInstance().logValue(mods.tid, reinterpret_cast<uintptr_t>(store.get()), firstPosition+i, 0, bitmask, &vids);
+      uint64_t bitmask = (1 << (columnCount)) - 1;
+      std::vector<ValueId> vids = store.get()->copyValueIds(i);
+      if(store->loggingEnabled()) io::Logger::getInstance().logValue(_txContext.tid, store->getName(), firstPosition+i, 0, bitmask, &vids);
 #endif
     }
   }

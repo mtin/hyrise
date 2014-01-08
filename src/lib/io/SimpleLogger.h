@@ -23,12 +23,12 @@ public:
   static SimpleLogger &getInstance();
 
   template <typename T>
-  void logDictionary(storage::table_id_t table_id,
+  void logDictionary(const std::string& table_name,
                      storage::field_t column,
                      const T &value,
                      storage::value_id_t value_id);
   void logValue(tx::transaction_id_t transaction_id,
-                storage::table_id_t table_id,
+                const std::string& table_name,
                 storage::pos_t row,
                 storage::pos_t invalidated_row,
                 uint64_t field_bitmask,
@@ -44,12 +44,12 @@ private:
 };
 
 template <typename T>
-void SimpleLogger::logDictionary(const storage::table_id_t table_id,
+void SimpleLogger::logDictionary(const std::string& table_name,
                                  const storage::field_t column,
                                  const T &value,
                                  const storage::value_id_t value_id) {
   std::stringstream ss;
-  ss << "(d," << (int)table_id << "," << column << "," << value << "," << value_id << ")";
+  ss << "(d," << table_name << "," << column << "," << value << "," << value_id << ")";
   _mutex.lock();
   write(_fd, (void *) ss.str().c_str(), ss.str().length());
   _mutex.unlock();

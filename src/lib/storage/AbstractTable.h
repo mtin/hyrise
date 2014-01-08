@@ -290,7 +290,7 @@ public:
       valueId.valueId = map->getValueIdForValue(value);
     } else if (create) {
       valueId.valueId = map->addValue(value);
-      hyrise::io::Logger::getInstance().logDictionary<T>(table_id, column, value, valueId.valueId);
+      if(loggingEnabled()) hyrise::io::Logger::getInstance().logDictionary<T>(getName(), column, value, valueId.valueId);
       /*if (map->isOrdered()) {
         throw std::runtime_error("Cannot insert value in an ordered dictionary");
       } else {
@@ -332,6 +332,7 @@ public:
         }*/
 
       valueId.valueId = map->addValue(value);
+      if(loggingEnabled()) hyrise::io::Logger::getInstance().logDictionary<T>(getName(), column, value, valueId.valueId);
     } else {
       valueId.valueId = std::numeric_limits<value_id_t>::max();
     }
@@ -371,6 +372,7 @@ public:
       valueId.valueId = map->getValueIdForValue(value);
     } else {
       valueId.valueId = map->addValue(value);
+      if(loggingEnabled()) hyrise::io::Logger::getInstance().logDictionary<T>(getName(), column, value, valueId.valueId);
     }
 
     //return valueId;
@@ -536,15 +538,19 @@ public:
 
   void setUuid(unique_id = unique_id());
 
-  void setName(const std::string name);
-  std::string getName() const;
+  virtual void setName(const std::string name);
+  const std::string getName() const;
 
   virtual void persist_scattered(const pos_list_t& elements, bool new_elements = true) const = 0;
+
+  bool loggingEnabled() const {return logging;};
+  virtual void enableLogging() {logging = true;}
 
  protected:
   // Global unique identifier for this object
   unique_id _uuid;
   std::string _name;
+  bool logging;
 };
 
 #endif  // SRC_LIB_STORAGE_ABSTRACTTABLE_H_

@@ -92,9 +92,9 @@ void PosUpdateIncrementScan::executePlanOperation() {
 
 #ifdef PERSISTENCY_BUFFEREDLOGGER
     const size_t columnCount = store->columnCount();
-      uint64_t bitmask = (1 << (columnCount + 1)) - 1;
+      uint64_t bitmask = (1 << (columnCount)) - 1;
       std::vector<ValueId> vids = store->copyValueIds(main_size+delta_row);
-      io::Logger::getInstance().logValue(_txContext.tid, reinterpret_cast<uintptr_t>(store.get()), main_size+delta_row, old_row, bitmask, &vids);
+      if(store->loggingEnabled()) io::Logger::getInstance().logValue(_txContext.tid, store->getName(), main_size+delta_row, old_row, bitmask, &vids);
 #endif
 
      ++delta_row;

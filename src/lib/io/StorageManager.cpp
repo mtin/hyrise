@@ -24,6 +24,7 @@
 #include "storage/AbstractTable.h"
 #include "storage/ColumnMetadata.h"
 #include "storage/TableBuilder.h"
+#include "storage/Store.h"
 
 #ifdef PERSISTENCY_NVRAM
 #include "io/NVManager.h"
@@ -35,9 +36,6 @@ namespace io {
 template<typename... Args>
 void StorageManager::addStorageTable(std::string name, Args && ... args) {
   add(name, Loader::load(std::forward<Args>(args)...));
-  #ifdef PERSISTENCY_BUFFEREDLOGGER
-  persistTable(name);
-  #endif
 }
 
 StorageManager *StorageManager::getInstance() {
@@ -49,16 +47,10 @@ StorageManager *StorageManager::getInstance() {
 
 void StorageManager::loadTable(std::string name, std::shared_ptr<AbstractTable> table) {
   add(name, table);
-  #ifdef PERSISTENCY_BUFFEREDLOGGER
-  persistTable(name);
-  #endif
 }
 
 void StorageManager::replaceTable(std::string name, std::shared_ptr<AbstractTable> table) {
   replace(name, table);
-  #ifdef PERSISTENCY_BUFFEREDLOGGER
-  persistTable(name);
-  #endif
 }
 
 void StorageManager::loadTable(std::string name, const Loader::params &parameters) {
@@ -163,6 +155,11 @@ void StorageManager::persistTable(const std::string &name) {
   auto table = getTable(name);
   std::string basePath = Settings::getInstance()->getDBPath() + "/log/";
   storage::SimpleTableDump td(basePath);
+
+  auto store = std::dynamic_pointer_cast<storage::Store>(table);
+  if(store) {
+    store->enableLogging();
+  }
 
   td.dump(name, table);
 }

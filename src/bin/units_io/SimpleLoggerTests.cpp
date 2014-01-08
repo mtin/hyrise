@@ -11,14 +11,14 @@ namespace io {
 class SimpleLoggerTests : public ::hyrise::Test {};
 
 void simpleLoggerTestWorker(uint64_t tx) {
-  SimpleLogger::getInstance().logDictionary<int64_t>('a', 1, 2, 3);
-  SimpleLogger::getInstance().logDictionary<float>('a', 1, 2.0f, 3);
-  SimpleLogger::getInstance().logDictionary<std::string>('a', 1, "zwei", 3);
+  SimpleLogger::getInstance().logDictionary<int64_t>("Tabelle", 1, 2, 3);
+  SimpleLogger::getInstance().logDictionary<float>("Tabelle", 1, 2.0f, 3);
+  SimpleLogger::getInstance().logDictionary<std::string>("Tabelle", 1, "zwei", 3);
   std::vector<ValueId> vids;
   vids.push_back(ValueId(0, 0));
   vids.push_back(ValueId(1, 0));
   vids.push_back(ValueId(2, 0));
-  SimpleLogger::getInstance().logValue(tx,'a',2,3,4,&vids);
+  SimpleLogger::getInstance().logValue(tx,"Tabelle",2,3,4,&vids);
   SimpleLogger::getInstance().logCommit(tx);
   SimpleLogger::getInstance().flush();
 }

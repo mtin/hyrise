@@ -360,6 +360,6 @@ void AbstractTable::setName(const std::string name) {
 }
 
 
-std::string AbstractTable::getName() const {
+const std::string AbstractTable::getName() const {
   return _name;
 }
