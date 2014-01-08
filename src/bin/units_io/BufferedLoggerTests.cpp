@@ -64,7 +64,9 @@ TEST_F(BufferedLoggerTests, insert_and_restore_test) {
   storage::atable_ptr_t orig(new storage::Store(empty));
   orig->setName("TABELLE");
   StorageManager::getInstance()->add("TABELLE", orig);
-  StorageManager::getInstance()->persistTable("TABELLE");
+  #ifdef PERSISTENCY_BUFFEREDLOGGER
+    StorageManager::getInstance()->persistTable("TABELLE");
+  #endif
 
   auto ctx = tx::TransactionManager::getInstance().buildContext();
 
