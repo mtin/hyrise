@@ -181,6 +181,7 @@ BufferedLogger::BufferedLogger() {
 }
 
 void BufferedLogger::truncate() {
+  fclose(_logfile);
   _logfile = fopen((Settings::getInstance()->getDBPath() + "/log/log.bin").c_str(), "w");
   fsync(fileno(_logfile));
   fsync(dirfd(opendir((Settings::getInstance()->getDBPath() + "/log/").c_str())));
