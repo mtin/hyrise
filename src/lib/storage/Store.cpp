@@ -94,7 +94,7 @@ void Store::merge() {
   // if enabled, persist new main onto disk
   #ifdef PERSISTENCY_BUFFEREDLOGGER
   auto *sm = io::StorageManager::getInstance();
-  if(sm->exists(getName())) {
+  if(loggingEnabled() && sm->exists(getName())) {
     sm->persistTable(getName());
   }
   #endif
