@@ -76,7 +76,13 @@ public:
   }
 
   OrderIndifferentDictionary(const std::shared_ptr<vector_type> &value_list) {
+    // first, copy the value list
     _value_list = *(value_list.get());
+
+    // second, build tree index on top of this
+    size_t s = _value_list.size();
+    for (size_t i=0; i<s; ++i)
+      _index.insert(std::pair<T, value_id_t>(_value_list[i], i));
   }
 
   virtual ~OrderIndifferentDictionary() {
