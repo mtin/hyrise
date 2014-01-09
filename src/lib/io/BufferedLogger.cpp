@@ -180,13 +180,18 @@ BufferedLogger::BufferedLogger() {
   _size = 0;
 }
 
-void BufferedLogger::restore(const char* logfile) {
-  int fd;
-  if(logfile) {
-    fd = open(logfile, O_RDWR);
-  } else {
-    fd = open((Settings::getInstance()->getDBPath() + "/log/log.bin").c_str(), O_RDWR);
-  }
+void BufferedLogger::truncate() {
+  _logfile = fopen((Settings::getInstance()->getDBPath() + "/log/log.bin").c_str(), "w");
+  fsync(fileno(_logfile));
+  fsync(dirfd(opendir((Settings::getInstance()->getDBPath() + "/log/").c_str())));
+  _head = _buffer;
+  _last_write = _buffer;
+  _writing = 0;
+  _size = 0;
+}
+
+void BufferedLogger::restore() {
+  int fd = open((Settings::getInstance()->getDBPath() + "/log/log.bin").c_str(), O_RDWR);
   assert(fd);
 
   struct stat s;
@@ -195,7 +200,7 @@ void BufferedLogger::restore(const char* logfile) {
   auto log = (char*)mmap(0, s.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 
   std::vector<tx::TXModifications> tx_data;
-  tx::transaction_cid_t last_cid = 0;
+  tx::transaction_cid_t last_cid = 0; // FIXME - this reuses CIDs that were already used in the main
 
   char *cursor = log;
   while(cursor < log + s.st_size) {

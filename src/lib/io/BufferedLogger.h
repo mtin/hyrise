@@ -69,7 +69,8 @@ public:
                   const ValueIdList *value_ids);
     void logCommit(tx::transaction_id_t transaction_id);
     void flush();
-    void restore(const char* logfile = NULL);
+    void truncate();
+    void restore();
 
 private:
     BufferedLogger();
