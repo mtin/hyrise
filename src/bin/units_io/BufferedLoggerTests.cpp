@@ -54,6 +54,7 @@ TEST_F(BufferedLoggerTests, log_test) {
 }
 
 TEST_F(BufferedLoggerTests, insert_and_restore_test) {
+#ifdef PERSISTENCY_BUFFEREDLOGGER
   BufferedLogger::getInstance().truncate();
   
   auto rows = Loader::shortcuts::load("test/alltypes.tbl");
@@ -85,6 +86,7 @@ TEST_F(BufferedLoggerTests, insert_and_restore_test) {
   BufferedLogger::getInstance().restore();
 
   ASSERT_TABLE_EQUAL(orig, restored);
+#endif
 }
 
 }
