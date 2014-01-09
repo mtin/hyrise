@@ -133,7 +133,7 @@ public:
 
     // range ]a,b[
 
-    auto it1 = _offsets.lower_bound(a);
+    auto it1 = _offsets.upper_bound(a);
     auto it2 = _offsets.lower_bound(b);
 
     if (it1 != _offsets.end() && it2 != _offsets.end())

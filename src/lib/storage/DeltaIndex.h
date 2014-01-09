@@ -102,7 +102,7 @@ public:
   PositionRange getPositionsForKeyBetween(T a, T b) {
     // return range ]a,b[
     std::shared_ptr<pos_list_t> pos_list(new pos_list_t);
-    copy(_index.lower_bound(a), _index.lower_bound(b), pos_list);
+    copy(_index.lower_bound(a), _index.upper_bound(b), pos_list);
     return PositionRange(pos_list->cbegin(), pos_list->cend(), false, pos_list);
   };
 
