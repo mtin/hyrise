@@ -48,6 +48,18 @@ public:
     cd2.setIndexName("idx_delta__foo__col_1");
     cd2.execute();
 
+    CreateGroupkeyIndex ci3;
+    ci3.addInput(t);
+    ci3.addField(3);
+    ci3.setIndexName("idx__foo__col_3");
+    ci3.execute();
+
+    CreateDeltaIndex cd3;
+    cd3.addInput(t);
+    cd3.addField(3);
+    cd3.setIndexName("idx_delta__foo__col_3");
+    cd3.execute();
+
     auto row = Loader::shortcuts::load("test/index_insert_test.tbl");
     storage::atable_ptr_t table(new storage::Store(row));
     auto ctx = tx::TransactionManager::getInstance().buildContext();
@@ -94,10 +106,13 @@ TEST_F(IndexAwareTableScanTests, basic_index_aware_table_scan_test_intersect) {
   is.addInput(t);
   is.setTableName("foo");
   is.addField("col_0");
-  CompoundExpression *ce = new CompoundExpression(AND);
-  ce->add(new GenericExpressionValue<hyrise_int_t, std::greater<hyrise_int_t>>(0, "col_0", 110));
-  ce->add(new GenericExpressionValue<hyrise_int_t, std::less<hyrise_int_t>>(0, "col_1", 200));
-  is.setPredicate(ce);
+  CompoundExpression *ce1 = new CompoundExpression(AND);
+  ce1->add(new GenericExpressionValue<hyrise_int_t, std::greater<hyrise_int_t>>(0, "col_0", 110));
+  ce1->add(new GenericExpressionValue<hyrise_float_t, std::less<hyrise_float_t>>(0, "col_1", 200.0));
+  CompoundExpression *ce2 = new CompoundExpression(AND);
+  ce2->add(ce1);
+  ce2->add(new GenericExpressionValue<hyrise_int_t, std::less<hyrise_int_t>>(0, "col_3", 1000));
+  is.setPredicate(ce2);
   is.execute();
   auto result = is.getResultTable();
   EXPECT_RELATION_EQ(result, reference);
