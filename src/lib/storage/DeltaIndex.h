@@ -26,7 +26,8 @@ template<typename T>
 class DeltaIndex : public AbstractIndex {
 private:
 
-  typedef std::map<T, pos_list_t> inverted_index_t;
+  typedef std::multimap<T, pos_t> inverted_index_t;
+  typedef std::pair<typename inverted_index_t::const_iterator, typename inverted_index_t::const_iterator> range_t;
   inverted_index_t _index;
 
   pthread_rwlock_t _rw_lock;
@@ -34,16 +35,6 @@ private:
 
   const hyrise::storage::c_atable_ptr_t& _table;
   const field_t _column;
-
-  PositionRange getPositionsBetween(typename inverted_index_t::const_iterator begin, const typename inverted_index_t::const_iterator end) {
-    PositionRange positionRange;
-    auto it = begin;
-    while(it != end) {
-      positionRange.add(it->second.begin(), it->second.end());
-      it++;
-    }
-    return positionRange;
-  }
 
 public:
   virtual ~DeltaIndex() {
@@ -80,53 +71,51 @@ public:
    * position.
    */
   void add(T value, pos_t pos) {
-    typename inverted_index_t::iterator find = _index.find(value);
-    if (find == _index.end()) {
-      pos_list_t *poslist = new pos_list_t;
-      poslist->push_back(pos);
-      _index.insert(std::make_pair(value, *poslist) );
-    } else {
-      // find position to insert...
-      auto it = find->second.end(); 
-      --it;
-      while (*it > pos) --it;
-      ++it;
-      // ... and insert
-      find->second.insert(it, pos);
-    }
+    _index.emplace(value, pos);
   };
 
-
+  static void copy(typename inverted_index_t::const_iterator first, typename inverted_index_t::const_iterator last, std::shared_ptr<pos_list_t> result) {
+    for(auto it = first; it != last; it++) {
+      result->push_back(it->second);
+    }
+  }
 
   PositionRange getPositionsForKey(T key) {
-    typename inverted_index_t::iterator it = _index.find(key);
-    if (it != _index.end()) {
-      return PositionRange(it->second.begin(), it->second.end(), true);
-    } else {
-      // empty result
-      return PositionRange(_empty.begin(), _empty.end(), true);
-    }
+    std::shared_ptr<pos_list_t> pos_list(new pos_list_t);
+    range_t range = _index.equal_range(key);
+    copy(range.first, range.second, pos_list);
+    return PositionRange(pos_list->cbegin(), pos_list->cend(), false, pos_list);
   };
 
   PositionRange getPositionsForKeyLT(T key) {
-    return getPositionsBetween(_index.cbegin(), _index.lower_bound(key));
+    std::shared_ptr<pos_list_t> pos_list(new pos_list_t);
+    copy(_index.begin(), _index.lower_bound(key), pos_list);
+    return PositionRange(pos_list->cbegin(), pos_list->cend(), false, pos_list);
   };
 
   PositionRange getPositionsForKeyLTE(T key) {
-    return getPositionsBetween(_index.cbegin(), _index.upper_bound(key));
+    std::shared_ptr<pos_list_t> pos_list(new pos_list_t);
+    copy(_index.begin(), _index.upper_bound(key), pos_list);
+    return PositionRange(pos_list->cbegin(), pos_list->cend(), false, pos_list);
   };
 
   PositionRange getPositionsForKeyBetween(T a, T b) {
-    // return range ]a,b[
-    return getPositionsBetween(_index.upper_bound(a), _index.lower_bound(b));
+    // return range [a,b[
+    std::shared_ptr<pos_list_t> pos_list(new pos_list_t);
+    copy(_index.lower_bound(a), _index.lower_bound(b), pos_list);
+    return PositionRange(pos_list->cbegin(), pos_list->cend(), false, pos_list);
   };
 
   PositionRange getPositionsForKeyGT(T key) {
-    return getPositionsBetween(_index.upper_bound(key), _index.cend());
+    std::shared_ptr<pos_list_t> pos_list(new pos_list_t);
+    copy(_index.upper_bound(key), _index.end(), pos_list);
+    return PositionRange(pos_list->cbegin(), pos_list->cend(), false, pos_list);
   };
 
   PositionRange getPositionsForKeyGTE(T key) {
-    return getPositionsBetween(_index.lower_bound(key), _index.cend());
+    std::shared_ptr<pos_list_t> pos_list(new pos_list_t);
+    copy(_index.lower_bound(key), _index.end(), pos_list);
+    return PositionRange(pos_list->cbegin(), pos_list->cend(), false, pos_list);
   };
 
 };

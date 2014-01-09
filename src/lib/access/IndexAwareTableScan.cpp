@@ -86,9 +86,9 @@ struct GroupkeyIndexFunctor {
 
   template<typename ValueType>
   value_type operator()() {
-    if (auto idx_main = std::dynamic_pointer_cast<GroupkeyIndex<ValueType>>(_index))
+    if (auto idx_main = std::dynamic_pointer_cast<GroupkeyIndex<ValueType>>(_index)) {
       return callIndex<ValueType>(idx_main);
-    else if (auto idx_delta = std::dynamic_pointer_cast<DeltaIndex<ValueType>>(_index)) {
+    } else if (auto idx_delta = std::dynamic_pointer_cast<DeltaIndex<ValueType>>(_index)) {
       return callIndex<ValueType>(idx_delta);
     }
     else throw std::runtime_error("IndexAwareTable scan only supports GroupKeyIndex and DeltaIndex: " + _indexname);
@@ -163,7 +163,7 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
   auto r = idx_results[0];
   pos_list_t *tmp_result = new pos_list_t(r.size());
   pos_list_t *swap_tmp = nullptr;
-  r.copyInto(*tmp_result);
+  std::copy(r.cbegin(), r.cend(), tmp_result->begin());
   if (!r.isSorted()) {
     std::sort(tmp_result->begin(), tmp_result->end());
   }
@@ -190,19 +190,19 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
   // otherwise we intersect the first two results
   else if (idx_results.size() >= 2) {
     result->reserve(tmp_result->size());
-    auto a = PositionRange(tmp_result->begin(), tmp_result->end(), true);
+    auto a = PositionRange(tmp_result->begin(), tmp_result->end(), r.isSorted());
     auto b = idx_results[1];
     pos_list_t *b_sorted = nullptr;
 
     if (!b.isSorted()) {
       // copy and sort
       b_sorted = new pos_list_t(b.size());
-      b.copyInto(*b_sorted);
+      std::copy(b.cbegin(), b.cend(), b_sorted->begin());
       std::sort(b_sorted->begin(), b_sorted->end());
       b = PositionRange(b_sorted->begin(), b_sorted->end(), true);
     }
 
-    intersect_pos_list(a.begin(), a.end(), b.begin(), b.end(), std::back_inserter(*result));
+    intersect_pos_list(a.cbegin(), a.cend(), b.cbegin(), b.cend(), std::back_inserter(*result));
     delete b_sorted;
     tmp_result->clear();
   }
@@ -217,14 +217,14 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
       if (result->empty()) break; // when result is empty, final intersect is empty too
       if (!it->isSorted()) {
         // copy and sort
-        idx_result_sorted->reserve(it->size());
-        it->copyInto(*idx_result_sorted);
+        idx_result_sorted->resize(it->size());
+        std::copy(it->cbegin(), it->cend(), idx_result_sorted->begin());
         std::sort(idx_result_sorted->begin(), idx_result_sorted->end());
         intersect_pos_list(idx_result_sorted->begin(), idx_result_sorted->end(), result->begin(), result->end(), std::back_inserter(*tmp_result));
         idx_result_sorted->clear();
       } else {
         PositionRange tmp_range(result->begin(), result->end(), true);
-        intersect_pos_list(it->begin(), it->end(), tmp_range.begin(), tmp_range.end(), std::back_inserter(*tmp_result));
+        intersect_pos_list(it->cbegin(), it->cend(), tmp_range.cbegin(), tmp_range.cend(), std::back_inserter(*tmp_result));
       }
       swap_tmp = result;
       result = tmp_result;
