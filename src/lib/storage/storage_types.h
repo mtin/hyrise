@@ -8,8 +8,7 @@
 #include <stdint.h>
 #include <ostream>
 #include <cassert>
-
-#include "helper/AssembledContainer.h"
+#include <memory>
 
 #define STORAGE_XSTR(x) STORAGE_STR(x)
 #define STORAGE_STR(x) #x
@@ -97,7 +96,33 @@ typedef std::vector<const ColumnMetadata *> metadata_list;
 typedef std::vector<metadata_list *> compound_metadata_list;
 typedef std::vector<ColumnMetadata> metadata_vec_t;
 
-typedef AssembledContainer<pos_list_t, pos_t> PositionRange;
+class PositionRange {
+protected:
+  pos_list_t::const_iterator _cbegin;
+  pos_list_t::const_iterator _cend;
+  bool _sorted;
+  std::shared_ptr<pos_list_t> _vector;
+
+public:
+  PositionRange(pos_list_t::const_iterator cbegin, pos_list_t::const_iterator cend, bool sorted = false, std::shared_ptr<pos_list_t> vector = nullptr) : _cbegin(cbegin), _cend(cend), _sorted(sorted), _vector(vector) {
+  }
+
+  pos_list_t::const_iterator cbegin() const {
+    return _cbegin;
+  }
+
+  pos_list_t::const_iterator cend() const {
+    return _cend;
+  }
+
+  size_t size() const {
+    return std::distance(_cbegin, _cend);
+  }
+
+  bool isSorted() const {
+    return _sorted;
+  }
+};
 
 #endif  // SRC_LIB_STORAGE_STORAGE_TYPES_H_
 
