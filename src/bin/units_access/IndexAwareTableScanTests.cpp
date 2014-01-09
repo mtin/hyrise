@@ -2,6 +2,7 @@
 #include "access/IndexAwareTableScan.h"
 #include "access/CreateGroupkeyIndex.h"
 #include "access/CreateDeltaIndex.h"
+#include <access.h>
 #include "helper/types.h"
 #include "io/shortcuts.h"
 #include "testing/test.h"
@@ -34,6 +35,18 @@ public:
     cd.addField(0);
     cd.setIndexName("idx_delta__foo__col_0");
     cd.execute();
+
+    CreateGroupkeyIndex ci2;
+    ci2.addInput(t);
+    ci2.addField(1);
+    ci2.setIndexName("idx__foo__col_1");
+    ci2.execute();
+
+    CreateDeltaIndex cd2;
+    cd2.addInput(t);
+    cd2.addField(1);
+    cd2.setIndexName("idx_delta__foo__col_1");
+    cd2.execute();
 
     auto row = Loader::shortcuts::load("test/index_insert_test.tbl");
     storage::atable_ptr_t table(new storage::Store(row));
@@ -69,6 +82,22 @@ TEST_F(IndexAwareTableScanTests, basic_index_aware_table_scan_test_lt) {
   is.setTableName("foo");
   is.addField("col_0");
   is.setPredicate(new GenericExpressionValue<hyrise_int_t, std::less<hyrise_int_t>>(0, "col_0", 200));
+  is.execute();
+  auto result = is.getResultTable();
+  EXPECT_RELATION_EQ(result, reference);
+}
+
+TEST_F(IndexAwareTableScanTests, basic_index_aware_table_scan_test_intersect) {
+  auto reference = Loader::shortcuts::load("test/reference/index_aware_test_result_intersect.tbl");
+
+  IndexAwareTableScan is;
+  is.addInput(t);
+  is.setTableName("foo");
+  is.addField("col_0");
+  CompoundExpression *ce = new CompoundExpression(AND);
+  ce->add(new GenericExpressionValue<hyrise_int_t, std::greater<hyrise_int_t>>(0, "col_0", 110));
+  ce->add(new GenericExpressionValue<hyrise_int_t, std::less<hyrise_int_t>>(0, "col_1", 200));
+  is.setPredicate(ce);
   is.execute();
   auto result = is.getResultTable();
   EXPECT_RELATION_EQ(result, reference);
