@@ -150,8 +150,6 @@ void StorageManager::persistTable(const std::string &name) {
     throw std::runtime_error("Cannot persist nonexisting table");
   }
 
-  std::cout << "persisting table '" << name << "'" << std::endl;
-
   auto table = getTable(name);
   std::string basePath = Settings::getInstance()->getDBPath() + "/log/";
   storage::SimpleTableDump td(basePath);
@@ -182,7 +180,6 @@ void StorageManager::recoverTables() {
   closedir(dp);
 
   for (auto &tableName : tableNames) {
-    std::cout << "recovering table '" << tableName << "'" << std::endl;
     recoverTable(tableName);
   }
 }
@@ -194,7 +191,6 @@ void StorageManager::recoverTable(const std::string &name) {
   auto t = Loader::load(Loader::params().setInput(loader).setHeader(header));
   t->setName(name);
   loader.loadIndices(t);
-  printResources();
 
   if (exists(name)) {
     throw std::runtime_error("cannot recover already loaded table");

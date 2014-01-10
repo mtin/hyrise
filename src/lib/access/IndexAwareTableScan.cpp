@@ -161,7 +161,8 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
 
   // result is not going to contain more elements than the smallest, so start with that one
   auto r = idx_results[0];
-  pos_list_t *tmp_result = new pos_list_t(r.size());
+  pos_list_t *tmp_result = new pos_list_t();
+  tmp_result->reserve(r.size());
   pos_list_t *swap_tmp = nullptr;
   r.copyInto(*tmp_result);
   if (!r.isSorted()) {
