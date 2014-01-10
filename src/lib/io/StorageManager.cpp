@@ -183,16 +183,23 @@ void StorageManager::recoverTables() {
 
   for (auto &tableName : tableNames) {
     std::cout << "recovering table '" << tableName << "'" << std::endl;
-
-    storage::TableDumpLoader loader(basePath, tableName);
-    CSVHeader header(basePath + tableName + "/header.dat", CSVHeader::params().setCSVParams(csv::HYRISE_FORMAT));
-    auto t = Loader::load(Loader::params().setInput(loader).setHeader(header));
-
-    if (exists(tableName)) {
-      throw std::runtime_error("cannot recover already loaded table");
-    }
-    add(tableName, t);
+    recoverTable(tableName);
   }
+}
+
+void StorageManager::recoverTable(const std::string &name) {
+  std::string basePath = Settings::getInstance()->getDBPath() + "/log";
+  storage::TableDumpLoader loader(basePath, name);
+  CSVHeader header(basePath + "/" + name + "/header.dat", CSVHeader::params().setCSVParams(csv::HYRISE_FORMAT));
+  auto t = Loader::load(Loader::params().setInput(loader).setHeader(header));
+  t->setName(name);
+  loader.loadIndices(t);
+  printResources();
+
+  if (exists(name)) {
+    throw std::runtime_error("cannot recover already loaded table");
+  }
+  add(name, t);
 }
 
 }

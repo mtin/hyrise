@@ -9,6 +9,7 @@
 #include "io/AbstractLoader.h"
 
 class AbstractTable;
+class Store;
 
 namespace hyrise { namespace storage {
 /**
@@ -54,6 +55,10 @@ class SimpleTableDump {
   void dumpHeader(std::string name, std::shared_ptr<AbstractTable> t);
 
   /**
+   */
+  void dumpIndices(std::string name, std::shared_ptr<Store> s);
+
+  /**
    * Check if the file is a store and not a horizontal table
    */
   void verify(std::shared_ptr<AbstractTable>);
@@ -91,6 +96,8 @@ public:
   std::shared_ptr<AbstractTable> load(std::shared_ptr<AbstractTable>,
                                       const compound_metadata_list *,
                                       const Loader::params &args);
+
+  void loadIndices(std::shared_ptr<AbstractTable> intable);
 
   bool needs_store_wrap() {
     return true;

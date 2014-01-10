@@ -97,6 +97,7 @@ public:
   void persist_scattered(const pos_list_t& elements, bool new_elements = true) const override;
   void addDeltaIndex(std::shared_ptr<AbstractIndex> index, size_t column);
   void addRowToDeltaIndices(pos_t row);
+  std::vector<size_t> getIndexedColumns() const;
   void lock() {_write_lock.lock();;};
   void unlock() {_write_lock.unlock();};
   virtual void enableLogging();

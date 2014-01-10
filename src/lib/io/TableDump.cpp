@@ -4,8 +4,10 @@
 #include <errno.h>
 #include <sys/stat.h>
 
+#include <algorithm>
 #include <fstream>
 #include <initializer_list>
+#include <iterator>
 #include <numeric>
 #include <sstream>
 #include <stdexcept>
@@ -16,6 +18,7 @@
 #include "io/LoaderException.h"
 #include "io/GenericCSV.h"
 #include "io/CSVLoader.h"
+#include "io/StorageManager.h"
 
 #include "helper/stringhelpers.h"
 #include "helper/vector_helpers.h"
@@ -25,6 +28,8 @@
 #include "storage/storage_types.h"
 #include "storage/storage_types_helper.h"
 #include "storage/meta_storage.h"
+#include "storage/GroupkeyIndex.h"
+#include "storage/DeltaIndex.h"
 
 namespace hyrise { namespace storage {
 
@@ -33,11 +38,41 @@ namespace DumpHelper {
   static const std::string HEADER_EXT = "header.dat";
   static const std::string DICT_EXT = ".dict.dat";
   static const std::string ATTR_EXT = ".attr.dat";
+  static const std::string INDEX_EXT = "indices.dat";
 
   static inline std::string buildPath(std::initializer_list<std::string> l) {
     return functional::foldLeft(l, std::string(), infix("/"));
   }
 }
+
+struct CreateGroupkeyIndexFunctor {
+  typedef std::shared_ptr<AbstractIndex> value_type;
+  const storage::c_atable_ptr_t& in;
+  size_t column;
+
+  CreateGroupkeyIndexFunctor(const storage::c_atable_ptr_t& t, size_t c):
+    in(t), column(c) {}
+
+  template<typename R>
+  value_type operator()() {
+    std::cout << "Creating GroupkeyIndex for " << in->getName() << " on column " << column << std::endl;
+    return std::make_shared<GroupkeyIndex<R>>(in, column);
+  }
+};
+
+struct CreateDeltaIndexFunctor {
+  typedef std::shared_ptr<AbstractIndex> value_type;
+  const storage::c_atable_ptr_t& in;
+  size_t column;
+
+  CreateDeltaIndexFunctor(const storage::c_atable_ptr_t& t, size_t c):
+    in(t), column(c) {}
+
+  template<typename R>
+  value_type operator()() {
+    return std::make_shared<DeltaIndex<R>>(in, column);
+  }
+};
 
 /**
  * This functor is used to write directly a typed value to a stream
@@ -53,7 +88,7 @@ struct write_to_stream_functor {
       data(o), table(t), col(0), vid(0)
   {}
 
-  inline void setVid(value_id_t v){ 
+  inline void setVid(value_id_t v){
     vid = v;
   }
 
@@ -81,7 +116,7 @@ struct write_to_dict_functor {
   std::shared_ptr<AbstractTable> table;
   field_t col;
 
-  write_to_dict_functor(std::ifstream& d, 
+  write_to_dict_functor(std::ifstream& d,
                         std::shared_ptr<AbstractTable> t,
                         field_t c):
       data(d), table(t), col(c){}
@@ -161,7 +196,7 @@ void SimpleTableDump::dumpHeader(std::string name, std::shared_ptr<AbstractTable
   for(size_t i=0; i < table->partitionCount(); ++i) {
     parts.push_back(table->partitionWidth(i));
   }
-    
+
   // Dump and join
   header << std::accumulate(names.begin(), names.end(), std::string(), infix(" | ")) << "\n";
   header << std::accumulate(types.begin(), types.end(), std::string(), infix(" | ")) << "\n";
@@ -187,6 +222,16 @@ void SimpleTableDump::dumpMetaData(std::string name, std::shared_ptr<AbstractTab
   data.close();
 }
 
+void SimpleTableDump::dumpIndices(std::string name, std::shared_ptr<Store> store) {
+  auto indexedColumns = store->getIndexedColumns();
+  if (!indexedColumns.empty()) {
+    std::string fullPath = _baseDirectory + "/" + name + "/indices.dat";
+    std::ofstream data (fullPath, std::ios::trunc | std::ios::binary);
+    std::copy(indexedColumns.begin(), indexedColumns.end(), std::ostream_iterator<size_t>(data));
+    data.close();
+  }
+}
+
 void SimpleTableDump::verify(std::shared_ptr<AbstractTable> table) {
   auto res = std::dynamic_pointer_cast<Store>(table);
   if (!res) throw std::runtime_error("Can only dump Stores");
@@ -207,7 +252,8 @@ bool SimpleTableDump::dump(std::string name, std::shared_ptr<AbstractTable> tabl
 
   dumpHeader(name, mainTable);
   dumpMetaData(name, mainTable);
-  
+  dumpIndices(name, std::dynamic_pointer_cast<Store>(table));
+
   return true;
 }
 
@@ -222,7 +268,7 @@ size_t TableDumpLoader::getSize() {
 }
 
 
-void TableDumpLoader::loadDictionary(std::string name, 
+void TableDumpLoader::loadDictionary(std::string name,
                                                       size_t col, std::shared_ptr<AbstractTable> intable) {
   std::string path = DumpHelper::buildPath({_base, _table, name}) + DumpHelper::DICT_EXT;
   std::ifstream data (path, std::ios::binary);
@@ -234,25 +280,50 @@ void TableDumpLoader::loadDictionary(std::string name,
   data.close();
 }
 
-void TableDumpLoader::loadAttribute(std::string name, 
-                                                     size_t col, 
+void TableDumpLoader::loadAttribute(std::string name,
+                                                     size_t col,
                                                      size_t size,
                                                      std::shared_ptr<AbstractTable> intable) {
   std::string path = DumpHelper::buildPath({_base, _table, name}) + DumpHelper::ATTR_EXT;
   std::ifstream data (path, std::ios::binary);
-  
+
   ValueId vid;
   for(size_t i=0; i < size; ++i) {
     data.read((char*) &vid.valueId, sizeof(vid.valueId));
     intable->setValueId(col, i, vid);
   }
-  
+
   data.close();
 }
 
+void TableDumpLoader::loadIndices(std::shared_ptr<AbstractTable> intable) {
+  std::string path = DumpHelper::buildPath({_base, _table+"/"}) + DumpHelper::INDEX_EXT;
+  std::ifstream data (path, std::ios::binary);
+  if (data) {
+    std::vector<size_t> indexedColumns;
+    std::istream_iterator<size_t> begin(data), end;
+    std::copy(begin, end, std::back_inserter(indexedColumns));
+    data.close();
 
-std::shared_ptr<AbstractTable> TableDumpLoader::load(std::shared_ptr<AbstractTable> intable, 
-                                      const compound_metadata_list *meta, 
+    for (auto column : indexedColumns) {
+      CreateGroupkeyIndexFunctor funMain(intable, column);
+      storage::type_switch<hyrise_basic_types> tsMain;
+      std::shared_ptr<AbstractIndex> idxMain = tsMain(intable->typeOfColumn(column), funMain);
+
+      CreateDeltaIndexFunctor funDelta(intable, column);
+      storage::type_switch<hyrise_basic_types> tsDelta;
+      std::shared_ptr<AbstractIndex> idxDelta = tsDelta(intable->typeOfColumn(column), funDelta);
+
+      StorageManager::getInstance()->addInvertedIndex("idx__" + intable->getName() + "__" + intable->nameOfColumn(column), idxMain);
+      StorageManager::getInstance()->addInvertedIndex("idx_delta__" + intable->getName() + "__" + intable->nameOfColumn(column), idxDelta);
+      auto store = std::dynamic_pointer_cast<Store>(intable);
+      store->addDeltaIndex(idxDelta, column);
+    }
+  }
+}
+
+std::shared_ptr<AbstractTable> TableDumpLoader::load(std::shared_ptr<AbstractTable> intable,
+                                      const compound_metadata_list *meta,
                                       const Loader::params &args)
 {
 
@@ -265,7 +336,8 @@ std::shared_ptr<AbstractTable> TableDumpLoader::load(std::shared_ptr<AbstractTab
   // Resize according to meta information
   size_t tableSize = getSize();
   intable->resize(tableSize);
-  
+
+  // Extract attribute vectors
   for(size_t i=0; i < intable->columnCount(); ++i) {
     std::string name = intable->nameOfColumn(i);
     loadAttribute(name, i, tableSize, intable);

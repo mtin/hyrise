@@ -458,6 +458,14 @@ void Store::addRowToDeltaIndices(pos_t row) {
   }
 }
 
+std::vector<size_t> Store::getIndexedColumns() const {
+  std::vector<size_t> indexedColumns;
+  for(auto idxColPair : _delta_indices) {
+    indexedColumns.push_back(idxColPair.second);
+  }
+  return indexedColumns;
+}
+
 void Store::enableLogging() {
   logging = true;
   _main_table->enableLogging();

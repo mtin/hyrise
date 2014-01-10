@@ -89,6 +89,8 @@ class StorageManager : public ResourceManager {
   void persistTable(const std::string &name);
 
   void recoverTables();
+
+  void recoverTable(const std::string &name);
 };
 
 }
