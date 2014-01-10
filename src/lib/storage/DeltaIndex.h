@@ -118,7 +118,7 @@ public:
 
   PositionRange getPositionsForKeyBetween(T a, T b) {
     // return range ]a,b[
-    return getPositionsBetween(_index.lower_bound(a), _index.lower_bound(b));
+    return getPositionsBetween(_index.lower_bound(a), _index.upper_bound(b));
   };
 
   PositionRange getPositionsForKeyGT(T key) {

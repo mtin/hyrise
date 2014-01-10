@@ -243,7 +243,7 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
 
 void IndexAwareTableScan::_consolidateFunctors(std::shared_ptr<const storage::Store> t_store, std::vector<GroupkeyIndexFunctor> &functors) {
   // set columns
-  for (auto functor : functors)
+  for (auto& functor : functors)
     functor._column = t_store->numberOfColumn(functor._fieldname);
 
   std::sort(

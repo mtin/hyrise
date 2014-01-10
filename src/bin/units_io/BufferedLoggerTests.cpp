@@ -22,9 +22,9 @@ namespace io {
 
 class BufferedLoggerTests : public ::hyrise::Test {};
 
-TEST_F(BufferedLoggerTests, simple_log_test) {
+TEST_F(BufferedLoggerTests, log_test) {
   uint64_t tx = 17;
-  std::string table_name("Tabelle");
+  std::string table_name("BLABLA");
 
   BufferedLogger::getInstance().logDictionary<int64_t>(table_name, 1, 2, 31);
   BufferedLogger::getInstance().logDictionary<float>(table_name, 2, 2.0f, 42);
@@ -53,20 +53,16 @@ TEST_F(BufferedLoggerTests, simple_log_test) {
   ASSERT_FALSE(memcmp(log, reference, log_s.st_size));
 }
 
-TEST_F(BufferedLoggerTests, simple_restore_test) {
-  BufferedLogger::getInstance().restore((Settings::getInstance()->getDBPath() + "/buffered_logger_logfile.bin").c_str());
-}
-
 TEST_F(BufferedLoggerTests, insert_and_restore_test) {
+  BufferedLogger::getInstance().truncate();
+  
   auto rows = Loader::shortcuts::load("test/alltypes.tbl");
   auto empty = Loader::shortcuts::load("test/alltypes_empty.tbl");
 
   storage::atable_ptr_t orig(new storage::Store(empty));
   orig->setName("TABELLE");
   StorageManager::getInstance()->add("TABELLE", orig);
-  #ifdef PERSISTENCY_BUFFEREDLOGGER
-    StorageManager::getInstance()->persistTable("TABELLE");
-  #endif
+  StorageManager::getInstance()->persistTable("TABELLE");
 
   auto ctx = tx::TransactionManager::getInstance().buildContext();
 
