@@ -47,11 +47,11 @@ public:
     return pt_dict_union_t(value).vid;
   }
 
-  value_id_t getValueIdForValueSmaller(T other) {
+  value_id_t getLowerBoundValueIdForValue(T other) {
     STORAGE_NOT_IMPLEMENTED(PassThroughDictionary, getValueIdForValueSmaller());
   }
 
-  value_id_t getValueIdForValueGreater(T other) {
+  value_id_t getUpperBoundValueIdForValue(T other) {
     STORAGE_NOT_IMPLEMENTED(PassThroughDictionary, getValueIdForValueGreater());
   }
 

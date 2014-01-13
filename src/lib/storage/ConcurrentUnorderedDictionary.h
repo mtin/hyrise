@@ -108,8 +108,15 @@ class ConcurrentUnorderedDictionary : public BaseDictionary<T> {
   virtual iterator end() override {
     return iterator(std::make_shared<ConcurrentUnorderedDictionaryIterator<T> >(_index.end()));
   }
-  virtual value_id_t getValueIdForValueSmaller(T other) { NOT_IMPLEMENTED }
-  virtual value_id_t getValueIdForValueGreater(T other) { NOT_IMPLEMENTED }
+  
+  virtual value_id_t getLowerBoundValueIdForValue(T other) {
+    STORAGE_NOT_IMPLEMENTED(PassThroughDictionary, getValueIdForValueSmaller());
+  }
+
+  virtual value_id_t getUpperBoundValueIdForValue(T other) {
+    STORAGE_NOT_IMPLEMENTED(PassThroughDictionary, getValueIdForValueGreater());
+  }
+
  private:
   tbb::concurrent_unordered_map<T, value_id_t> _index_unordered; // a potentially laggy set
   tbb::concurrent_vector<T> _values;

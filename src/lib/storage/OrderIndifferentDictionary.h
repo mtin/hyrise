@@ -153,11 +153,11 @@ public:
     return _index.at(value);
   }
 
-  value_id_t getValueIdForValueSmaller(T other) {
+  value_id_t getLowerBoundValueIdForValue(T other) {
     throw std::runtime_error("This cannot be called since value ids have no ordered meaning");
   }
 
-  value_id_t getValueIdForValueGreater(T other) {
+  value_id_t getUpperBoundValueIdForValue(T other) {
     throw std::runtime_error("This cannot be calles since value ids have no ordered meaning");
   }
 

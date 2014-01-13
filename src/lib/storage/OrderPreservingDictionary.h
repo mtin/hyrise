@@ -86,18 +86,15 @@ public:
     return index;
   }
 
-  value_id_t getValueIdForValueSmaller(T other) {
+  value_id_t getLowerBoundValueIdForValue(T other) {
     auto binary_search = std::lower_bound(_values->begin(), _values->end(), other);
     size_t index = binary_search - _values->begin();
-
-    assert(index > 0);
-    return index - 1;
+    return index;
   }
 
-  value_id_t getValueIdForValueGreater(T other) {
+  value_id_t getUpperBoundValueIdForValue(T other) {
     auto binary_search = std::upper_bound(_values->begin(), _values->end(), other);
     size_t index = binary_search - _values->begin();
-
     return index;
   }
 
