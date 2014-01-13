@@ -128,7 +128,10 @@ void StorageManager::printResources() const {
 }
 
 void StorageManager::addInvertedIndex(std::string name, std::shared_ptr<AbstractIndex> index) {
-  add(name, index);
+  if (exists(name))
+    replace(name, index);
+  else
+    add(name, index);
 }
 
 std::shared_ptr<AbstractIndex> StorageManager::getInvertedIndex(std::string name) {

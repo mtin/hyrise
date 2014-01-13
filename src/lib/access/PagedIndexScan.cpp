@@ -1,4 +1,4 @@
-// Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
+//// Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
 #include "access/PagedIndexScan.h"
 
 #include <memory>
@@ -14,6 +14,7 @@
 #include "storage/PointerCalculator.h"
 
 #include <chrono>
+#include <boost/dynamic_bitset.hpp>
 
 namespace hyrise {
 namespace access {
@@ -50,39 +51,7 @@ struct ScanPagedIndexFunctor {
     auto idx = std::dynamic_pointer_cast<PagedIndex<ValueType>>(_index);
     auto v = static_cast<IndexValue<ValueType>*>(_indexValue);
 
-    storage::pos_list_t intermediate_result;
-    std::vector<bool> pages = idx->getPagesForKey(v->value);
-    size_t pageSize = idx->getPageSize();
-
-    for (size_t i=0; i<pages.size(); ++i) {
-      if (pages[i] != 1)
-        continue;
-
-      size_t offsetStart = i * pageSize;
-      size_t offsetEnd = std::min<size_t>(offsetStart + pageSize, _inputTable->size());
-      for (size_t p=offsetStart; p<offsetEnd; ++p) {
-        if (_inputTable->getValue<ValueType>(_column, p) != v->value)
-          continue;
-
-        intermediate_result.push_back(p);
-      }
-    }
-
-        std::cout << std::endl;
-
-    // whacky
-    // storage::pos_list_t::iterator iter = result->begin();
-    // while (iter != result->end()) {
-    //       if(_inputTable->getValue<ValueType>(_column, *iter/*row*/) != v->value) {
-    //         iter = result->erase(iter);
-    //       }
-    //       else
-    //         ++iter;
-    // }
-
-    // wtf
-    storage::pos_list_t *result = new storage::pos_list_t(intermediate_result);
-    return result;
+    return idx->getPositionsForKey(v->value, _column, _inputTable);
   }
 };
 
@@ -109,9 +78,7 @@ void PagedIndexScan::executePlanOperation() {
   addResult(PointerCalculator::create(input.getTable(0), pos));
 
   auto end_time = std::chrono::high_resolution_clock::now();
-  std::cout << std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count() << "s " << 
-               std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() % 1000 << "ms " << 
-               std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() % 1000 << "us " << std::endl;
+  std::cout << std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() << " us (PagedIndexScan)" << std::endl;
    
 }
 
