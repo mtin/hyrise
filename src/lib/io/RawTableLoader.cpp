@@ -10,27 +10,35 @@
 namespace hyrise { namespace io {
 
 struct raw_table_cb_data {
-  std::shared_ptr<RawTable> table;
-  hyrise::storage::rawtable::RowHelper rh;
+  std::shared_ptr<storage::RawTable> table;
+  storage::rawtable::RowHelper rh;
   size_t column;
 
-  raw_table_cb_data(const metadata_vec_t& meta) : rh(meta), column(0) {
+  raw_table_cb_data(const storage::metadata_vec_t& meta) : rh(meta), column(0) {
   }
 };
 
 void raw_table_cb_per_field(char* field_buffer, size_t field_length, struct raw_table_cb_data *data) {
   switch(data->table->typeOfColumn(data->column)) {
-    case IntegerType:
-      data->rh.set<hyrise_int_t>(data->column, atol(field_buffer));
-      break;
-    case StringType:
-      data->rh.set<hyrise_string_t>(data->column, std::string(field_buffer, field_length));
-      break;
-    case FloatType:
-      data->rh.set<hyrise_float_t>(data->column, atof(field_buffer));
-      break;
-    default:
-      throw std::runtime_error("Type not supported");
+  case IntegerType:
+  case IntegerTypeDelta:
+  case IntegerTypeDeltaConcurrent:
+  case IntegerNoDictType:
+    data->rh.set<hyrise_int_t>(data->column, atol(field_buffer));
+    break;
+  case StringType:
+  case StringTypeDelta:
+  case StringTypeDeltaConcurrent:
+    data->rh.set<hyrise_string_t>(data->column, std::string(field_buffer, field_length));
+    break;
+  case FloatType:
+  case FloatTypeDelta:
+  case FloatTypeDeltaConcurrent:
+  case FloatNoDictType:
+    data->rh.set<hyrise_float_t>(data->column, atof(field_buffer));
+    break;
+  default:
+    throw std::runtime_error("Type not supported");
   }
   data->column++;
 }
@@ -44,9 +52,9 @@ void raw_table_cb_per_line(int separator, struct raw_table_cb_data *data) {
 }
 
 
-std::shared_ptr<AbstractTable> RawTableLoader::load(std::shared_ptr<AbstractTable> in,
-                                    const compound_metadata_list *ml,
-                                    const Loader::params &args) {
+std::shared_ptr<storage::AbstractTable> RawTableLoader::load(std::shared_ptr<storage::AbstractTable> in,
+                                                             const storage::compound_metadata_list *ml,
+                                                             const Loader::params &args) {
 
 
 
@@ -54,11 +62,11 @@ std::shared_ptr<AbstractTable> RawTableLoader::load(std::shared_ptr<AbstractTabl
   if (detectHeader(args.getBasePath() + _filename)) params.setLineStart(5);
 
   // Create the result table
-  metadata_vec_t v(in->columnCount());
+  storage::metadata_vec_t v(in->columnCount());
   for(size_t i=0; i < in->columnCount(); ++i) {
-    v[i] = *in->metadataAt(i);
+    v[i] = in->metadataAt(i);
   }
-  auto result = std::make_shared<RawTable>(v);
+  auto result = std::make_shared<storage::RawTable>(v);
 
   // CSV Parsing
   std::ifstream file(args.getBasePath() + _filename, std::ios::binary);
@@ -126,3 +134,4 @@ std::shared_ptr<AbstractTable> RawTableLoader::load(std::shared_ptr<AbstractTabl
 }
 
 }}
+

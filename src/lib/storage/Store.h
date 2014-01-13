@@ -6,8 +6,7 @@
  * @see AbstractTable
  */
 
-#ifndef SRC_LIB_STORAGE_STORE_H_
-#define SRC_LIB_STORAGE_STORE_H_
+#pragma once
 
 #include <storage/MutableVerticalTable.h>
 #include <storage/AbstractTable.h>
@@ -71,7 +70,8 @@ public:
   tx::TX_CODE unmarkForDeletion(const pos_list_t& pos, tx::transaction_id_t tid);
 
   /// AbstractTable interface
-  const ColumnMetadata *metadataAt(size_t column_index, size_t row_index = 0, table_id_t table_id = 0) const override;
+  const ColumnMetadata& metadataAt(const size_t column_index, const size_t row_index = 0, const table_id_t table_id = 0) const override;
+
   void setDictionaryAt(AbstractTable::SharedDictionaryPtr dict, size_t column, size_t row = 0, table_id_t table_id = 0) override;
   const AbstractTable::SharedDictionaryPtr& dictionaryAt(size_t column, size_t row = 0, table_id_t table_id = 0) const override;
   const AbstractTable::SharedDictionaryPtr& dictionaryByTableId(size_t column, table_id_t table_id) const override;
@@ -113,5 +113,3 @@ public:
 
 }}
 
-
-#endif  // SRC_LIB_STORAGE_STORE_H_

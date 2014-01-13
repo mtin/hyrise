@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_IO_TRANSACTIONMANAGER_H_
-#define SRC_LIB_IO_TRANSACTIONMANAGER_H_
+#pragma once
 
 #include <algorithm>
 #include <atomic>
@@ -14,6 +13,7 @@
 #include "io/TXContext.h"
 #include "storage/storage_types.h"
 
+#include "optional.hpp"
 namespace hyrise {
 namespace tx {
 
@@ -21,9 +21,9 @@ namespace tx {
 class TXModifications {
  public:
   // Map type to store position list per table
-  using map_t = std::map<std::weak_ptr<const AbstractTable>,
+  using map_t = std::map<std::weak_ptr<const storage::AbstractTable>,
                          storage::pos_list_t,
-                         std::owner_less<std::weak_ptr<const AbstractTable> > >;
+                         std::owner_less<std::weak_ptr<const storage::AbstractTable> > >;
 
   // TID identifier for the context
   transaction_id_t tid = UNKNOWN;
@@ -59,7 +59,6 @@ private:
 typedef struct TXData {
   TXContext _context;
   TXModifications _modifications;
-  TXData(TXContext ctx) : _context(ctx) {}
 } TransactionData;
 
 /// Transaction manager based on transaction contexts
@@ -90,10 +89,11 @@ class TransactionManager {
   /// \param tid transaction id to abort
   static void rollbackTransaction(TXContext ctx);
 
-  /// Check validity of a transaction
+  /// Check validity of a transactionId - this doesn't guarantee
+  /// that the transaction is uncommitted
   /// \param tid transaction id under investigation
-  static bool isRunningTransaction(transaction_id_t tid);
-  static std::vector<TXContext> getRunningTransactionContexts();
+  static bool isValidTransactionId(transaction_id_t tid);
+  static std::vector<TXContext> getCurrentModifyingTransactionContexts();
   /// @}
 
   // Singleton Constructor
@@ -122,7 +122,7 @@ class TransactionManager {
   void abort();
   /**
   * Tries to acquire the spin lock for the prepare commit call and returns
-  * hyrise::tx::UNKNOWN in case of failure or the next commit ID in case of
+  * UNKNOWN in case of failure or the next commit ID in case of
   * success
   */
   transaction_cid_t tryPrepareCommit();
@@ -144,6 +144,8 @@ class TransactionManager {
 
 
  private:
+  std::optional<const TXModifications&> getModifications(const transaction_id_t key) const;
+
   std::atomic<transaction_id_t> _transactionCount;
   std::atomic<transaction_cid_t> _commitId;
 
@@ -152,7 +154,6 @@ class TransactionManager {
 
   // Keeping track of all transactions and their modifications
   Synchronized<map_t, locking::Spinlock> _txData;
-
 
   // Spin Lock for transactions
   locking::Spinlock _txLock;
@@ -165,4 +166,3 @@ class TransactionManager {
 
 }}
 
-#endif

@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_STORAGE_BITCOMPRESSEDVECTOR_H_
-#define SRC_LIB_STORAGE_BITCOMPRESSEDVECTOR_H_
+#pragma once
 
 #include <cassert>
 #include <cmath>
@@ -12,12 +11,14 @@
 #include <stdexcept>
 #include <type_traits>
 
-#include "memory/MallocStrategy.h"
 #include "storage/BaseAttributeVector.h"
 
 #ifndef WORD_LENGTH
 #define WORD_LENGTH 64
 #endif
+
+namespace hyrise {
+namespace storage {
 
 // Compute the maximum number representable for n-bit width integers.
 template <typename T,
@@ -32,7 +33,6 @@ T maxValueForBits(const std::size_t bits) {
 */
 template <typename T>
 class BitCompressedVector : public BaseAttributeVector<T> {
-  using Strategy = MallocStrategy;
   // Typedef for the data
   typedef uint64_t storage_t;
   typedef std::vector<uint64_t> bit_size_list_t;
@@ -69,7 +69,7 @@ public:
   }
 
   virtual ~BitCompressedVector() {
-    Strategy::deallocate(_data, _allocatedBlocks * sizeof(storage_t));
+    free(_data);
   }
 
   void *data() {
@@ -148,7 +148,7 @@ public:
 
       // Only deallocate if there was something allocated
       if (newMemory != nullptr)
-        Strategy::deallocate(newMemory, _allocatedBlocks * sizeof(storage_t));
+        free(newMemory);
 
       // set new allocarted blocks
       _allocatedBlocks = _blocks(rows);
@@ -161,7 +161,7 @@ public:
    */
   void clear() {
     _size = 0;
-    Strategy::deallocate(_data, _allocatedBlocks * sizeof(storage_t));
+    free(_data);
     _data = nullptr;
   }
 
@@ -262,9 +262,8 @@ private:
   */
   inline storage_t *_allocate(uint64_t numBlocks) {
 
-    auto data = static_cast<storage_t *>(Strategy::allocate(numBlocks * sizeof(storage_t)));
+    auto data = static_cast<storage_t *>(malloc(numBlocks * sizeof(storage_t)));
     if (data == nullptr) {
-      Strategy::deallocate(data, numBlocks * sizeof(storage_t));
       throw std::bad_alloc();
     }
     std::memset(data, 0, numBlocks * sizeof(storage_t));
@@ -273,4 +272,5 @@ private:
 
 };
 
-#endif  // SRC_LIB_STORAGE_BITCOMPRESSEDVECTOR_H_
+} } // namespace hyrise::storage
+

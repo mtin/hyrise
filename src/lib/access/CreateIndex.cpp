@@ -22,7 +22,7 @@ namespace hyrise {
 namespace access {
 
 struct CreateIndexFunctor {
-  typedef std::shared_ptr<AbstractIndex> value_type;
+  typedef std::shared_ptr<storage::AbstractIndex> value_type;
   const storage::c_atable_ptr_t& in;
   size_t column;
 
@@ -31,7 +31,7 @@ struct CreateIndexFunctor {
 
   template<typename R>
   value_type operator()() {
-    return std::make_shared<InvertedIndex<R>>(in, column);
+    return std::make_shared<storage::InvertedIndex<R>>(in, column);
   }
 };
 
@@ -61,7 +61,7 @@ CreateIndex::~CreateIndex() {
 
 void CreateIndex::executePlanOperation() {
   const auto &in = input.getTable(0);
-  std::shared_ptr<AbstractIndex> _index;
+  std::shared_ptr<storage::AbstractIndex> _index;
   auto column = _field_definition[0];
 
   storage::type_switch<hyrise_basic_types> ts;
@@ -74,7 +74,7 @@ void CreateIndex::executePlanOperation() {
     _index = ts(in->typeOfColumn(column), fun);
   }
 
-  StorageManager *sm = StorageManager::getInstance();
+  auto sm = io::StorageManager::getInstance();
   sm->addInvertedIndex(_index_name, _index);
 }
 

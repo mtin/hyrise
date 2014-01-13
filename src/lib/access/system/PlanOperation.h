@@ -45,8 +45,35 @@ class PlanOperation : public OutputTask {
   /* Returns all errors of dependencies as one concatenated std::string */
   std::string getDependencyErrorMessages();
 
+
+  /* 
+   * The model used is based on a/x + b as an equation, whereas x
+   * is the number of instances used. The result is the mean task execution time
+   * for this operator. a and b are parameters based on the input table size.
+   * b also denotes the minimal possible mean task execution time.
+   * It thus sets the minimal achievable mts.
+   * for determineDynamicCount 
+   */
+  virtual size_t getTotalTableSize();
+  /* determine the b parameter also known as minimal achievable mts */
+  virtual double calcMinMts(double totalTblSizeIn100k);
+  /* determine the a parameter of the model. */
+  virtual double calcA(double totalTblSizeIn100k);
+  /*
+   * The standard implementation of the calc* method assume
+   * a straight line model with a*x + b.
+   * You can either override the following parameters in your operator
+   * or you can supply your calc* methods.
+   */
+  virtual double min_mts_a() { return 0; }
+  virtual double min_mts_b() { return 0; }
+  virtual double a_a() { return 0; }
+  virtual double a_b() { return 0; }
+
  public:
   virtual ~PlanOperation();
+
+  virtual size_t determineDynamicCount(size_t maxTaskRunTime);
 
   void setLimit(uint64_t l);
   void setProducesPositions(bool p);
@@ -74,12 +101,12 @@ class PlanOperation : public OutputTask {
   const PlanOperation *execute();
 
   void setErrorMessage(const std::string& message);
-  void setResponseTask(const std::shared_ptr<access::ResponseTask>& responseTask);
-  std::shared_ptr<access::ResponseTask> getResponseTask() const;
+  void setResponseTask(const std::shared_ptr<ResponseTask>& responseTask);
+  std::shared_ptr<ResponseTask> getResponseTask() const;
  protected:
   /// Containers to store and handle input/output or rather result data.
-  access::OperationData input;
-  access::OperationData output;
+  OperationData input;
+  OperationData output;
 
   /// Limits the number of rows read
   uint64_t _limit = 0;
@@ -91,7 +118,7 @@ class PlanOperation : public OutputTask {
   field_name_list_t _named_field_definition;
   field_list_t _indexed_field_definition;
 
-  std::weak_ptr<access::ResponseTask> _responseTask;
+  std::weak_ptr<ResponseTask> _responseTask;
 
   bool producesPositions = true;
 

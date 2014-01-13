@@ -6,16 +6,20 @@
 #include "storage/ConcurrentUnorderedDictionary.h"
 #include "storage/OrderIndifferentDictionary.h"
 #include "storage/OrderPreservingDictionary.h"
+#include "storage/PassThroughDictionary.h"
 
-class DictionaryTest : public ::hyrise::Test {};
+namespace hyrise {
+namespace storage {
+
+class DictionaryTest : public Test {};
 
 template <typename T>
-class DictTests : public ::hyrise::Test {};
+class DictTests : public Test {};
 
 typedef testing::Types <
-  OrderIndifferentDictionary<hyrise_int_t>, OrderIndifferentDictionary<hyrise_float_t>, OrderIndifferentDictionary<hyrise_string_t>, 
-  OrderPreservingDictionary<hyrise_int_t>, OrderPreservingDictionary<hyrise_float_t>, OrderPreservingDictionary<hyrise_string_t>,
-  ConcurrentUnorderedDictionary<hyrise_int_t>, ConcurrentUnorderedDictionary<hyrise_float_t>, ConcurrentUnorderedDictionary<hyrise_string_t>
+  OrderIndifferentDictionary<hyrise_int_t>,OrderIndifferentDictionary<hyrise_int32_t>, OrderIndifferentDictionary<hyrise_float_t>, OrderIndifferentDictionary<hyrise_string_t>, 
+  OrderPreservingDictionary<hyrise_int_t>, OrderPreservingDictionary<hyrise_int32_t>, OrderPreservingDictionary<hyrise_float_t>, OrderPreservingDictionary<hyrise_string_t>,
+  ConcurrentUnorderedDictionary<hyrise_int_t>, ConcurrentUnorderedDictionary<hyrise_int32_t>, ConcurrentUnorderedDictionary<hyrise_float_t>, ConcurrentUnorderedDictionary<hyrise_string_t>
   > Dicts;
 
 TYPED_TEST_CASE(DictTests, Dicts);
@@ -25,6 +29,11 @@ std::vector<T> dict_values();
 
 template <>
 std::vector<hyrise_int_t> dict_values() {
+  return {9, 0, 1, 4, 5, 6, 8};
+}
+
+template <>
+std::vector<hyrise_int32_t> dict_values() {
   return {9, 0, 1, 4, 5, 6, 8};
 }
 
@@ -85,7 +94,7 @@ TYPED_TEST(DictTests, test_nonexisting_value) {
   if (p.isOrdered())
     std::sort(values.begin(), values.end());
 
-  for (auto i = 0; i < values.size() - 2; ++i) {
+  for (std::size_t i = 0u; i < values.size() - 2; ++i) {
     p.addValue(values[i]);
   }
 
@@ -113,4 +122,7 @@ TYPED_TEST(DictTests, iterator_test) {
   }
   EXPECT_TRUE(std::is_sorted(p.begin(), p.end())) << "Resulting iterator should be sorted";
 }
+
+} } // namespace hyrise::storage
+
 

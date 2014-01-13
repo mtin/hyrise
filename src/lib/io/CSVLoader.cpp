@@ -8,7 +8,8 @@
 #include "storage/AbstractTable.h"
 #include "storage/ColumnMetadata.h"
 
-
+namespace hyrise {
+namespace io {
 
 param_member_impl(CSVInput::params, csv::params, CSVParams);
 param_member_impl(CSVInput::params, bool, Unsafe);
@@ -19,7 +20,7 @@ struct cb_data {
   size_t column;
   const size_t table_columns;
   const bool unsafe;
-  std::shared_ptr<AbstractTable> table;
+  std::shared_ptr<storage::AbstractTable> table;
 
   cb_data(size_t columns, bool unsafe): row(0), column(0), table_columns(columns), unsafe(unsafe) {
   }
@@ -32,21 +33,31 @@ void cb_per_field(char *field_buffer, size_t field_length, struct cb_data *data)
     else throw CSVLoaderError("There is more data than columns!");
   }
   switch (data->table->typeOfColumn(data->column)) {
-    case IntegerType:
-      data->table->setValue<hyrise_int_t>(data->column, data->row, atol(field_buffer));
-      break;
+  case IntegerType:
+  case IntegerTypeDelta:
+  case IntegerTypeDeltaConcurrent:
+    data->table->setValue<hyrise_int_t>(data->column, data->row, atol(field_buffer));
+    break;
+  case IntegerNoDictType:
+    data->table->setValue<hyrise_int32_t>(data->column, data->row, atoi(field_buffer));
+    break;
+    
+  case FloatType:
+  case FloatTypeDelta:
+  case FloatTypeDeltaConcurrent:
+  case FloatNoDictType:
+    data->table->setValue<hyrise_float_t>(data->column, data->row, atof(field_buffer));
+    break;
 
-    case FloatType:
-      data->table->setValue<hyrise_float_t>(data->column, data->row, atof(field_buffer));
-      break;
+  case StringType:
+  case StringTypeDelta:
+  case StringTypeDeltaConcurrent:
+    data->table->setValue<hyrise_string_t>(data->column, data->row, std::string(field_buffer));
+    break;
 
-    case StringType:
-      data->table->setValue<hyrise_string_t>(data->column, data->row, std::string(field_buffer));
-      break;
-
-    default:
-      throw std::runtime_error("FUUUU");
-      break;
+  default:
+    throw std::runtime_error("FUUUU");
+    break;
   }
 ignore_data:
   ++data->column;
@@ -85,7 +96,7 @@ bool detectHeader(const std::string &filename) {
   return "===" == line;
 }
 
-std::shared_ptr<AbstractTable> CSVInput::load(std::shared_ptr<AbstractTable> intable, const compound_metadata_list *meta, const Loader::params &args) {
+std::shared_ptr<storage::AbstractTable> CSVInput::load(std::shared_ptr<storage::AbstractTable> intable, const storage::compound_metadata_list *meta, const Loader::params &args) {
   cb_data data(intable->columnCount(), _parameters.getUnsafe());
   data.table = intable;
   csv::params params(_parameters.getCSVParams());
@@ -117,7 +128,7 @@ CSVHeader *CSVHeader::clone() const {
   return new CSVHeader(*this);
 }
 
-compound_metadata_list *CSVHeader::load(const Loader::params &args) {
+storage::compound_metadata_list *CSVHeader::load(const Loader::params &args) {
   csv::params p(_parameters.getCSVParams());
   p.setLineCount(4);
   try {
@@ -128,3 +139,6 @@ compound_metadata_list *CSVHeader::load(const Loader::params &args) {
   }
 
 }
+
+} } // namespace hyrise::io
+

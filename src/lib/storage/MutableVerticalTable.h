@@ -5,8 +5,7 @@
  * For any undocumented method see AbstractTable.
  * @see AbstractTable
  */
-#ifndef SRC_LIB_STORAGE_VERTICALTABLE_H_
-#define SRC_LIB_STORAGE_VERTICALTABLE_H_
+#pragma once
 
 #include <vector>
 #include <string>
@@ -28,7 +27,7 @@ namespace hyrise { namespace storage {
 class MutableVerticalTable : public AbstractTable {
 
 public:
-  MutableVerticalTable(std::vector<std::vector<const ColumnMetadata *> *> metadata,
+  MutableVerticalTable(std::vector<std::vector<ColumnMetadata > *> metadata,
                        std::vector<std::vector<adict_ptr_t> *> *dictionaries = nullptr,
                        size_t size = 0,
                        bool sorted = true,
@@ -36,7 +35,9 @@ public:
                        bool compressed = true);
   MutableVerticalTable(std::vector<atable_ptr_t> cs, size_t size = 0);
   virtual ~MutableVerticalTable();
-  const ColumnMetadata *metadataAt(size_t column_index, size_t row_index=0, table_id_t table_id=0) const override;
+  
+  const ColumnMetadata& metadataAt(size_t column_index, size_t row_index=0, table_id_t table_id=0) const override;
+
   const adict_ptr_t& dictionaryAt(size_t column, size_t row = 0, table_id_t table_id = 0) const override;
   const adict_ptr_t& dictionaryByTableId(size_t column, table_id_t table_id) const override;
   void setDictionaryAt(adict_ptr_t dict, size_t column, size_t row = 0, table_id_t table_id = 0) override;
@@ -91,4 +92,3 @@ public:
 
 }}
 
-#endif  // SRC_LIB_STORAGE_VERTICALTABLE_H_
