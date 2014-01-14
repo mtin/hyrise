@@ -8,6 +8,7 @@
 #include <storage/PrettyPrinter.h>
 #include <storage/DeltaIndex.h>
 #include <storage/meta_storage.h>
+#include <storage/storage_types.h>
 
 #include <helper/vector_helpers.h>
 #include <helper/locking.h>
@@ -17,7 +18,7 @@
 #include "storage/ConcurrentUnorderedDictionary.h"
 #include "storage/ConcurrentFixedLengthVector.h"
 
-#define INITIAL_RESERVE 5000000
+#define INITIAL_RESERVE 0
 //#define REUSE_MAIN_DICTS
 
 namespace hyrise { namespace storage {
@@ -33,8 +34,10 @@ Store::Store() :
 
 namespace {
 
-auto create_concurrent_dict = [](DataType dt) { return makeDictionary<ConcurrentUnorderedDictionary>(dt); };
-auto create_concurrent_storage = [](std::size_t cols) { return std::make_shared<ConcurrentFixedLengthVector<value_id_t>>(cols, 0); };
+auto create_concurrent_dict = [](DataType dt) { return makeDictionary(types::getConcurrentType(dt)); };
+auto create_concurrent_storage = [](std::size_t cols) { return std::make_shared<ConcurrentFixedLengthVector<value_id_t>>(cols, 0);
+
+};
 
 }
 

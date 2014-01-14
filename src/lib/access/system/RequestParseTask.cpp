@@ -188,7 +188,7 @@ void RequestParseTask::operator()() {
                     << reader.getFormatedErrorMessages());
 
       // Forward parsing error
-      _responseTask->addErrorMessage("Parsing: " + reader.getFormatedErrorMessages());      
+      _responseTask->addErrorMessage("Parsing: " + reader.getFormatedErrorMessages());
     }
     // Update the transmission limit for the response task
     if (atoi(body_data["limit"].c_str()) > 0)
@@ -205,8 +205,8 @@ void RequestParseTask::operator()() {
   // high priority tasks are expected to be scheduled sequentially
   if(priority == Task::HIGH_PRIORITY){
     if (recordPerformance) {
-      *(performance_data.at(0)) = { 0, 0, "NO_PAPI", "RequestParseTask", 
-                                    "requestParse", _queryStart, get_epoch_nanoseconds(), 
+      *(performance_data.at(0)) = { 0, 0, "NO_PAPI", "RequestParseTask",
+                                    "requestParse", _queryStart, get_epoch_nanoseconds(),
                                     boost::lexical_cast<std::string>(std::this_thread::get_id()) };
     }
 
@@ -232,8 +232,8 @@ void RequestParseTask::operator()() {
     scheduler->scheduleQuery(tasks);
 
     if (recordPerformance) {
-      *(performance_data.at(0)) = { 0, 0, "NO_PAPI", "RequestParseTask", "requestParse", 
-                                    _queryStart, get_epoch_nanoseconds(), 
+      *(performance_data.at(0)) = { 0, 0, "NO_PAPI", "RequestParseTask", "requestParse",
+                                    _queryStart, get_epoch_nanoseconds(),
                                     boost::lexical_cast<std::string>(std::this_thread::get_id()) };
     }
     _responseTask->setQueryStart(_queryStart);

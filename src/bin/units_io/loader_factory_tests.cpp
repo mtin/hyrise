@@ -15,10 +15,10 @@ public:
   MockTableFactory() : generate_call_cnt(0)  {}
   ~MockTableFactory() {}
   storage::atable_ptr_t generate(std::vector<storage::ColumnMetadata> *m,
-                                  std::vector<storage::AbstractTable::SharedDictionaryPtr> *d = nullptr,
-                                  size_t initial_size = 0,
-                                  bool sorted = true,
-                                  bool compressed = false) {
+                                 std::vector<storage::AbstractTable::SharedDictionaryPtr> *d = nullptr,
+                                 size_t initial_size = 0,
+                                 bool sorted = true,
+                                 bool compressed = false) {
     ++generate_call_cnt;
     return std::make_shared<storage::Table>(m, d, initial_size, sorted, compressed);
   }

@@ -219,13 +219,13 @@ storage::c_atable_ptr_t executeAndWait(
     tx::transaction_id_t tid) {
   using namespace hyrise;
   using namespace access;
-  using namespace tx;
+  //using namespace tx;
 
   std::stringstream query;
   query << "query=" << httpQuery;
   if (tid == tx::UNKNOWN)
     tid = getNewTXContext().tid;
-  query << "&session_context=" << tid;
+  query << "&session_context=" << tid << "_" << tx::TransactionManager::getInstance().getLastCommitId();
 
   std::unique_ptr<MockedConnection> conn = make_unique<MockedConnection>(query.str());
 
@@ -258,7 +258,7 @@ storage::c_atable_ptr_t executeAndWait(
   }
 
   auto context = response->getTxContext();
-  if (context.tid != tid)
+  if (tid != tx::UNKNOWN && context.tid != tid)
     throw std::runtime_error("requested transaction id ignored!");
 
   return result_task->getResultTable();

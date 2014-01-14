@@ -192,7 +192,7 @@ typedef std::vector<ValueId> ValueIdList;
 namespace hyrise { namespace storage {
 
 class ColumnMetadata;
-typedef std::vector<ColumnMetadata> metadata_list;
+typedef std::vector<ColumnMetadata > metadata_list;
 typedef std::vector<metadata_list *> compound_metadata_list;
 typedef std::vector<ColumnMetadata> metadata_vec_t;
 

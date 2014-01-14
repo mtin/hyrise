@@ -1,5 +1,6 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
 #include "testing/test.h"
+#include "testing/TableEqualityTest.h"
 
 #include "io/shortcuts.h"
 #include "storage/AbstractTable.h"
@@ -7,6 +8,8 @@
 #include "storage/storage_types.h"
 #include "storage/SimpleStore.h"
 #include "storage/TableGenerator.h"
+#include "storage/storage_types.h"
+
 
 namespace hyrise {
 namespace storage {
@@ -262,7 +265,7 @@ TEST_F(RawTableTests, simple_store_insert_and_merge) {
   }
 
   tab->merge();
-  ASSERT_TABLE_EQUAL(ref, tab);
+  EXPECT_RELATION_EQ(ref, tab);
 
 }
 

@@ -6,6 +6,7 @@
 #include "storage/OrderIndifferentDictionary.h"
 #include "storage/MutableVerticalTable.h"
 #include "storage/Table.h"
+#include "storage/storage_types.h"
 
 namespace hyrise {
 namespace access {
@@ -49,7 +50,7 @@ void ExpressionScan::executePlanOperation() {
   metadata.push_back(m);
 
   std::vector<storage::AbstractTable::SharedDictionaryPtr> dicts;
-  dicts.push_back(storage::makeDictionary<storage::OrderIndifferentDictionary>(_expression->getType()));
+  dicts.push_back(storage::makeDictionary(types::getUnorderedType(_expression->getType())));
 
   storage::atable_ptr_t exp_result = std::make_shared<storage::Table>(&metadata, &dicts, 0, false);
   exp_result->resize(input_size);

@@ -59,21 +59,21 @@ void RadixCluster::executePlanOperation() {
   case IntegerType:
   case IntegerTypeDelta:
   case IntegerTypeDeltaConcurrent:
-    executeClustering<hyrise_int_t>();
+    executeClustering<storage::hyrise_int_t>();
     break;
   case IntegerNoDictType:
-    executeClustering<hyrise_int32_t>();
+    executeClustering<storage::hyrise_int32_t>();
     break;
   case FloatType:
   case FloatTypeDelta:
   case FloatTypeDeltaConcurrent:
   case FloatNoDictType:
-    executeClustering<hyrise_float_t>();
+    executeClustering<storage::hyrise_float_t>();
     break;
   case StringType:
   case StringTypeDelta:
   case StringTypeDeltaConcurrent:
-    executeClustering<hyrise_string_t>();
+    executeClustering<storage::hyrise_string_t>();
     break;
   }
 }

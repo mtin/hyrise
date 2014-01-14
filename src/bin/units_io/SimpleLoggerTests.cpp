@@ -36,7 +36,7 @@ TEST_F(SimpleLoggerTests, simple_log_test) {
   // now read the logfile and compare number of opening and closing brackets (should be the same)
   int64_t numLB=0, numRB=0;
   char c;
-  std::ifstream is("logfile");
+  std::ifstream is("test/log/log.txt");
   while(is.good()) {
     c = is.get();
     if(c == '(')      ++numLB;

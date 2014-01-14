@@ -20,17 +20,25 @@ struct raw_table_cb_data {
 
 void raw_table_cb_per_field(char* field_buffer, size_t field_length, struct raw_table_cb_data *data) {
   switch(data->table->typeOfColumn(data->column)) {
-    case IntegerType:
-      data->rh.set<hyrise_int_t>(data->column, atol(field_buffer));
-      break;
-    case StringType:
-      data->rh.set<hyrise_string_t>(data->column, std::string(field_buffer, field_length));
-      break;
-    case FloatType:
-      data->rh.set<hyrise_float_t>(data->column, atof(field_buffer));
-      break;
-    default:
-      throw std::runtime_error("Type not supported");
+  case IntegerType:
+  case IntegerTypeDelta:
+  case IntegerTypeDeltaConcurrent:
+  case IntegerNoDictType:
+    data->rh.set<hyrise_int_t>(data->column, atol(field_buffer));
+    break;
+  case StringType:
+  case StringTypeDelta:
+  case StringTypeDeltaConcurrent:
+    data->rh.set<hyrise_string_t>(data->column, std::string(field_buffer, field_length));
+    break;
+  case FloatType:
+  case FloatTypeDelta:
+  case FloatTypeDeltaConcurrent:
+  case FloatNoDictType:
+    data->rh.set<hyrise_float_t>(data->column, atof(field_buffer));
+    break;
+  default:
+    throw std::runtime_error("Type not supported");
   }
   data->column++;
 }

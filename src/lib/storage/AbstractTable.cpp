@@ -12,6 +12,7 @@
 #include <storage/storage_types_helper.h>
 #include <storage/TableDiff.h>
 #include <storage/TableUtils.h>
+#include <storage/meta_storage.h>
 
 #include <helper/locking.h>
 
@@ -54,23 +55,26 @@ for (const field_t & field: *fields) {
 }
 
 atable_ptr_t AbstractTable::copy_structure_modifiable(const field_list_t *fields, const size_t initial_size, const bool with_containers, const bool nonvolatile) const {
-  std::vector<ColumnMetadata> metadata;
-  std::vector<AbstractTable::SharedDictionaryPtr > *dictionaries = new std::vector<AbstractTable::SharedDictionaryPtr >;
+  std::vector<ColumnMetadata > metadata;
+  auto dictionaries = std::unique_ptr<std::vector<AbstractTable::SharedDictionaryPtr > >(new std::vector<AbstractTable::SharedDictionaryPtr >);
 
   if (fields != nullptr) {
     for (const field_t & field: *fields) {
-      metadata.push_back(metadataAt(field));
-      dictionaries->push_back(makeDictionary<OrderIndifferentDictionary>(metadataAt(field).getType()));
+      auto m = metadataAt(field);
+      m.setType(types::getUnorderedType(m.getType()));
+      metadata.push_back(m);
+      dictionaries->push_back(makeDictionary(m));
     }
   } else {
     for (size_t i = 0; i < columnCount(); ++i) {
-      metadata.push_back(metadataAt(i));
-      dictionaries->push_back(makeDictionary<OrderIndifferentDictionary>(metadataAt(i).getType()));
+      auto m = metadataAt(i);
+      m.setType(types::getUnorderedType(m.getType()));
+      metadata.push_back(m);
+      dictionaries->push_back(makeDictionary(m));
     }
   }
 
-  auto result = std::make_shared<Table>(&metadata, dictionaries, initial_size, false);
-  delete dictionaries;
+  auto result = std::make_shared<Table>(&metadata, dictionaries.get(), initial_size, false);
   return result;
 }
 
@@ -106,49 +110,49 @@ std::string AbstractTable::printValue(const size_t column, const size_t row) con
 
 void AbstractTable::copyValueFrom(const c_atable_ptr_t& source, const size_t src_col, const size_t src_row, const size_t dst_col, const size_t dst_row) {
   switch (source->typeOfColumn(src_col)) {
-    case IntegerType:
-    case IntegerTypeDelta:
-    case IntegerTypeDeltaConcurrent:
-      copyValueFrom<hyrise_int_t>(source, src_col, src_row, dst_col, dst_row);
-      break;
-    case IntegerNoDictType:
-      copyValueFrom<hyrise_int32_t>(source, src_col, src_row, dst_col, dst_row);
-      break;
-    case FloatType:
-    case FloatTypeDelta:
-    case FloatTypeDeltaConcurrent:
-    case FloatNoDictType:
-      copyValueFrom<hyrise_float_t>(source, src_col, src_row, dst_col, dst_row);
-      break;
-    case StringType:
-    case StringTypeDelta:
-    case StringTypeDeltaConcurrent:
-      copyValueFrom<hyrise_string_t>(source, src_col, src_row, dst_col, dst_row);
-      break;
+  case IntegerType:
+  case IntegerTypeDelta:
+  case IntegerTypeDeltaConcurrent:
+    copyValueFrom<hyrise_int_t>(source, src_col, src_row, dst_col, dst_row);
+    break;
+  case IntegerNoDictType:
+    copyValueFrom<hyrise_int32_t>(source, src_col, src_row, dst_col, dst_row);
+    break;
+  case FloatType:
+  case FloatTypeDelta:
+  case FloatTypeDeltaConcurrent:
+  case FloatNoDictType:
+    copyValueFrom<hyrise_float_t>(source, src_col, src_row, dst_col, dst_row);
+    break;
+  case StringType:
+  case StringTypeDelta:
+  case StringTypeDeltaConcurrent:
+    copyValueFrom<hyrise_string_t>(source, src_col, src_row, dst_col, dst_row);
+    break;
   }
 }
 
 void AbstractTable::copyValueFrom(const c_atable_ptr_t& source, const size_t src_col, const ValueId vid, const size_t dst_col, const size_t dst_row) {
   switch (source->typeOfColumn(src_col)) {
-    case IntegerType:
-    case IntegerTypeDelta:
-    case IntegerTypeDeltaConcurrent:
-      setValue<hyrise_int_t>(dst_col, dst_row, source->getValueForValueId<hyrise_int_t>(src_col, vid));
-      break;
-    case IntegerNoDictType:
-      setValue<hyrise_int32_t>(dst_col, dst_row, source->getValueForValueId<hyrise_int32_t>(src_col, vid));
-      break;
-    case FloatType:
-    case FloatTypeDelta:
-    case FloatTypeDeltaConcurrent:
-    case FloatNoDictType:
-      setValue<hyrise_float_t>(dst_col, dst_row, source->getValueForValueId<hyrise_float_t>(src_col, vid));
-      break;
-    case StringType:
-    case StringTypeDelta:
-    case StringTypeDeltaConcurrent:
-      setValue<hyrise_string_t>(dst_col, dst_row, source->getValueForValueId<hyrise_string_t>(src_col, vid));
-      break;
+  case IntegerType:
+  case IntegerTypeDelta:
+  case IntegerTypeDeltaConcurrent:
+    setValue<hyrise_int_t>(dst_col, dst_row, source->getValueForValueId<hyrise_int_t>(src_col, vid));
+    break;
+  case IntegerNoDictType:
+    setValue<hyrise_int32_t>(dst_col, dst_row, source->getValueForValueId<hyrise_int32_t>(src_col, vid));
+    break;
+  case FloatType:
+  case FloatTypeDelta:
+  case FloatTypeDeltaConcurrent:
+  case FloatNoDictType:
+    setValue<hyrise_float_t>(dst_col, dst_row, source->getValueForValueId<hyrise_float_t>(src_col, vid));
+    break;
+  case StringType:
+  case StringTypeDelta:
+  case StringTypeDeltaConcurrent:
+    setValue<hyrise_string_t>(dst_col, dst_row, source->getValueForValueId<hyrise_string_t>(src_col, vid));
+    break;
   }
 }
 
@@ -299,7 +303,7 @@ bool AbstractTable::contentEquals(const c_atable_ptr_t& other) const {
     auto md = metadataAt(column);
     auto md2 = other->metadataAt(column);
 
-    if (md.getType() != md2.getType()) {
+    if (!types::isCompatible(md.getType(),md2.getType())) {
       return false;
     }
 
@@ -311,21 +315,27 @@ bool AbstractTable::contentEquals(const c_atable_ptr_t& other) const {
       bool valueEqual = false;
 
       switch (md.getType()) {
-        case IntegerType:
-          valueEqual = getValue<hyrise_int_t>(column, row) == other->getValue<hyrise_int_t>(column,
-                       row);
-          break;
+      case IntegerType:
+      case IntegerTypeDelta:
+      case IntegerTypeDeltaConcurrent:
+      case IntegerNoDictType:
+	      valueEqual = getValue<hyrise_int_t>(column, row) == other->getValue<hyrise_int_t>(column, row);
+        break;
 
-        case FloatType:
-          valueEqual = getValue<hyrise_float_t>(column, row) == other->getValue<hyrise_float_t>(column, row);
-          break;
+      case FloatType:
+      case FloatTypeDelta:
+      case FloatTypeDeltaConcurrent:
+        valueEqual = getValue<hyrise_float_t>(column, row) == other->getValue<hyrise_float_t>(column, row);
+        break;
 
-        case StringType:
-          valueEqual = getValue<std::string>(column, row).compare(other->getValue<std::string>(column, row)) == 0;
-          break;
+      case StringType:
+      case StringTypeDelta:
+      case StringTypeDeltaConcurrent:
+        valueEqual = getValue<std::string>(column, row).compare(other->getValue<std::string>(column, row)) == 0;
+        break;
 
-        default:
-          break;
+      default:
+        break;
       }
 
       if (!valueEqual) {

@@ -24,7 +24,7 @@ TEST(TX, commit_invalid) {
   transaction_id_t invalid = std::numeric_limits<transaction_id_t>::max();
   EXPECT_FALSE(TM::isValidTransactionId(invalid)) << "id is larger than acceptable";
   tx.tid = invalid;
-  TM::commitTransaction(tx); // "Commiting an invalid txid works.";
+  EXPECT_THROW(TM::commitTransaction(tx), std::runtime_error); // "Commiting an invalid txid works.";
   tx.tid = oldtid;
   TM::commitTransaction(tx);
 }

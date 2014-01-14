@@ -28,18 +28,18 @@ void Histogram::executePlanOperation() {
     case IntegerType:
     case IntegerTypeDelta:
     case IntegerTypeDeltaConcurrent:
-      return executeHistogram<hyrise_int_t>();
+      return executeHistogram<storage::hyrise_int_t>();
     case IntegerNoDictType:
-      return executeHistogram<hyrise_int32_t>();
+      return executeHistogram<storage::hyrise_int32_t>();
     case FloatType:
     case FloatTypeDelta:
     case FloatTypeDeltaConcurrent:
     case FloatNoDictType:
-      return executeHistogram<hyrise_float_t>();
+      return executeHistogram<storage::hyrise_float_t>();
     case StringType:
     case StringTypeDelta:
     case StringTypeDeltaConcurrent:
-      return executeHistogram<hyrise_string_t>();
+      return executeHistogram<storage::hyrise_string_t>();
   }
 }
 

@@ -31,6 +31,10 @@ class ColumnMetadata {
     return type;
   }
 
+  void setType(DataType t) {
+    type = t;
+  }
+
   std::string getName() const {
     return name;
   }

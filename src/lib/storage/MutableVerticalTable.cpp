@@ -7,7 +7,7 @@
 
 namespace hyrise { namespace storage {
 
-MutableVerticalTable::MutableVerticalTable(std::vector<std::vector<ColumnMetadata> *> metadata,
+MutableVerticalTable::MutableVerticalTable(std::vector<std::vector<ColumnMetadata > *> metadata,
                                            std::vector<std::vector<adict_ptr_t> *> *dictionaries,
                                            size_t size,
                                            bool sorted,

@@ -26,13 +26,12 @@ atable_ptr_t TableBuilder::createTable(param_list::param_list_t::const_iterator 
     param_list::param_list_t::const_iterator end,
     const bool compressed) {
   // Meta data container
-  std::vector<ColumnMetadata> vc;
+  std::vector<ColumnMetadata > vc;
   std::vector<AbstractTable::SharedDictionaryPtr > vd;
 
   for (; begin != end; ++begin) {
     vc.push_back(ColumnMetadata::metadataFromString((*begin).type, (*begin).name));
-    vd.push_back(
-      makeDictionary<OrderIndifferentDictionary>(vc.back().getType()));
+    vd.push_back(makeDictionary(vc.back().getType()));
   }
 
   auto tmp = std::make_shared<Table>(&vc, &vd, 0, 0, compressed);

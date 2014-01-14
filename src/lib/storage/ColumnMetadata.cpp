@@ -47,7 +47,6 @@ ColumnMetadata ColumnMetadata::metadataFromString(std::string typestring, std::s
 
   } else if (typestring.compare(types::string_name_conc) == 0) {
     return ColumnMetadata(name, StringTypeDeltaConcurrent);
-
   } else {
     std::stringstream msg;
     msg << "Typename not supported: " << typestring << " with name: " << name << std::endl;

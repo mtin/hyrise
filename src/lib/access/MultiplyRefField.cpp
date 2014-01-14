@@ -55,9 +55,13 @@ void MultiplyRefField::executeMultiply() {
 void MultiplyRefField::executePlanOperation() {
   switch(getInputTable()->typeOfColumn(_field_definition[1])) {
     case IntegerType:
-      return executeMultiply<storage::hyrise_int_t, IntegerType>();
+    case IntegerTypeDelta:
+    case IntegerTypeDeltaConcurrent:
+      return executeMultiply<storage::hyrise_int_t, IntegerTypeDelta>();
     case FloatType:
-      return executeMultiply<storage::hyrise_float_t, FloatType>();
+    case FloatTypeDelta:
+    case FloatTypeDeltaConcurrent:
+      return executeMultiply<storage::hyrise_float_t, FloatTypeDelta>();
     default:
       throw std::runtime_error("The data type of the given field is not supported in MultiplyRefField");
   }
