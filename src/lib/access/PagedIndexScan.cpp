@@ -2,6 +2,7 @@
 #include "access/PagedIndexScan.h"
 
 #include <memory>
+#include <iostream>
 
 #include "access/system/BasicParser.h"
 #include "access/json_converters.h"
@@ -48,7 +49,7 @@ struct ScanPagedIndexFunctor {
 
   template<typename ValueType>
   storage::pos_list_t * operator()() {
-    auto idx = std::dynamic_pointer_cast<PagedIndex<ValueType>>(_index);
+    auto idx = std::dynamic_pointer_cast<PagedIndex>(_index);
     auto v = static_cast<IndexValue<ValueType>*>(_indexValue);
 
     return idx->getPositionsForKey(v->value, _column, _inputTable);
