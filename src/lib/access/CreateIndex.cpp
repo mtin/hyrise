@@ -22,7 +22,7 @@ namespace hyrise {
 namespace access {
 
 struct CreateIndexFunctor {
-  typedef std::shared_ptr<AbstractIndex> value_type;
+  typedef std::shared_ptr<hyrise::storage::AbstractIndex> value_type;
   const storage::c_atable_ptr_t& in;
   size_t column;
 
@@ -36,7 +36,7 @@ struct CreateIndexFunctor {
 };
 
 struct CreatePagedIndexFunctor {
-  typedef std::shared_ptr<AbstractIndex> value_type;
+  typedef std::shared_ptr<hyrise::storage::AbstractIndex> value_type;
   const storage::c_atable_ptr_t& in;
   size_t column;
   size_t _pageSize;
@@ -61,7 +61,7 @@ CreateIndex::~CreateIndex() {
 
 void CreateIndex::executePlanOperation() {
   const auto &in = input.getTable(0);
-  std::shared_ptr<AbstractIndex> _index;
+  std::shared_ptr<hyrise::storage::AbstractIndex> _index;
   auto column = _field_definition[0];
 
   storage::type_switch<hyrise_basic_types> ts;

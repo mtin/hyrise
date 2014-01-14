@@ -6,6 +6,7 @@
 #include <map>
 #include <stdexcept>
 #include <algorithm>
+#include <iostream>
 
 #include "helper/types.h"
 
@@ -17,7 +18,7 @@
 #include <boost/dynamic_bitset.hpp>
 
 template<typename T>
-class PagedIndex : public AbstractIndex {
+class PagedIndex : public hyrise::storage::AbstractIndex {
 private:
   typedef std::map<T, boost::dynamic_bitset<>> paged_index_t;
   paged_index_t _index;
@@ -85,7 +86,7 @@ public:
 
 
     // retrieve valueId for dictionary entry T "key"
-    std::shared_ptr<BaseDictionary<T>> valueIdMap = std::dynamic_pointer_cast<BaseDictionary<T>>(table->dictionaryAt(column));
+    std::shared_ptr<hyrise::storage::BaseDictionary<T>> valueIdMap = std::dynamic_pointer_cast<hyrise::storage::BaseDictionary<T>>(table->dictionaryAt(column));
 
     bool value_exists = valueIdMap->valueExists(key);
     ValueId lower_bound;
