@@ -47,8 +47,8 @@ struct CreatePagedIndexFunctor {
   template<typename R>
   value_type operator()() {
     if (_pageSize>0)
-      return std::make_shared<PagedIndex<R>>(in, column, _pageSize);
-    return std::make_shared<PagedIndex<R>>(in, column);
+      return std::make_shared<PagedIndex>(in, column, _pageSize, /*debug*/false);
+    return std::make_shared<PagedIndex>(in, column);
   }
 };
 

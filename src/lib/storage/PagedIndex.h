@@ -17,10 +17,9 @@
 #include <memory>
 #include <boost/dynamic_bitset.hpp>
 
-template<typename T>
 class PagedIndex : public hyrise::storage::AbstractIndex {
 private:
-  typedef std::map<T, boost::dynamic_bitset<>> paged_index_t;
+  typedef std::map<ValueId, boost::dynamic_bitset<>> paged_index_t;
   paged_index_t _index;
   size_t _pageSize;
 
@@ -44,14 +43,13 @@ public:
       
         
       for (size_t row = 0; row < in->size(); ++row) {
-        T value = in->getValue<T>(column, row);
-        // if (b[row/_pageSize] > 0) // optimization?
-        //   continue;
-        typename paged_index_t::iterator find = _index.find(value);
+        ValueId valueId = in->getValueId(column, row);
+
+        typename paged_index_t::iterator find = _index.find(valueId);
         if (find == _index.end()) {
           boost::dynamic_bitset<> b(num_of_pages, 0); // create bitset with 1 bit per page
           b[row/_pageSize] = 1; // set bit to 1 for page where we found the current entry
-          _index[value] = b; // add bitset to index
+          _index[valueId] = b; // add bitset to index
         } else {
           find->second[row/_pageSize] = 1;
         }
@@ -59,6 +57,7 @@ public:
 
       if (debug) {
         for (const auto & e : _index) {
+          //in->getValueForValueId(column, e.first);
           std::cout << e.first << " - ";
           for (size_t i=0; i<e.second.size(); ++i) 
             std::cout << e.second[i];
@@ -71,6 +70,7 @@ public:
   /**
    * returns a list of positions where key was found.
    */
+template<typename T>
   boost::dynamic_bitset<> getPagesForKey(T key) {
     typename paged_index_t::iterator it = _index.find(key);
     if (it != _index.end()) {
@@ -81,23 +81,22 @@ public:
     }
   };
 
+template<typename T>
   hyrise::storage::pos_list_t* getPositionsForKey(T key, field_t column, const hyrise::storage::c_atable_ptr_t& table) {
     hyrise::storage::pos_list_t *result = new hyrise::storage::pos_list_t();
 
 
     // retrieve valueId for dictionary entry T "key"
-    std::shared_ptr<hyrise::storage::BaseDictionary<T>> valueIdMap = std::dynamic_pointer_cast<hyrise::storage::BaseDictionary<T>>(table->dictionaryAt(column));
-
-    bool value_exists = valueIdMap->valueExists(key);
-    ValueId lower_bound;
+    bool value_exists = table->valueExists(column, key);
 
     if (!value_exists)
       return result;
 
-    lower_bound = table->getValueIdForValue(column, key);
+    ValueId keyValueId;
+    keyValueId = table->getValueIdForValue(column, key);
 
     // look for key in index
-    typename paged_index_t::iterator it = _index.find(key);
+    typename paged_index_t::iterator it = _index.find(keyValueId);
     if (it == _index.end())
       return result;
 
@@ -111,7 +110,7 @@ public:
       size_t offsetStart = i * _pageSize;
       size_t offsetEnd = std::min<size_t>(offsetStart + _pageSize, table->size());
       for (size_t p=offsetStart; p<offsetEnd; ++p) {
-        if (value_exists && table->getValueId(column, p) != lower_bound)//(table->getValue<T>(column, p) != key)
+        if (value_exists && table->getValueId(column, p) != keyValueId)//(table->getValue<T>(column, p) != key)
           continue;
 
         result->push_back(p);
