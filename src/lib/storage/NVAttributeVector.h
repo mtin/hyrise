@@ -1,11 +1,13 @@
 #ifdef PERSISTENCY_NVRAM
 
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_STORAGE_NVATTRIBUTEVECTOR_H_
-#define SRC_LIB_STORAGE_NVATTRIBUTEVECTOR_H_
+#pragma once
 
 #include "storage/FixedLengthVector.h"
 #include "storage/NVVector.h"
+
+namespace hyrise {
+namespace storage {
 
 template <typename T>
 class NVAttributeVector : public AbstractFixedLengthVector<T> {
@@ -34,7 +36,7 @@ class NVAttributeVector : public AbstractFixedLengthVector<T> {
     return _vector[row * _columns + column];
   }
 
-  const T& getRef(size_t column, size_t row) const {
+  virtual const T& getRef(size_t column, size_t row) const {
     checkAccess(column, row);
     return _vector[row * _columns + column];
   }
@@ -118,6 +120,7 @@ private:
   }
 };
 
-#endif  // SRC_LIB_STORAGE_NVATTRIBUTEVECTOR_H_
-#endif
+}
+}
 
+#endif
