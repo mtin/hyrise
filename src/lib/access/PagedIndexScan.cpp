@@ -37,13 +37,13 @@ struct CreateIndexValueFunctor {
 struct ScanPagedIndexFunctor {
   typedef storage::pos_list_t *value_type;
 
-  std::shared_ptr<AbstractIndex> _index;
+  std::shared_ptr<hyrise::storage::AbstractIndex> _index;
   AbstractIndexValue *_indexValue;
 
   field_t _column;
   const hyrise::storage::c_atable_ptr_t _inputTable;
 
-  ScanPagedIndexFunctor(AbstractIndexValue *i, std::shared_ptr<AbstractIndex> d, field_t column, const hyrise::storage::c_atable_ptr_t inputTable):
+  ScanPagedIndexFunctor(AbstractIndexValue *i, std::shared_ptr<hyrise::storage::AbstractIndex> d, field_t column, const hyrise::storage::c_atable_ptr_t inputTable):
     _index(d), _indexValue(i), _column(column), _inputTable(inputTable) {}
 
   template<typename ValueType>
@@ -67,7 +67,7 @@ PagedIndexScan::~PagedIndexScan() {
 void PagedIndexScan::executePlanOperation() {
   auto start_time = std::chrono::high_resolution_clock::now();
 
-  StorageManager *sm = StorageManager::getInstance();
+  hyrise::io::StorageManager *sm = hyrise::io::StorageManager::getInstance();
   auto idx = sm->getInvertedIndex(_indexName);
 
   // Handle type of index and value
@@ -75,7 +75,7 @@ void PagedIndexScan::executePlanOperation() {
   ScanPagedIndexFunctor fun(_value, idx, _field_definition[0], getInputTable());
   storage::pos_list_t *pos = ts(input.getTable(0)->typeOfColumn(_field_definition[0]), fun);
 
-  addResult(PointerCalculator::create(input.getTable(0), pos));
+  addResult(hyrise::storage::PointerCalculator::create(input.getTable(0), pos));
 
   auto end_time = std::chrono::high_resolution_clock::now();
   std::cout << std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() << " us (PagedIndexScan)" << std::endl;
