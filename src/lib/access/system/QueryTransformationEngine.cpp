@@ -14,8 +14,8 @@ Json::Value &QueryTransformationEngine::transform(Json::Value &query) {
   Json::Value operatorConfiguration;
   for (size_t i = 0; i < operatorIds.size(); ++i) {
     operatorConfiguration = query["operators"][operatorIds[i]];
-    // check whether operator should be transformed
-    if (_factory.count(operatorConfiguration["type"].asString()) > 0)
+    // check whether operator should be transformed; postpone transformation if dynamic transformation is required
+    if (operatorConfiguration["dynamic"].asBool() == false && _factory.count(operatorConfiguration["type"].asString()) > 0)
       _factory[operatorConfiguration["type"].asString()]->transform(operatorConfiguration, operatorIds[i], query);
     // check whether operator needs to be parallelized
     if (requestsParallelization(operatorConfiguration))
@@ -147,7 +147,7 @@ void QueryTransformationEngine::appendConsolidateSrcNodeEdges(
   for (unsigned i = 0; i < numberOfInitialEdges; ++i) {
     Json::Value currentEdge = edges[i];
     if (currentEdge[0u].asString() == operatorId) {
-      appendEdge(consolidateOperatorId, currentEdge[1u].asString(), query);
+      query["edges"][i][0u] = consolidateOperatorId;
     }
   }
 }

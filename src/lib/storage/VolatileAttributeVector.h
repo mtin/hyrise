@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_STORAGE_VOLATILEATTRIBUTEVECTOR_H_
-#define SRC_LIB_STORAGE_VOLATILEATTRIBUTEVECTOR_H_
+#pragma once
 
 #include <cerrno>
 #include <cstring>
@@ -13,23 +12,23 @@
 #include <stdexcept>
 #include <sstream>
 
-#include "memory/MallocStrategy.h"
 #include "storage/FixedLengthVector.h"
+
+namespace hyrise {
+namespace storage {
 
 template <typename T>
 class VolatileAttributeVector : public FixedLengthVector<T> {
  private:
-  T *_values;
+  /*T *_values;
   size_t _rows;
   size_t _columns;
-  size_t _allocated_bytes;
+  size_t _allocated_bytes;*/
 
   std::mutex _allocate_mtx;
-  using Strategy = MallocStrategy;
  public:
-  typedef T value_type;
 
-  VolatileAttributeVector(size_t columns,  size_t rows)  :
+  /*VolatileAttributeVector(size_t columns,  size_t rows)  :
       _values(nullptr), _rows(0), _columns(columns), _allocated_bytes(0) {
     if (rows > 0) {
       reserve(rows);
@@ -37,8 +36,8 @@ class VolatileAttributeVector : public FixedLengthVector<T> {
   }
 
   virtual ~VolatileAttributeVector() {
-    Strategy::deallocate(_values, _allocated_bytes);
-  }
+    free(_values);
+  }*/
 
   void *data() {
     return _values;
@@ -129,13 +128,13 @@ class VolatileAttributeVector : public FixedLengthVector<T> {
     std::lock_guard<std::mutex> guard(_allocate_mtx);
 
     if (bytes > _allocated_bytes) {
-      void *new_values = Strategy::reallocate(_values, bytes, _allocated_bytes);
+      void *new_values = realloc(_values, bytes);
 
       if (bytes > _allocated_bytes)
         memset(((char*) new_values) + _allocated_bytes, 0, bytes - _allocated_bytes);
 
       if (new_values == nullptr) {
-        Strategy::deallocate(_values, _allocated_bytes);
+        free(_values);
         throw std::bad_alloc();
       }
 
@@ -161,4 +160,5 @@ class VolatileAttributeVector : public FixedLengthVector<T> {
   }
 };
 
-#endif  // SRC_LIB_STORAGE_VOLATILEATTRIBUTEVECTOR_H_
+}
+}

@@ -22,7 +22,7 @@ namespace hyrise {
 namespace access {
 
 struct CreateDeltaIndexFunctor {
-  typedef std::shared_ptr<AbstractIndex> value_type;
+  typedef std::shared_ptr<storage::AbstractIndex> value_type;
   const storage::c_atable_ptr_t& in;
   size_t column;
 
@@ -31,7 +31,7 @@ struct CreateDeltaIndexFunctor {
 
   template<typename R>
   value_type operator()() {
-    return std::make_shared<DeltaIndex<R>>(in, column);
+    return std::make_shared<storage::DeltaIndex<R>>(in, column);
   }
 };
 
@@ -53,14 +53,14 @@ void CreateDeltaIndex::executePlanOperation() {
   if (!store)
     throw std::runtime_error("IndexAwareTableScan only works on stores");
 
-  std::shared_ptr<AbstractIndex> _index;
+  std::shared_ptr<storage::AbstractIndex> _index;
   auto column = _field_definition[0];
 
   CreateDeltaIndexFunctor fun(in, column);
   storage::type_switch<hyrise_basic_types> ts;
   _index = ts(in->typeOfColumn(column), fun);
 
-  StorageManager *sm = StorageManager::getInstance();
+  io::StorageManager *sm = io::StorageManager::getInstance();
   sm->addInvertedIndex(_index_name, _index);
   store->addDeltaIndex(_index, column);
 }

@@ -2,7 +2,7 @@
 #include "access/Layouter.h"
 
 #include "access/system/QueryParser.h"
-
+#include "storage/DictionaryFactory.h"
 #include "storage/OrderIndifferentDictionary.h"
 #include "storage/Table.h"
 
@@ -54,25 +54,25 @@ void LayoutSingleTable::executePlanOperation() {
   size = bl->count();
 
   storage::atable_ptr_t result;
-  metadata_list vc;
-  vc.push_back(ColumnMetadata::metadataFromString("STRING", "content"));
-  vc.push_back(ColumnMetadata::metadataFromString("INTEGER", "numResults"));
-  vc.push_back(ColumnMetadata::metadataFromString("FLOAT", "totalCost"));
-  vc.push_back(ColumnMetadata::metadataFromString("INTEGER", "numContainer"));
-  vc.push_back(ColumnMetadata::metadataFromString("FLOAT", "columnCost"));
-  vc.push_back(ColumnMetadata::metadataFromString("FLOAT", "rowCost"));
+  storage::metadata_list vc;
+  vc.push_back(storage::ColumnMetadata::metadataFromString("STRING", "content"));
+  vc.push_back(storage::ColumnMetadata::metadataFromString("INTEGER", "numResults"));
+  vc.push_back(storage::ColumnMetadata::metadataFromString("FLOAT", "totalCost"));
+  vc.push_back(storage::ColumnMetadata::metadataFromString("INTEGER", "numContainer"));
+  vc.push_back(storage::ColumnMetadata::metadataFromString("FLOAT", "columnCost"));
+  vc.push_back(storage::ColumnMetadata::metadataFromString("FLOAT", "rowCost"));
 
 
-  std::vector<AbstractTable::SharedDictionaryPtr > vd;
-  vd.push_back(DictionaryFactory<OrderIndifferentDictionary>::build(StringType));
-  vd.push_back(DictionaryFactory<OrderIndifferentDictionary>::build(IntegerType));
-  vd.push_back(DictionaryFactory<OrderIndifferentDictionary>::build(FloatType));
-  vd.push_back(DictionaryFactory<OrderIndifferentDictionary>::build(IntegerType));
-  vd.push_back(DictionaryFactory<OrderIndifferentDictionary>::build(FloatType));
-  vd.push_back(DictionaryFactory<OrderIndifferentDictionary>::build(FloatType));
+  std::vector<storage::AbstractTable::SharedDictionaryPtr > vd;
+  vd.push_back(storage::makeDictionary<storage::OrderIndifferentDictionary>(StringType));
+  vd.push_back(storage::makeDictionary<storage::OrderIndifferentDictionary>(IntegerType));
+  vd.push_back(storage::makeDictionary<storage::OrderIndifferentDictionary>(FloatType));
+  vd.push_back(storage::makeDictionary<storage::OrderIndifferentDictionary>(IntegerType));
+  vd.push_back(storage::makeDictionary<storage::OrderIndifferentDictionary>(FloatType));
+  vd.push_back(storage::makeDictionary<storage::OrderIndifferentDictionary>(FloatType));
 
   // Allocate a new Table
-  result = std::make_shared<Table>(&vc, &vd, _maxResults, false);
+  result = std::make_shared<storage::Table>(&vc, &vd, _maxResults, false);
 
   result->resize(r.size());
   for (size_t i = 0; i < r.size(); ++i) {
@@ -86,20 +86,11 @@ void LayoutSingleTable::executePlanOperation() {
     result->setValue<float>(5, i, bl->getRowCost());
   }
 
-  // Free the memory
-  delete bl;
-  for (const auto & m: vc) {
-    delete m;
-  }
-  for (const auto & q: qs) {
-    delete q;
-  }
-
   addResult(result);
 }
 
 std::shared_ptr<PlanOperation> LayoutSingleTable::parse(const Json::Value &data) {
-  std::shared_ptr<LayoutSingleTable> s = std::make_shared<LayoutSingleTable>();
+  auto s = std::make_shared<LayoutSingleTable>();
   s->setNumRows(data["num_rows"].asUInt());
 
   if (data.isMember("layouter")) {

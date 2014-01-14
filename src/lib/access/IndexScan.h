@@ -32,27 +32,17 @@ public:
   const std::string vname();
   void setIndexName(const std::string &name);
   template<typename T>
-  void setValue1(const T value) {
+  void setValue(const T value) {
     auto val = new IndexValue<T>();
     val->value = value;
-    _value1 = static_cast<AbstractIndexValue*>(val);
+    _value = static_cast<AbstractIndexValue*>(val);
   }
-
-  template<typename T>
-  void setValue2(const T value) {
-    auto val = new IndexValue<T>();
-    val->value = value;
-    _value2 = static_cast<AbstractIndexValue*>(val);
-  }
-  void setPredicateType(PredicateType::type predicate_type) {_predicate_type = predicate_type;}
 
   friend class IndexAwareTableScan;
 
 protected:
   std::string _indexName;
-  AbstractIndexValue *_value1;
-  AbstractIndexValue *_value2;
-  PredicateType::type _predicate_type;
+  AbstractIndexValue *_value;
 };
 
 

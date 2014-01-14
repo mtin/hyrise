@@ -8,8 +8,24 @@
 
 #include "taskscheduler/Task.h"
 
+#include "log4cxx/logger.h"
+
 #include <iostream>
 #include <thread>
+#include <algorithm>
+
+namespace {
+log4cxx::LoggerPtr _logger(log4cxx::Logger::getLogger("hyrise.taskscheduler"));
+}
+
+namespace hyrise {
+namespace taskscheduler {
+
+std::vector<std::shared_ptr<Task>> Task::applyDynamicParallelization(size_t dynamicCount){
+  LOG4CXX_ERROR(_logger, "Dynamic Parallelization has not been implemented for this operator.");
+  LOG4CXX_ERROR(_logger, "Running without parallelization.");
+  return { shared_from_this() };
+}
 
 void Task::lockForNotifications() {
   _notifyMutex.lock();
@@ -59,7 +75,51 @@ void Task::addDependency(std::shared_ptr<Task> dependency) {
     ++_dependencyWaitCount;
   }
   dependency->addDoneObserver(shared_from_this());
+}
 
+void Task::addDoneDependency(std::shared_ptr<Task> dependency) {
+  {
+    std::lock_guard<decltype(_depMutex)> lk(_depMutex);
+    _dependencies.push_back(dependency);
+  }
+}
+
+void Task::removeDependency(std::shared_ptr<Task> dependency) {
+    
+    std::lock_guard<decltype(_depMutex)> lk(_depMutex);
+    // remove from dependencies
+    auto newEnd = std::remove(_dependencies.begin(), _dependencies.end(), dependency);
+    if (newEnd != _dependencies.end()) { // we actually removed something
+      _dependencies.erase(newEnd, _dependencies.end());
+      --_dependencyWaitCount;
+    }
+}
+
+void Task::changeDependency(std::shared_ptr<Task> from, std::shared_ptr<Task> to) {
+    
+    std::lock_guard<decltype(_depMutex)> lk(_depMutex);
+    // find from dependencies
+    for(size_t i = 0, size = _dependencies.size(); i < size; i++){
+      if(_dependencies[i] == from){
+        _dependencies[i] = to;
+      }
+    }
+    // add new done observer
+    to->addDoneObserver(std::dynamic_pointer_cast<Task>(shared_from_this()));
+}
+
+void Task::setDependencies(std::vector<std::shared_ptr<Task> > dependencies, int count) {
+    std::lock_guard<decltype(_depMutex)> lk(_depMutex);
+    _dependencies = dependencies;
+    _dependencyWaitCount = 0;
+}
+
+bool Task::isDependency(const task_ptr_t& task) {
+  std::lock_guard<decltype(_depMutex)> lk(_depMutex);
+  return std::any_of(
+      _dependencies.begin(),
+      _dependencies.end(),
+      [task](task_ptr_t t) {return t == task;});
 }
 
 void Task::addReadyObserver(const std::shared_ptr<TaskReadyObserver>& observer) {
@@ -140,3 +200,6 @@ void SleepTask::operator()() {
 void SyncTask::operator()() {
   //do nothing
 }
+
+} } // namespace hyrise::taskscheduler
+

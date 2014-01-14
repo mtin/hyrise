@@ -15,10 +15,55 @@
 
 #include "boost/lexical_cast.hpp"
 #include "log4cxx/logger.h"
+#include <algorithm>
 
 namespace { auto logger = log4cxx::Logger::getLogger("access.plan.PlanOperation"); }
 
 namespace hyrise { namespace access {
+
+size_t PlanOperation::getTotalTableSize(){
+  return 0;
+}
+
+double PlanOperation::calcMinMts(double totalTblSizeIn100k) {
+  return min_mts_a() * totalTblSizeIn100k + min_mts_b();
+}
+
+double PlanOperation::calcA(double  totalTblSizeIn100k) {
+  return a_a() * totalTblSizeIn100k + a_b();
+}
+
+size_t PlanOperation::determineDynamicCount(size_t maxTaskRunTime) {
+  // this can never be satisfied. Default to NO parallelization.
+  if (maxTaskRunTime == 0) {
+    return 1;
+  }
+
+  auto totalTableSize = getTotalTableSize();
+
+  // Table is empty or in case of RadixJoin at least one operand is empty.
+  // Also if getTotalTableSize() uses default implementation.
+  if (totalTableSize == 0) {
+    return 1;
+  }
+
+  auto totalTblSizeIn100k = totalTableSize / 100000.0;
+
+  // this is the b of the mts = a / instances + b  model
+  auto minMts = calcMinMts(totalTblSizeIn100k);
+
+  if (maxTaskRunTime < minMts) {
+    LOG4CXX_ERROR(logger, planOperationName() << ": Could not honor MTS request. Too small.");
+    return 1024;
+  }
+
+  auto a = calcA(totalTblSizeIn100k);
+  size_t numTasks = std::max(1, static_cast<int>(round(a/(maxTaskRunTime - minMts))));
+
+  LOG4CXX_DEBUG(logger, planOperationName() << ": tts(in 100k): " << totalTblSizeIn100k << ", numTasks: " << numTasks);
+
+  return numTasks;
+}
 
 PlanOperation::~PlanOperation() = default;
 
@@ -134,40 +179,36 @@ void PlanOperation::operator()() noexcept {
 }
 
 const PlanOperation * PlanOperation::execute() {
-  epoch_t startTime = get_epoch_nanoseconds();
+  const bool recordPerformance = _performance_attr != nullptr;
 
+  // Check if we really need this
+  epoch_t startTime;
+  if (recordPerformance)
+    startTime = get_epoch_nanoseconds();
+
+  PapiTracer pt;
+
+  // Start the execution
   refreshInput();
-
   setupPlanOperation();
 
-  // PapiTracer pt;
-  // if (!_papi_disabled) {
-  //   pt.addEvent("PAPI_TOT_CYC");
-  //   pt.addEvent(getEvent());
-  //   pt.start();
-  // }
+  if (recordPerformance) {
+    pt.addEvent("PAPI_TOT_CYC");
+    pt.addEvent(getEvent());
+    pt.start();
+  }
 
   executePlanOperation();
-  
-  // if (!_papi_disabled)
-  //   pt.stop();
+
+  if (recordPerformance) pt.stop();
 
   teardownPlanOperation();
 
-  if (_performance_attr != nullptr) {
+  if (recordPerformance) {
     epoch_t endTime = get_epoch_nanoseconds();
     std::string threadId = boost::lexical_cast<std::string>(std::this_thread::get_id());
-
-    long long papi_cycles = 0;
-    long long papi_event = 0;
-
-    // if (!_papi_disabled) {
-    //   papi_cycles = pt.value("PAPI_TOT_CYC");
-    //   papi_event = pt.value(getEvent());
-    // }
-    
     *_performance_attr = (performance_attributes_t) {
-      papi_cycles, papi_event, getEvent() , planOperationName(), _operatorId, startTime, endTime, threadId
+      pt.value("PAPI_TOT_CYC"), pt.value(getEvent()), getEvent() , planOperationName(), _operatorId, startTime, endTime, threadId
     };
   }
 

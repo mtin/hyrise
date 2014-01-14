@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <map>
 
-
+#include "optional.hpp"
 #include "helper/make_unique.h"
 #include "helper/checked_cast.h"
 #include "helper/vector_helpers.h"
@@ -76,13 +76,8 @@ transaction_cid_t TransactionManager::getLastCommitId() {
 }
 
 TXContext TransactionManager::buildContext() {
-  TXContext ctx(getTransactionId(), getLastCommitId());
-  _txData([&ctx](map_t& txData) {
-      txData[ctx.tid] = make_unique<TransactionData>(ctx);
-    });
-  return std::move(ctx);
+  return {getTransactionId(), getLastCommitId()};
 }
-
 
 transaction_cid_t TransactionManager::prepareCommit() {
   transaction_id_t result;
@@ -105,12 +100,20 @@ transaction_cid_t TransactionManager::tryPrepareCommit() {
 
 TXModifications& TransactionManager::operator[](const transaction_id_t& key) {
   return _txData([&key] (map_t& txData) -> TXModifications& {
-#ifdef EXPENSIVE_ASSERTIONS
       if (txData.find(key) == txData.end()) {
-        throw std::runtime_error("Retrieving Modification Set without initializing it first.");
+        txData[key] = make_unique<TransactionData>();
       }
-#endif
       return txData[key]->_modifications;
+    });
+}
+
+std::optional<const TXModifications&> TransactionManager::getModifications(const transaction_id_t key) const {
+  return _txData([&key] (const map_t& txData) -> std::optional<const TXModifications&> {
+      auto it = txData.find(key);
+      if (it == txData.end()) {
+        return std::nullopt;
+      }
+      return it->second->_modifications;
     });
 }
 
@@ -136,7 +139,7 @@ TXContext TransactionManager::beginTransaction() {
   return getInstance().buildContext();
 }
 
-std::vector<TXContext> TransactionManager::getRunningTransactionContexts() {
+std::vector<TXContext> TransactionManager::getCurrentModifyingTransactionContexts() {
   return getInstance()._txData([] (const map_t& data) {
       std::vector<TXContext> result;
       for(const auto& kv: data) {
@@ -146,22 +149,9 @@ std::vector<TXContext> TransactionManager::getRunningTransactionContexts() {
     });
 }
 
-bool TransactionManager::isRunningTransaction(transaction_id_t tid) {
-  return getInstance()._txData([&] (const map_t& data) {
-      return data.find(tid) != data.end();
-    });
-}
 
-TXContext TransactionManager::getContext(transaction_id_t tid) {
-  return getInstance()._txData([&tid] (const map_t& data) {
-      return data.at(tid)->_context;
-    });
-}
-
-TransactionData& TransactionManager::getTransactionData(transaction_id_t tid) {
-  return getInstance()._txData([&] (const map_t& txData) -> TransactionData& {
-      return *txData.at(tid).get();
-    });
+bool TransactionManager::isValidTransactionId(transaction_id_t tid) {
+  return tid <= getInstance()._transactionCount;
 }
 
 storage::store_ptr_t getStore(const storage::c_atable_ptr_t& table) {
@@ -172,19 +162,14 @@ storage::store_ptr_t getStore(const storage::c_atable_ptr_t& table) {
 void TransactionManager::endTransaction(transaction_id_t tid) {
   // Clear all relevant data for this transaction
   _txData([&tid] (map_t& txData) {
-      std::size_t erased = txData.erase(tid);
-      assert(erased == 1);
+      txData.erase(tid);
     });
 }
 
 void TransactionManager::rollbackTransaction(TXContext ctx) {
-  if (!isRunningTransaction(ctx.tid)) {
-    throw std::runtime_error("Transaction is not currently running");
-  }
-
   // unmark positions previously marked for delete
-  auto& txData = getTransactionData(ctx.tid);
-  for(auto& kv : txData._modifications.deleted) {
+  // auto& txData = getTransactionData(ctx.tid);
+  for(auto& kv : getInstance()[ctx.tid].deleted) {
     auto store = getStore(kv.first.lock());
     store->unmarkForDeletion(kv.second, ctx.tid);
   }
@@ -192,30 +177,32 @@ void TransactionManager::rollbackTransaction(TXContext ctx) {
   getInstance().endTransaction(ctx.tid);
 }
 
+
 transaction_cid_t TransactionManager::commitTransaction(TXContext ctx, bool flush_log) {
-  if (!isRunningTransaction(ctx.tid)) {
+  if (!isValidTransactionId(ctx.tid)) {
     throw std::runtime_error("Transaction is not currently running");
   }
 
   // std::cout << "commitTransaction with tx " << ctx.tid << std::endl;
 
   auto& txmgr = getInstance();
-  auto& tx_data = getTransactionData(ctx.tid);
-  const auto& modifications = tx_data._modifications;
-
   ctx.cid = txmgr.prepareCommit();
 
-  for (auto& kv: modifications.inserted) {
-    auto weak_table = kv.first;
-    if (auto store = getStore(weak_table.lock())) {
-      store->commitPositions(kv.second, ctx.cid, true);
-    }
-  }
+  if (auto mods = txmgr.getModifications(ctx.tid)) {
+    const auto& modifications = *mods;
 
-  for (auto& kv: modifications.deleted) {
-    auto weak_table = kv.first;
-    if (auto store = getStore(weak_table.lock())) {
-      store->commitPositions(kv.second, ctx.cid, false);
+    for (auto& kv: modifications.inserted) {
+      auto weak_table = kv.first;
+      if (auto store = getStore(weak_table.lock())) {
+        store->commitPositions(kv.second, ctx.cid, true);
+      }
+    }
+
+    for (auto& kv: modifications.deleted) {
+      auto weak_table = kv.first;
+      if (auto store = getStore(weak_table.lock())) {
+        store->commitPositions(kv.second, ctx.cid, false);
+      }
     }
   }
 
@@ -224,3 +211,4 @@ transaction_cid_t TransactionManager::commitTransaction(TXContext ctx, bool flus
 }
 
 }}
+

@@ -3,6 +3,9 @@
 
 #include <stdexcept>
 
+namespace hyrise {
+namespace access {
+
 expression_map_t getExpressionMap() {
   expression_map_t d;
   d["AND"] = AND;
@@ -31,6 +34,8 @@ predicate_map_t getPredicateMap() {
   d["AND"] = PredicateType::AND;
   d["OR"] = PredicateType::OR;
   d["NOT"] = PredicateType::NOT;
+  d["LIKE"] = PredicateType::LikeExpression;
+  d["IN"] = PredicateType::InExpression;
   return d;
 }
 
@@ -45,3 +50,6 @@ ExpressionType parseExpressionType(const Json::Value &value) {
   else if (value.isNumeric()) return (ExpressionType) value.asInt();
   else throw std::runtime_error("Expression '" + value.asString() + "' could not be parsed");
 }
+
+} } // namespace hyrise::access
+

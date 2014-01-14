@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_STORAGE_META_STORAGE_H_
-#define SRC_LIB_STORAGE_META_STORAGE_H_
+#pragma once
 
 #include <stdexcept>
 
@@ -15,9 +14,15 @@
 
 // This are the basic types used in HYRISE, the enum above can
 // be used to directly offset into the list at compile time
-typedef boost::mpl::vector<hyrise_int_t, hyrise_float_t, hyrise_string_t> hyrise_basic_types;
-
-
+//
+// ATTENTION: Any new types in the enum have to reflected here
+typedef boost::mpl::vector<hyrise_int_t, hyrise_float_t, hyrise_string_t,
+                           // Delta Types
+                           hyrise_int_t, hyrise_float_t, hyrise_string_t,
+                           // Concurrent Delta Types,
+                           hyrise_int_t, hyrise_float_t, hyrise_string_t,
+                           // No Dict Types
+                           hyrise_int32_t, hyrise_float_t > hyrise_basic_types;
 
 namespace hyrise {
 namespace storage {
@@ -54,6 +59,4 @@ struct type_switch<L, N, true> {
 
 
 }}
-
-#endif  // SRC_LIB_STORAGE_META_STORAGE_H_
 

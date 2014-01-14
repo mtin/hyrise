@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_STORAGE_DELTAINDEX_H_
-#define SRC_LIB_STORAGE_DELTAINDEX_H_
+#pragma once
 
 #include <vector>
 #include <map>
@@ -16,6 +15,9 @@
 #include "storage/storage_types.h"
 #include "storage/AbstractIndex.h"
 #include "storage/AbstractTable.h"
+
+namespace hyrise {
+namespace storage {
 
 // An inverted index for the delta that can be queried and
 // is modifiable to add new values. However, the structure
@@ -62,7 +64,7 @@ public:
     if (pthread_rwlock_wrlock(&_rw_lock) != 0)
       std::cout << "ERROR while write locking delta index" <<std::endl;
   }
-  
+
   void read_lock() {
     if (pthread_rwlock_rdlock(&_rw_lock) != 0)
       std::cout << "ERROR while read locking delta index" <<std::endl;
@@ -87,7 +89,7 @@ public:
       _index.insert(std::make_pair(value, *poslist) );
     } else {
       // find position to insert...
-      auto it = find->second.end(); 
+      auto it = find->second.end();
       --it;
       while (*it > pos) --it;
       ++it;
@@ -130,4 +132,6 @@ public:
   };
 
 };
-#endif  // SRC_LIB_STORAGE_DELTAINDEX_H_
+
+}
+}

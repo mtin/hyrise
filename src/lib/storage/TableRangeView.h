@@ -6,8 +6,7 @@
  *      Author: jwust
  */
 
-#ifndef TABLERANGEVIEW_H_
-#define TABLERANGEVIEW_H_
+#pragma once
 
 #include "storage/AbstractTable.h"
 #include "helper/SharedFactory.h"
@@ -37,12 +36,13 @@ public:
   atable_ptr_t copy() const;
   void print(const size_t limit = (size_t) -1) const;
   c_atable_ptr_t getTable() const;
+  c_atable_ptr_t getActualTable() const;
 
   // recalculated rows and routed to underlying table if necessary
   size_t size() const;
   void setValueId(const size_t column, const size_t row, const ValueId valueId);
   ValueId getValueId(const size_t column, const size_t row) const;
-  const ColumnMetadata *metadataAt(const size_t column, const size_t row = 0, const table_id_t table_id = 0) const;
+  const ColumnMetadata& metadataAt(const size_t column, const size_t row = 0, const table_id_t table_id = 0) const;
   const SharedDictionaryPtr & dictionaryAt(const size_t column, const size_t row = 0, const table_id_t table_id = 0) const;
 
   // throw exceptions if called
@@ -67,4 +67,3 @@ public:
 
 }}
 
-#endif /* TABLERANGEVIEW_H_ */

@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_STORAGE_GROUPKEYINDEX_H_
-#define SRC_LIB_STORAGE_GROUPKEYINDEX_H_
+#pragma once
 
 #include <vector>
 #include <map>
@@ -15,6 +14,9 @@
 
 #include <memory>
 
+namespace hyrise {
+namespace storage {
+
 // An inverted index for the main that is created once
 // on the main, manually or during a merge.
 // The index is readonly.
@@ -26,7 +28,7 @@ private:
   typedef std::pair<pos_list_t::iterator, pos_list_t::iterator> postings_range_t;
   typedef std::map<T, pos_list_t> inverted_index_mutable_t;
   typedef std::map<T, postings_range_t> groupkey_offsets_t;
-  
+
 
   groupkey_offsets_t _offsets;
   groupkey_postings_t _postings;
@@ -39,12 +41,12 @@ public:
   }
 
   void write_lock() {}
- 
+
   void read_lock() {}
 
   void unlock() {}
 
-  explicit GroupkeyIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column) {
+  explicit GroupkeyIndex(const c_atable_ptr_t& in, field_t column) {
     if (in != nullptr) {
 
       // create mutable index
@@ -64,7 +66,7 @@ public:
       // create readonly index
       _postings.reserve(in->size());
       for (auto it : _index) {
-        // copy positions 
+        // copy positions
         std::copy(it.second.begin(), it.second.end(), std::back_inserter(_postings));
         // set offsets
         auto offset_begin = _postings.end() - it.second.end() + it.second.begin();
@@ -148,4 +150,6 @@ public:
     }
   };
 };
-#endif  // SRC_LIB_STORAGE_GROUPKEYINDEX_H_
+
+}
+}

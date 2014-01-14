@@ -4,13 +4,17 @@
 #include "io/shortcuts.h"
 
 #include "storage/AbstractTable.h"
+#include "storage/DictionaryFactory.h"
+#include "storage/FixedLengthVector.h"
+#include "storage/OrderIndifferentDictionary.h"
+#include "storage/OrderPreservingDictionary.h"
 #include "storage/RawTable.h"
 #include "storage/SimpleStore.h"
 #include "storage/TableGenerator.h"
 
 namespace hyrise { namespace storage {
 
-class TableTests : public ::hyrise::Test {
+class TableTests : public Test {
 
 public:
   metadata_list intList(size_t num=2) {
@@ -30,12 +34,25 @@ public:
 };
 
 TEST_F(TableTests, does_copy_structure_copy_structure) {
-  hyrise::storage::atable_ptr_t  input = Loader::shortcuts::load("test/lin_xxs.tbl");
+  hyrise::storage::atable_ptr_t  input = io::Loader::shortcuts::load("test/lin_xxs.tbl");
   ASSERT_EQ(3u, input->partitionCount());
 
   hyrise::storage::atable_ptr_t  copy  = input->copy_structure();
   ASSERT_EQ(3u, input->partitionCount()) << "Copied table should have the same number of containers";
 }
+
+TEST_F(TableTests, copy_structure_replacement) {
+  auto input = io::Loader::shortcuts::load("test/lin_xxs.tbl", io::Loader::params().setReturnsMutableVerticalTable(true));
+  ASSERT_EQ(3u, input->partitionCount());
+  auto order_indifferent = [](DataType dt) { return makeDictionary<OrderIndifferentDictionary>(dt); };
+  auto order_preserving = [](DataType dt) { return makeDictionary<OrderPreservingDictionary>(dt); };
+  auto b = [](std::size_t cols) { return std::make_shared<FixedLengthVector<value_id_t>>(cols, 0); };
+  hyrise::storage::atable_ptr_t copy  = input->copy_structure(order_preserving, b); 
+  ASSERT_TRUE(std::dynamic_pointer_cast<OrderPreservingDictionary<hyrise_int_t>>(copy->dictionaryAt(0,0)) != nullptr);
+  hyrise::storage::atable_ptr_t copy2 = input->copy_structure(order_indifferent, b);
+  ASSERT_TRUE(std::dynamic_pointer_cast<OrderIndifferentDictionary<hyrise_int_t>>(copy2->dictionaryAt(0,0)) != nullptr);
+}
+
 
 TEST_F(TableTests, generate_generates_layout) {
 
@@ -67,14 +84,14 @@ TEST_F(TableTests, generate_generates_layout) {
 }
 
 TEST_F(TableTests, number_of_column) {
-  hyrise::storage::atable_ptr_t t = Loader::shortcuts::load("test/lin_xxs.tbl");
+  hyrise::storage::atable_ptr_t t = io::Loader::shortcuts::load("test/lin_xxs.tbl");
   ASSERT_TRUE(t->numberOfColumn("col_0") == 0);
   ASSERT_TRUE(t->numberOfColumn("col_2") == 2);
   //ASSERT_TRUE( t->numberOfColumn("does_not_exist") == -1 );
 }
 
 TEST_F(TableTests, bit_compression_test) {
-  hyrise::storage::atable_ptr_t main = Loader::shortcuts::load("test/bittest.tbl");
+  hyrise::storage::atable_ptr_t main = io::Loader::shortcuts::load("test/bittest.tbl");
 
   ASSERT_TRUE(main->getValue<hyrise_int_t>(0, 0) == 4);
   ASSERT_TRUE(main->getValue<hyrise_int_t>(0, 1) == 0);
@@ -127,3 +144,4 @@ TEST_F(TableTests, test_table_copy) {
 
 
 }}
+

@@ -109,7 +109,7 @@ Json::Value TpccNewOrderProcedure::execute() {
     const std::string c_last = tCustomer->getValue<hyrise_string_t>("C_LAST", 0);
     const std::string c_credit = tCustomer->getValue<hyrise_string_t>("C_CREDIT", 0);
 
-    incrementNextOrderId(std::const_pointer_cast<AbstractTable>(tDistrict));
+    incrementNextOrderId(std::const_pointer_cast<storage::AbstractTable>(tDistrict));
     createOrder();
     createNewOrder();
 
@@ -154,7 +154,7 @@ Json::Value TpccNewOrderProcedure::execute() {
 
       total += item.amount();
 
-      updateStock(std::const_pointer_cast<AbstractTable>(tStock), item);
+      updateStock(std::const_pointer_cast<storage::AbstractTable>(tStock), item);
       createOrderLine(item, i + 1);
     }
 

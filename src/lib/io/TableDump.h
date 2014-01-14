@@ -1,17 +1,19 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_IO_TABLE_DUMP_H_
-#define SRC_LIB_IO_TABLE_DUMP_H_
+#pragma once
 
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "io/AbstractLoader.h"
+#include "helper/types.h"
 
-class AbstractTable;
-class Store;
+namespace hyrise {
+namespace storage {
 
-namespace hyrise { namespace storage {
+//class AbstractTable;
+//class Store;
+
 /**
  * This is the class that allows dumping a table instance in a very
  * simple way directly to the file system without using a third party
@@ -38,30 +40,30 @@ class SimpleTableDump {
    * Dumps the dictionary and performs simple conversion based on the
    * ofstream structure
    */
-  void dumpDictionary(std::string name, std::shared_ptr<AbstractTable> t, size_t col);
+  void dumpDictionary(std::string name, atable_ptr_t t, size_t col);
 
   /**
    * Dumps the attrbite but writes the attribute data binary since its
    * all value_id_t
    */
-  void dumpAttribute(std::string name, std::shared_ptr<AbstractTable> t, size_t col);
+  void dumpAttribute(std::string name, atable_ptr_t t, size_t col);
 
   /**
    */
-  void dumpMetaData(std::string name, std::shared_ptr<AbstractTable> t);
+  void dumpMetaData(std::string name, atable_ptr_t t);
 
   /**
    */
-  void dumpHeader(std::string name, std::shared_ptr<AbstractTable> t);
+  void dumpHeader(std::string name, atable_ptr_t t);
 
   /**
    */
-  void dumpIndices(std::string name, std::shared_ptr<Store> s);
+  void dumpIndices(std::string name, store_ptr_t s);
 
   /**
    * Check if the file is a store and not a horizontal table
    */
-  void verify(std::shared_ptr<AbstractTable>);
+  void verify(atable_ptr_t);
 
 public:
 
@@ -75,29 +77,33 @@ public:
   bool dump(std::string name, std::shared_ptr<AbstractTable> table);
 };
 
+} // namespace storage
+
+namespace io {
+
 class TableDumpLoader : public AbstractInput {
   std::string _base;
   std::string _table;
 
   size_t getSize();
 
-  void loadDictionary(std::string name, size_t col, std::shared_ptr<AbstractTable> intable);
+  void loadDictionary(std::string name, size_t col, storage::atable_ptr_t intable);
 
   void loadAttribute(std::string name,
                      size_t col,
                      size_t size,
-                     std::shared_ptr<AbstractTable> intable);
+                     storage::atable_ptr_t intable);
 
 public:
   TableDumpLoader(std::string base, std::string table) :
     _base(base), _table(table) {
   }
 
-  std::shared_ptr<AbstractTable> load(std::shared_ptr<AbstractTable>,
-                                      const compound_metadata_list *,
-                                      const Loader::params &args);
+  storage::atable_ptr_t load(storage::atable_ptr_t,
+                             const storage::compound_metadata_list *,
+                             const Loader::params &args);
 
-  void loadIndices(std::shared_ptr<AbstractTable> intable);
+  void loadIndices(storage::atable_ptr_t intable);
 
   bool needs_store_wrap() {
     return true;
@@ -108,6 +114,5 @@ public:
   }
 };
 
-}}
+} } // namespace hyrise::io
 
-#endif // SRC_LIB_IO_TABLE_DUMP_H_

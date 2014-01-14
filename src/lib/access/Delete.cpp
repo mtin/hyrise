@@ -22,7 +22,7 @@ namespace {
 
 
 void DeleteOp::executePlanOperation() {
-	auto tab = checked_pointer_cast<const PointerCalculator>(input.getTable(0));
+	auto tab = checked_pointer_cast<const storage::PointerCalculator>(input.getTable(0));
 	auto store = std::const_pointer_cast<storage::Store>(checked_pointer_cast<const storage::Store>(tab->getActualTable()));
 
 	auto& txmgr = tx::TransactionManager::getInstance();
@@ -32,7 +32,7 @@ void DeleteOp::executePlanOperation() {
 	auto& modRecord = txmgr[_txContext.tid];
 	for(const auto& p : *(tab->getPositions())) {
 		LOG4CXX_DEBUG(logger, "Deleting row:" << p);
-		bool deleteOk = store->markForDeletion(p, _txContext.tid) == hyrise::tx::TX_CODE::TX_OK;
+		bool deleteOk = store->markForDeletion(p, _txContext.tid) == tx::TX_CODE::TX_OK;
 		if(!deleteOk) {
 		  txmgr.rollbackTransaction(_txContext);
 			throw tx::transaction_error("Aborted TX because TID of other TX found (Op: Delete, Table: " + tab->getName() + ")");

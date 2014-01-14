@@ -144,7 +144,7 @@ std::string loadParameterized(const std::string &path, const parameter_map_t& pa
   for (auto& param : params) {
     size_t pos = (size_t) -1;
     const std::string name = "%(" + param.first + ")";
-    
+
     while ((pos = file.find(name, pos + 1)) != file.npos) {
       size_t curpos = pos + name.length();
       std::ostringstream os;
@@ -155,10 +155,10 @@ std::string loadParameterized(const std::string &path, const parameter_map_t& pa
 	curpos = endptr - file.c_str();
 	os << std::setw(width);
       }
-      
+
       if (!isalpha(file.at(curpos)))
         throw std::runtime_error("no format set for parameter \'" + param.first + "\'");
-      
+
       switch (getType(file.at(curpos))) {
         case FloatFormatType:
         case IntFormatType:    os << std::setfill('0'); break;
@@ -220,7 +220,7 @@ storage::c_atable_ptr_t executeAndWait(
   using namespace hyrise;
   using namespace access;
   using namespace tx;
- 
+
   std::stringstream query;
   query << "query=" << httpQuery;
   if (tid == tx::UNKNOWN)
@@ -229,13 +229,13 @@ storage::c_atable_ptr_t executeAndWait(
 
   std::unique_ptr<MockedConnection> conn = make_unique<MockedConnection>(query.str());
 
-  SharedScheduler::getInstance().resetScheduler("WSCoreBoundQueuesScheduler", poolSize);
-  const auto& scheduler = SharedScheduler::getInstance().getScheduler();
+  taskscheduler::SharedScheduler::getInstance().resetScheduler("WSCoreBoundQueuesScheduler", poolSize);
+  const auto& scheduler = taskscheduler::SharedScheduler::getInstance().getScheduler();
 
   auto request = std::make_shared<RequestParseTask>(conn.get());
   auto response = request->getResponseTask();
 
-  auto wait = std::make_shared<WaitTask>();
+  auto wait = std::make_shared<taskscheduler::WaitTask>();
   wait->addDependency(response);
 
   scheduler->schedule(wait);
@@ -244,7 +244,7 @@ storage::c_atable_ptr_t executeAndWait(
   wait->wait();
 
   auto result_task = response->getResultTask();
-  
+
   if (response->getState() == OpFail) {
     throw std::runtime_error(joinString(response->getErrorMessages(), "\n"));
   }
@@ -256,7 +256,7 @@ storage::c_atable_ptr_t executeAndWait(
   if (evt != nullptr) {
     *evt = result_task->getEvent();
   }
-  
+
   auto context = response->getTxContext();
   if (context.tid != tid)
     throw std::runtime_error("requested transaction id ignored!");
@@ -280,5 +280,4 @@ std::string executeStoredProcedureAndWait(
   return conn->getResponse();
 }
 
-} } //namespace access
-
+} } // namespace hyrise::access

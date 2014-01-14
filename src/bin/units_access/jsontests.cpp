@@ -8,7 +8,8 @@
 #include <storage.h>
 
 #include <io/shortcuts.h>
-#include "taskscheduler/SharedScheduler.h"
+#include <io/StorageManager.h>
+#include <taskscheduler/SharedScheduler.h>
 
 namespace hyrise {
 namespace access {
@@ -61,11 +62,13 @@ TEST_F(JSONTests, operator_replacement) {
 
   QueryTransformationEngine::getInstance()->replaceOperatorWithInstances(
       nodeId, instanceIds, unionId, query, numberOfInitialEdges);
-  ASSERT_TRUE(isEdgeEqual(query["edges"], 0, whatever, instanceId1));
-  ASSERT_TRUE(isEdgeEqual(query["edges"], 1, whatever, instanceId2));
-  ASSERT_TRUE(isEdgeEqual(query["edges"], 2, instanceId1, unionId));
-  ASSERT_TRUE(isEdgeEqual(query["edges"], 3, instanceId2, unionId));
-  ASSERT_TRUE(isEdgeEqual(query["edges"], 4, unionId, whatever));
+
+  ASSERT_TRUE(isEdgeEqual(query["edges"], 0, unionId, whatever));
+  ASSERT_TRUE(isEdgeEqual(query["edges"], 1, whatever, instanceId1));
+  ASSERT_TRUE(isEdgeEqual(query["edges"], 2, whatever, instanceId2));
+  ASSERT_TRUE(isEdgeEqual(query["edges"], 3, instanceId1, unionId));
+  ASSERT_TRUE(isEdgeEqual(query["edges"], 4, instanceId2, unionId));
+
 }
 
 TEST_F(JSONTests, append_instances_nodes) {
@@ -113,10 +116,11 @@ TEST_F(JSONTests, append_merge_node) {
 
   QueryTransformationEngine::getInstance()->appendConsolidateSrcNodeEdges(
       srcNode, instanceIds, srcMergeNode, query, 1);
-  ASSERT_TRUE(isEdgeEqual(query["edges"], 0, srcNode, dstNode));
+
+
+  ASSERT_TRUE(isEdgeEqual(query["edges"], 0, srcMergeNode, dstNode));
   ASSERT_TRUE(isEdgeEqual(query["edges"], 1, srcNodeInstance1, srcMergeNode));
   ASSERT_TRUE(isEdgeEqual(query["edges"], 2, srcNodeInstance2, srcMergeNode));
-  ASSERT_TRUE(isEdgeEqual(query["edges"], 3, srcMergeNode, dstNode));
 }
 
 TEST_F(JSONTests, append_union_node) {
@@ -140,10 +144,9 @@ TEST_F(JSONTests, append_union_node) {
 
   QueryTransformationEngine::getInstance()->appendConsolidateSrcNodeEdges(
       srcNode, instanceIds, srcUnionNode, query, 1);
-  ASSERT_TRUE(isEdgeEqual(query["edges"], 0, srcNode, dstNode));
+  ASSERT_TRUE(isEdgeEqual(query["edges"], 0, srcUnionNode, dstNode));
   ASSERT_TRUE(isEdgeEqual(query["edges"], 1, srcNodeInstance1, srcUnionNode));
   ASSERT_TRUE(isEdgeEqual(query["edges"], 2, srcNodeInstance2, srcUnionNode));
-  ASSERT_TRUE(isEdgeEqual(query["edges"], 3, srcUnionNode, dstNode));
 }
 
 TEST_F(JSONTests, remove_operator_nodes) {
@@ -172,8 +175,8 @@ TEST_F(JSONTests, simple_parse) {
 }
 
 TEST_F(JSONTests, parse_projection) {
-  hyrise::storage::atable_ptr_t t = Loader::shortcuts::load("test/lin_xxs.tbl");
-  hyrise::storage::atable_ptr_t reference = Loader::shortcuts::load("test/reference/simple_projection.tbl");
+  auto t = io::Loader::shortcuts::load("test/lin_xxs.tbl");
+  auto reference = io::Loader::shortcuts::load("test/reference/simple_projection.tbl");
   std::string query = "{\"type\": \"ProjectionScan\", \"fields\": [0], \"inputs\": [\"table1\"] }";
 
   Json::Value root;
@@ -190,12 +193,11 @@ TEST_F(JSONTests, parse_projection) {
   ASSERT_EQ(OpSuccess, ps->getState());
   auto result = ps->getResultTable();
   ASSERT_TRUE(result->contentEquals(reference));
-
 }
 
 TEST_F(JSONTests, parse_papi_event_set) {
-  StorageManager::getInstance()->loadTableFile("lin_xxs", "lin_xxs.tbl");
-  StorageManager::getInstance()->loadTableFile("lin_xxs_comp", "reference/simple_projection.tbl");
+  io::StorageManager::getInstance()->loadTableFile("lin_xxs", "lin_xxs.tbl");
+  io::StorageManager::getInstance()->loadTableFile("lin_xxs_comp", "reference/simple_projection.tbl");
 
   std::string q = loadFromFile("test/json/simple_query_with_papi.json");
 
@@ -203,15 +205,14 @@ TEST_F(JSONTests, parse_papi_event_set) {
   const auto& out = executeAndWait(q, 1, &papi);
 
   ASSERT_FALSE(!out);
-  ASSERT_TABLE_EQUAL(out, StorageManager::getInstance()->getTable("lin_xxs_comp"));
+  ASSERT_TABLE_EQUAL(out, io::StorageManager::getInstance()->getTable("lin_xxs_comp"));
   ASSERT_EQ("PAPI_L2_DCM", papi);
-  StorageManager::getInstance()->removeAll();
 }
 
 #ifdef USE_PAPI_TRACE
 TEST_F(JSONTests, parse_papi_badevent_set) {
-  StorageManager::getInstance()->loadTableFile("lin_xxs", "lin_xxs.tbl");
-  StorageManager::getInstance()->loadTableFile("lin_xxs_comp", "reference/simple_projection.tbl");
+  io::StorageManager::getInstance()->loadTableFile("lin_xxs", "lin_xxs.tbl");
+  io::StorageManager::getInstance()->loadTableFile("lin_xxs_comp", "reference/simple_projection.tbl");
 
   std::string q = loadFromFile("test/json/simple_query_with_papi_bad.json");
 
@@ -219,14 +220,12 @@ TEST_F(JSONTests, parse_papi_badevent_set) {
   ASSERT_THROW( {
       executeAndWait(q, 1, &papi);
     }, std::runtime_error);
-
-  StorageManager::getInstance()->removeAll();
 }
 #endif
 
 TEST_F(JSONTests, parse_papi_event_not_set) {
-  StorageManager::getInstance()->loadTableFile("lin_xxs", "lin_xxs.tbl");
-  StorageManager::getInstance()->loadTableFile("lin_xxs_comp", "reference/simple_projection.tbl");
+  io::StorageManager::getInstance()->loadTableFile("lin_xxs", "lin_xxs.tbl");
+  io::StorageManager::getInstance()->loadTableFile("lin_xxs_comp", "reference/simple_projection.tbl");
 
   std::string q = loadFromFile("test/json/simple_query.json");
 
@@ -234,10 +233,8 @@ TEST_F(JSONTests, parse_papi_event_not_set) {
   const auto& out = executeAndWait(q, 1, &papi);
 
   ASSERT_FALSE(!out);
-  ASSERT_TABLE_EQUAL(out, StorageManager::getInstance()->getTable("lin_xxs_comp"));
+  ASSERT_TABLE_EQUAL(out, io::StorageManager::getInstance()->getTable("lin_xxs_comp"));
   ASSERT_EQ("PAPI_TOT_INS", papi);
-  StorageManager::getInstance()->removeAll();
-
 }
 
 TEST_F(JSONTests, parse_predicate) {
@@ -262,8 +259,8 @@ TEST_F(JSONTests, parse_predicate_string) {
 
 
 TEST_F(JSONTests, parse_selection) {
-  hyrise::storage::atable_ptr_t t = Loader::shortcuts::load("test/groupby_xs.tbl");
-  hyrise::storage::atable_ptr_t reference = Loader::shortcuts::load("test/reference/simple_select_1.tbl");
+  auto t = io::Loader::shortcuts::load("test/groupby_xs.tbl");
+  auto reference = io::Loader::shortcuts::load("test/reference/simple_select_1.tbl");
 
   std::string query = "{\"type\": \"SimpleTableScan\", \"predicates\":[{\"type\": 8},{\"type\": 7},{\"type\": 0, \"in\":0, \"f\":0, \"vtype\":0, \"value\":2009},{\"type\": 0, \"in\":0, \"f\":1, \"vtype\":0, \"value\":1}]}";
 
@@ -283,8 +280,8 @@ TEST_F(JSONTests, parse_selection) {
 }
 
 TEST_F(JSONTests, simple_query_parser) {
-  StorageManager::getInstance()->loadTableFile("lin_xxs", "lin_xxs.tbl");
-  StorageManager::getInstance()->loadTableFile("lin_xxs_comp", "reference/simple_projection.tbl");
+  io::StorageManager::getInstance()->loadTableFile("lin_xxs", "lin_xxs.tbl");
+  io::StorageManager::getInstance()->loadTableFile("lin_xxs_comp", "reference/simple_projection.tbl");
 
   std::string q = loadFromFile("test/json/simple_query.json");
 
@@ -292,13 +289,12 @@ TEST_F(JSONTests, simple_query_parser) {
 
   ASSERT_FALSE(!out);
 
-  ASSERT_TABLE_EQUAL(out, StorageManager::getInstance()->getTable("lin_xxs_comp"));
-  StorageManager::getInstance()->removeAll();
+  ASSERT_TABLE_EQUAL(out, io::StorageManager::getInstance()->getTable("lin_xxs_comp"));
 }
 
 TEST_F(JSONTests, simple_query_with_names_parser) {
-  StorageManager::getInstance()->loadTableFile("lin_xxs", "lin_xxs.tbl");
-  StorageManager::getInstance()->loadTableFile("lin_xxs_comp", "reference/simple_projection.tbl");
+  io::StorageManager::getInstance()->loadTableFile("lin_xxs", "lin_xxs.tbl");
+  io::StorageManager::getInstance()->loadTableFile("lin_xxs_comp", "reference/simple_projection.tbl");
 
   std::string q = loadFromFile("test/json/simple_query_with_names.json");
 
@@ -306,13 +302,13 @@ TEST_F(JSONTests, simple_query_with_names_parser) {
 
   ASSERT_FALSE(!out);
 
-  ASSERT_TABLE_EQUAL(out, StorageManager::getInstance()->getTable("lin_xxs_comp"));
-  StorageManager::getInstance()->removeAll();
+  ASSERT_TABLE_EQUAL(out, io::StorageManager::getInstance()->getTable("lin_xxs_comp"));
+  io::StorageManager::getInstance()->removeAll();
 }
 
 TEST_F(JSONTests, DISABLED_group_by_parser) {
-  StorageManager::getInstance()->loadTableFile("groupby", "10_30_group.tbl");
-  StorageManager::getInstance()->loadTableFile("reference", "reference/group_by_scan_with_sum.tbl");
+  io::StorageManager::getInstance()->loadTableFile("groupby", "10_30_group.tbl");
+  io::StorageManager::getInstance()->loadTableFile("reference", "reference/group_by_scan_with_sum.tbl");
 
   std::string q = loadFromFile("test/json/group_by_query.json");
 
@@ -320,14 +316,13 @@ TEST_F(JSONTests, DISABLED_group_by_parser) {
 
   ASSERT_FALSE(!out);
 
-  ASSERT_TABLE_EQUAL(out, StorageManager::getInstance()->getTable("reference"));
-  StorageManager::getInstance()->removeAll();
+  ASSERT_TABLE_EQUAL(out, io::StorageManager::getInstance()->getTable("reference"));
 }
 
 TEST_F(JSONTests, complex_query_parser) {
 
-  StorageManager::getInstance()->loadTableFile("groupby_xs", "groupby_xs.tbl");
-  StorageManager::getInstance()->loadTableFile("reference", "reference/simple_select_1.tbl");
+  io::StorageManager::getInstance()->loadTableFile("groupby_xs", "groupby_xs.tbl");
+  io::StorageManager::getInstance()->loadTableFile("reference", "reference/simple_select_1.tbl");
 
   std::string q = loadFromFile("test/json/complex_query.json");
 
@@ -335,23 +330,21 @@ TEST_F(JSONTests, complex_query_parser) {
 
   ASSERT_FALSE(!out);
 
-  ASSERT_TABLE_EQUAL(out, StorageManager::getInstance()->getTable("reference"));
-  StorageManager::getInstance()->removeAll();
+  ASSERT_TABLE_EQUAL(out, io::StorageManager::getInstance()->getTable("reference"));
 }
 
 TEST_F(JSONTests, edges_query_parser) {
-  StorageManager::getInstance()->loadTableFile("reference", "edges_ref.tbl");
+  io::StorageManager::getInstance()->loadTableFile("reference", "edges_ref.tbl");
 
 
   std::string query = loadFromFile("test/json/edges_query.json");
   const auto& result = executeAndWait(query);
   ASSERT_FALSE(!result);
-  ASSERT_TABLE_EQUAL(result, StorageManager::getInstance()->getTable("reference"));
-  StorageManager::getInstance()->removeAll();
+  ASSERT_TABLE_EQUAL(result, io::StorageManager::getInstance()->getTable("reference"));
 }
 
 TEST_F(JSONTests, parallel_query_positions_parser) {
-  StorageManager::getInstance()->loadTableFile("reference", "edges_ref.tbl");
+  io::StorageManager::getInstance()->loadTableFile("reference", "edges_ref.tbl");
   //std::string query = loadFromFile("test/json/parallel_query_positions.json");
   std::string query = loadFromFile("test/json/parallel_stc_with_join.json");
 
@@ -359,18 +352,16 @@ TEST_F(JSONTests, parallel_query_positions_parser) {
   ASSERT_FALSE(!result);
 
   //ASSERT_TABLE_EQUAL(result, StorageManager::getInstance()->getTable("reference"));
-  StorageManager::getInstance()->removeAll();
 }
 
 TEST_F(JSONTests, parallel_query_materializing_parser) {
-  StorageManager::getInstance()->loadTableFile("reference", "edges_ref.tbl");
+  io::StorageManager::getInstance()->loadTableFile("reference", "edges_ref.tbl");
   std::string query = loadFromFile("test/json/parallel_query_materializing.json");
 
   const auto& result = executeAndWait(query, 4);
   ASSERT_FALSE(!result);
 
-  ASSERT_TABLE_EQUAL(result, StorageManager::getInstance()->getTable("reference"));
-  StorageManager::getInstance()->removeAll();
+  ASSERT_TABLE_EQUAL(result, io::StorageManager::getInstance()->getTable("reference"));
 }
 
 }

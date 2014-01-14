@@ -14,18 +14,19 @@
 #include "storage/TableGenerator.h"
 #include "storage/MutableVerticalTable.h"
 
-using namespace hyrise;
+namespace hyrise {
+namespace io {
 
 log4cxx::LoggerPtr logger(log4cxx::Logger::getLogger("hyrise.io.Loader"));
 
 param_ref_member_impl(Loader::params, AbstractInput, Input)
 param_ref_member_impl(Loader::params, AbstractHeader, Header)
 param_member_impl(Loader::params, std::string, BasePath)
-param_member_impl(Loader::params, AbstractTableFactory *, Factory)
+param_member_impl(Loader::params, storage::AbstractTableFactory *, Factory)
 param_member_impl(Loader::params, bool, ModifiableMutableVerticalTable)
 param_member_impl(Loader::params, bool, ReturnsMutableVerticalTable)
 param_member_impl(Loader::params, bool, Compressed)
-param_member_impl(Loader::params, hyrise::storage::c_atable_ptr_t, ReferenceTable)
+param_member_impl(Loader::params, storage::c_atable_ptr_t, ReferenceTable)
 
 Loader::params::params() :
   Input(nullptr),
@@ -84,9 +85,9 @@ Loader::params::~params() {
   if (Input != nullptr) delete Header;
 }
 
-std::shared_ptr<AbstractTable> Loader::load(const params &args) {
+std::shared_ptr<storage::AbstractTable> Loader::load(const params &args) {
   AbstractHeader *header = args.getHeader();
-  AbstractTableFactory *factory = args.getFactory();
+  auto *factory = args.getFactory();
   AbstractInput *input = args.getInput();
 
   //TODO avoid leakage
@@ -97,14 +98,14 @@ std::shared_ptr<AbstractTable> Loader::load(const params &args) {
     header = new EmptyHeader();
   }
   if (factory == nullptr) {
-    factory = new TableFactory();
+    factory = new storage::TableFactory();
   }
 
   LOG4CXX_DEBUG(logger, "Loading header");
-  compound_metadata_list *meta = header->load(args);
+  storage::compound_metadata_list *meta = header->load(args);
   LOG4CXX_DEBUG(logger, "Header done");
 
-  std::shared_ptr<AbstractTable>
+  std::shared_ptr<storage::AbstractTable>
   result, //initialize empty
       table = std::make_shared<storage::MutableVerticalTable>(*meta, nullptr, 0, false, factory, args.getCompressed());
 
@@ -114,16 +115,12 @@ std::shared_ptr<AbstractTable> Loader::load(const params &args) {
   } catch (std::exception& e) {
     // TODO: Memory management is not exception safe
     for (const auto & ml : *meta) {
-      for (const auto & f : *ml)
-        delete f;
       delete ml;
     }
     throw Loader::Error(e.what());
   }
   // Memory Cleanup, this is so dirty here, it makes me shiver
   for (auto e : *meta) {
-    for (auto f: *e)
-      delete f;
     delete e;
   }
   delete meta;
@@ -132,7 +129,7 @@ std::shared_ptr<AbstractTable> Loader::load(const params &args) {
 
   if (!args.getModifiableMutableVerticalTable() && input->needs_store_wrap()) {
     auto s = std::make_shared<storage::Store>(result);
-    TableMerger *merger = new TableMerger(new DefaultMergeStrategy(), new SequentialHeapMerger(), args.getCompressed());
+    auto merger = new storage::TableMerger(new storage::DefaultMergeStrategy(), new storage::SequentialHeapMerger(), args.getCompressed());
     s->setMerger(merger);
     s->merge();
     result = s;
@@ -154,3 +151,6 @@ std::shared_ptr<AbstractTable> Loader::load(const params &args) {
 
   return result;
 }
+
+} } // namespace hyrise::io
+

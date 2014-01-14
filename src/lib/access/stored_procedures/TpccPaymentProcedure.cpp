@@ -52,9 +52,9 @@ const std::string TpccPaymentProcedure::vname() {
 Json::Value TpccPaymentProcedure::execute() {
   _date = getDate();
 
-  std::shared_ptr<const AbstractTable> tCustomer;
+  std::shared_ptr<const storage::AbstractTable> tCustomer;
   if (_customerById) {
-    tCustomer = std::const_pointer_cast<const AbstractTable>(getCustomerByCId());
+    tCustomer = std::const_pointer_cast<const storage::AbstractTable>(getCustomerByCId());
     if (tCustomer->size() == 0) {
       std::ostringstream os;
       os << "no customer with id " << _c_id << " in district " << _d_id << " in warehouse " << _w_id;
@@ -64,7 +64,7 @@ Json::Value TpccPaymentProcedure::execute() {
     _c_last = tCustomer->getValue<hyrise_string_t>("C_LAST", 0);
   }
   else {
-    tCustomer = std::const_pointer_cast<const AbstractTable>(getCustomersByLastName());
+    tCustomer = std::const_pointer_cast<const storage::AbstractTable>(getCustomersByLastName());
     if (tCustomer->size() == 0) {
       std::ostringstream os;
       os << "no customer with last name \"" << _c_last << "\" in district " << _d_id << " in warehouse " << _w_id;
@@ -107,13 +107,13 @@ Json::Value TpccPaymentProcedure::execute() {
     const std::string d_name = tDistrict->getValue<hyrise_string_t>("D_NAME", 0);
     _h_data = w_name + "    " + d_name;
 
-    updateWarehouseBalance(std::const_pointer_cast<AbstractTable>(tWarehouse));
-    updateDistrictBalance(std::const_pointer_cast<AbstractTable>(tDistrict));
+    updateWarehouseBalance(std::const_pointer_cast<storage::AbstractTable>(tWarehouse));
+    updateDistrictBalance(std::const_pointer_cast<storage::AbstractTable>(tDistrict));
 
     if (bc_customer)
-      updateBCCustomer(std::const_pointer_cast<AbstractTable>(tCustomer));
+      updateBCCustomer(std::const_pointer_cast<storage::AbstractTable>(tCustomer));
     else
-      updateGCCustomer(std::const_pointer_cast<AbstractTable>(tCustomer));
+      updateGCCustomer(std::const_pointer_cast<storage::AbstractTable>(tCustomer));
 
     insertHistory();
 

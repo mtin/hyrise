@@ -16,6 +16,7 @@
 #include "storage/PointerCalculator.h"
 #include "storage/GroupkeyIndex.h"
 #include "storage/DeltaIndex.h"
+#include "storage/storage_types.h"
 
 #include "helper/checked_cast.h"
 #include "helper/PositionsIntersect.h"
@@ -63,7 +64,7 @@ IndexAwareTableScan::IndexAwareTableScan() : _performValidation(false) {}
 IndexAwareTableScan::~IndexAwareTableScan() {}
 
 struct GroupkeyIndexFunctor {
-  typedef PositionRange value_type;
+  typedef storage::PositionRange value_type;
 
   std::string _indexname;
   Json::Value _indexValue1;
@@ -72,7 +73,7 @@ struct GroupkeyIndexFunctor {
   std::string _fieldname;
   size_t _column;
   bool _flagged_for_removal;
-  std::shared_ptr<AbstractIndex> _index;
+  std::shared_ptr<storage::AbstractIndex> _index;
 
   GroupkeyIndexFunctor( Json::Value indexValue1,
                         std::string indexname,
@@ -86,9 +87,9 @@ struct GroupkeyIndexFunctor {
 
   template<typename ValueType>
   value_type operator()() {
-    if (auto idx_main = std::dynamic_pointer_cast<GroupkeyIndex<ValueType>>(_index))
+    if (auto idx_main = std::dynamic_pointer_cast<storage::GroupkeyIndex<ValueType>>(_index))
       return callIndex<ValueType>(idx_main);
-    else if (auto idx_delta = std::dynamic_pointer_cast<DeltaIndex<ValueType>>(_index)) {
+    else if (auto idx_delta = std::dynamic_pointer_cast<storage::DeltaIndex<ValueType>>(_index)) {
       return callIndex<ValueType>(idx_delta);
     }
     else throw std::runtime_error("IndexAwareTable scan only supports GroupKeyIndex and DeltaIndex: " + _indexname);
@@ -126,9 +127,9 @@ struct GroupkeyIndexFunctor {
 void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store> t_store, pos_list_t*& result, std::vector<GroupkeyIndexFunctor> &functors) {
 
   // calculate the index results
-  std::vector<PositionRange> idx_results;
+  std::vector<storage::PositionRange> idx_results;
   storage::type_switch<hyrise_basic_types> ts;
-  std::vector<std::shared_ptr<AbstractIndex>> indices;
+  std::vector<std::shared_ptr<storage::AbstractIndex>> indices;
 
   indices.reserve(functors.size());
   idx_results.reserve(functors.size());
@@ -141,7 +142,7 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
     });
 
   for (auto functor : functors) {
-    auto index = StorageManager::getInstance()->getInvertedIndex(functor._indexname);
+    auto index = io::StorageManager::getInstance()->getInvertedIndex(functor._indexname);
     indices.push_back(index);
     functor._index = index;
     size_t column = t_store->numberOfColumn(functor._fieldname);
@@ -154,7 +155,7 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
   if (idx_results.size() > 2) {
     std::sort(
       begin(idx_results), end(idx_results),
-      [] (const PositionRange &a, const PositionRange &b) {
+      [] (const storage::PositionRange &a, const storage::PositionRange &b) {
         return a.size()<b.size();
       });
   }
@@ -191,7 +192,7 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
   // otherwise we intersect the first two results
   else if (idx_results.size() >= 2) {
     result->reserve(tmp_result->size());
-    auto a = PositionRange(tmp_result->begin(), tmp_result->end(), true);
+    auto a = storage::PositionRange(tmp_result->begin(), tmp_result->end(), true);
     auto b = idx_results[1];
     pos_list_t *b_sorted = nullptr;
 
@@ -200,7 +201,7 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
       b_sorted = new pos_list_t(b.size());
       b.copyInto(*b_sorted);
       std::sort(b_sorted->begin(), b_sorted->end());
-      b = PositionRange(b_sorted->begin(), b_sorted->end(), true);
+      b = storage::PositionRange(b_sorted->begin(), b_sorted->end(), true);
     }
 
     intersect_pos_list(a.begin(), a.end(), b.begin(), b.end(), std::back_inserter(*result));
@@ -224,7 +225,7 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
         intersect_pos_list(idx_result_sorted->begin(), idx_result_sorted->end(), result->begin(), result->end(), std::back_inserter(*tmp_result));
         idx_result_sorted->clear();
       } else {
-        PositionRange tmp_range(result->begin(), result->end(), true);
+        storage::PositionRange tmp_range(result->begin(), result->end(), true);
         intersect_pos_list(it->begin(), it->end(), tmp_range.begin(), tmp_range.end(), std::back_inserter(*tmp_result));
       }
       swap_tmp = result;
@@ -301,7 +302,7 @@ void IndexAwareTableScan::executePlanOperation() {
   // union results
   main_result->reserve(main_result->size() + delta_result->size());
   std::copy(delta_result->begin(), delta_result->end(), std::back_inserter(*main_result));
-  addResult(PointerCalculator::create(t, main_result));
+  addResult(storage::PointerCalculator::create(t, main_result));
 
   delete delta_result;
 }

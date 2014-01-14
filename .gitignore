@@ -19,5 +19,5 @@ coverage.xml
 sloccount.sc
 
 benchmark_data
-logfile
 test/tpcc/tables/
+*.swp

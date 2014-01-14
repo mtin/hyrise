@@ -13,9 +13,7 @@ namespace hyrise {
 namespace access {
 
 //  Joins specified columns of a single table using hash join.
-storage::c_atable_ptr_t hashJoinSameTable(
-    storage::atable_ptr_t table,
-    field_list_t &columns);
+storage::c_atable_ptr_t hashJoinSameTable(storage::atable_ptr_t table, field_list_t &columns);
 
 //  Used for message chaining to improve code readability when building edges maps
 class EdgesBuilder {
@@ -40,7 +38,6 @@ bool isEdgeEqual(
     const std::string &src,
     const std::string &dst);
 
-
 class ParameterValue;
 typedef std::shared_ptr<ParameterValue> value_ptr_t;
 typedef std::map<std::string, value_ptr_t> parameter_map_t;
@@ -59,7 +56,7 @@ class FloatParameterValue : public ParameterValue {
     os << _value;
     return os.str();
   }
-  
+
  protected:
   const float _value;
 };
@@ -73,7 +70,7 @@ class IntParameterValue : public ParameterValue {
     os << _value;
     return os.str();
   }
-  
+
  protected:
   const int _value;
 };
@@ -81,7 +78,7 @@ class IntParameterValue : public ParameterValue {
 class StringParameterValue : public ParameterValue {
  public:
   StringParameterValue(const std::string& value) : _value(value) {}
-  
+
   virtual std::string toString() const {
     return '\"' + _value + '\"';
   }
@@ -94,10 +91,11 @@ void setParameter(parameter_map_t& map, std::string name, int value);
 void setParameter(parameter_map_t& map, std::string name, float value);
 void setParameter(parameter_map_t& map, std::string name, std::string value);
 
-std::string loadFromFile(const std::string& path);
 std::string loadParameterized(const std::string &path, const parameter_map_t& params);
 
 tx::TXContext getNewTXContext();
+
+std::string loadFromFile(const std::string& path);
 
 storage::c_atable_ptr_t executeAndWait(
     std::string httpQuery,
@@ -111,4 +109,3 @@ std::string executeStoredProcedureAndWait(
     size_t poolSize = getNumberOfCoresOnSystem());
 
 } } // namespace hyrise::access
-

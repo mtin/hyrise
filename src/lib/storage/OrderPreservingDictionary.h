@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_STORAGE_ORDERPRESERVINGDICTIONARY_H_
-#define SRC_LIB_STORAGE_ORDERPRESERVINGDICTIONARY_H_
+#pragma once
 
 #include <assert.h>
 #include <algorithm>
@@ -12,6 +11,9 @@
 #include "storage/BaseIterator.h"
 #include "storage/DictionaryIterator.h"
 #include "storage/storage_types.h"
+
+namespace hyrise {
+namespace storage {
 
 template <typename T>
 class OrderPreservingDictionaryIterator;
@@ -58,7 +60,7 @@ public:
   value_id_t addValue(T value) {
 #ifdef EXPENSIVE_ASSERTIONS
     if ((_values->size() > 0) && (value <= _values->back()))
-      throw std::runtime_error("Can't insert value smaller than last value");
+      throw std::runtime_error("Can't insert value smaller or equal to last value");
 #endif
     _values->push_back(value);
     return _values->size() - 1;
@@ -73,7 +75,7 @@ public:
   T getValueForValueId(value_id_t value_id) {
 #ifdef EXPENSIVE_ASSERTIONS
     if (value_id >= _values->size())
-      throw std::runtime_error("Trying to access value_id larger than available values");
+      throw std::out_of_range("Trying to access value_id larger than available values");
 #endif
     return (*_values)[value_id];
   }
@@ -195,4 +197,5 @@ public:
 
 };
 
-#endif  // SRC_LIB_STORAGE_ORDERPRESERVINGDICTIONARY_H_
+} } // namespace hyrise::storage
+

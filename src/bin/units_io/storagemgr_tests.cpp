@@ -5,6 +5,9 @@
 #include <io/StorageManager.h>
 #include <storage/MutableVerticalTable.h>
 
+namespace hyrise {
+namespace io {
+
 class StorageManagerTests : public ::hyrise::Test {
 
 public:
@@ -81,3 +84,5 @@ TEST_F(StorageManagerTests, load_persist_and_recover_table) {
   sm->recoverTables();
   ASSERT_TRUE(sm->exists("LINXXS"));
 }
+
+} } // namespace hyrise::io

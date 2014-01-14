@@ -21,7 +21,7 @@ namespace hyrise {
 namespace access {
 
 struct CreateGroupkeyIndexFunctor {
-  typedef std::shared_ptr<AbstractIndex> value_type;
+  typedef std::shared_ptr<storage::AbstractIndex> value_type;
   const storage::c_atable_ptr_t& in;
   size_t column;
 
@@ -30,7 +30,7 @@ struct CreateGroupkeyIndexFunctor {
 
   template<typename R>
   value_type operator()() {
-    return std::make_shared<GroupkeyIndex<R>>(in, column);
+    return std::make_shared<storage::GroupkeyIndex<R>>(in, column);
   }
 };
 
@@ -43,14 +43,14 @@ CreateGroupkeyIndex::~CreateGroupkeyIndex() {
 
 void CreateGroupkeyIndex::executePlanOperation() {
   const auto &in = input.getTable(0);
-  std::shared_ptr<AbstractIndex> _index;
+  std::shared_ptr<storage::AbstractIndex> _index;
   auto column = _field_definition[0];
 
   CreateGroupkeyIndexFunctor fun(in, column);
   storage::type_switch<hyrise_basic_types> ts;
   _index = ts(in->typeOfColumn(column), fun);
 
-  StorageManager *sm = StorageManager::getInstance();
+  io::StorageManager *sm = io::StorageManager::getInstance();
   sm->addInvertedIndex(_index_name, _index);
 }
 

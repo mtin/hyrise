@@ -1,18 +1,20 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_ACCESS_PRED_GREATERTHANEXPRESSION_H_
-#define SRC_LIB_ACCESS_PRED_GREATERTHANEXPRESSION_H_
+#pragma once
 
 #include "pred_common.h"
+
+namespace hyrise {
+namespace access {
 
 template <typename T>
 class GreaterThanExpression : public SimpleFieldExpression {
  private:
   ValueId lower_bound;
-  std::shared_ptr<BaseDictionary<T>> valueIdMap;
+  T value;
+  std::shared_ptr<storage::BaseDictionary<T>> valueIdMap;
   bool value_exists;
 
  public:
-  T value;
 
   GreaterThanExpression(size_t i, field_t f, T v):
       SimpleFieldExpression(i, f), value(v)
@@ -22,7 +24,7 @@ class GreaterThanExpression : public SimpleFieldExpression {
       SimpleFieldExpression(i, f), value(v)
   {}
 
-  GreaterThanExpression(hyrise::storage::c_atable_ptr_t _table, field_t _field, T _value) : SimpleFieldExpression(_table, _field), value(_value)
+  GreaterThanExpression(storage::c_atable_ptr_t _table, field_t _field, T _value) : SimpleFieldExpression(_table, _field), value(_value)
   {}
 
   GreaterThanExpression(hyrise::storage::c_atable_ptr_t _table, field_name_t _field, T _value) : SimpleFieldExpression(_table, _field), value(_value)
@@ -30,10 +32,10 @@ class GreaterThanExpression : public SimpleFieldExpression {
 
   virtual ~GreaterThanExpression() { }
 
-  virtual void walk(const std::vector<hyrise::storage::c_atable_ptr_t > &l) {
+  virtual void walk(const std::vector<storage::c_atable_ptr_t > &l) {
     SimpleFieldExpression::walk(l);
 
-    valueIdMap = std::dynamic_pointer_cast<BaseDictionary<T>>(table->dictionaryAt(field));
+    valueIdMap = std::dynamic_pointer_cast<storage::BaseDictionary<T>>(table->dictionaryAt(field));
     lower_bound.table = 0;
     lower_bound.valueId = valueIdMap->getValueIdForValue(value);
     value_exists = valueIdMap->isValueIdValid(lower_bound.valueId) &&
@@ -78,7 +80,7 @@ class GreaterThanExpressionRaw : public SimpleFieldExpression {
       SimpleFieldExpression(i, f), value(_value)
   {}
 
-  GreaterThanExpressionRaw(const hyrise::storage::c_atable_ptr_t& _table, field_t _field, T _value) :
+  GreaterThanExpressionRaw(const storage::c_atable_ptr_t& _table, field_t _field, T _value) :
       SimpleFieldExpression(_table, _field), value(_value)
   {}
 
@@ -86,8 +88,9 @@ class GreaterThanExpressionRaw : public SimpleFieldExpression {
   virtual ~GreaterThanExpressionRaw() { }
 
   inline virtual bool operator()(size_t row) {
-    return (std::dynamic_pointer_cast<const RawTable>(table))->template getValue<T>(field, row) > value;
+    return (std::dynamic_pointer_cast<const storage::RawTable>(table))->template getValue<T>(field, row) > value;
   }
 };
 
-#endif  // SRC_LIB_ACCESS_PRED_GREATERTHANEXPRESSION_H_
+} } // namespace hyrise::access
+

@@ -8,14 +8,14 @@
 #include "storage/NVVector.h"
 
 template <typename T>
-class NVAttributeVector : public FixedLengthVector<T> {
+class NVAttributeVector : public AbstractFixedLengthVector<T> {
  private:
   hyrise::storage::NVVector<T> _vector;
   size_t _columns;
-  
+
  public:
   typedef T value_type;
-  
+
   NVAttributeVector(size_t columns, size_t rows) :
       _vector(columns * rows), _columns(columns) {
     _vector.clear(); // we don't want our vector to be initialized with values

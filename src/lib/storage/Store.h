@@ -6,8 +6,7 @@
  * @see AbstractTable
  */
 
-#ifndef SRC_LIB_STORAGE_STORE_H_
-#define SRC_LIB_STORAGE_STORE_H_
+#pragma once
 
 #include <storage/MutableVerticalTable.h>
 #include <storage/AbstractTable.h>
@@ -25,6 +24,8 @@
 #include <io/NVManager.h>
 #include <storage/NVVector.h>
 #endif
+
+#include "tbb/concurrent_vector.h"
 
 namespace hyrise {
 namespace storage {
@@ -79,7 +80,7 @@ public:
   tx::TX_CODE unmarkForDeletion(const pos_list_t& pos, tx::transaction_id_t tid);
 
   /// AbstractTable interface
-  const ColumnMetadata *metadataAt(size_t column_index, size_t row_index = 0, table_id_t table_id = 0) const override;
+  const ColumnMetadata& metadataAt(size_t column_index, size_t row_index = 0, table_id_t table_id = 0) const override;
   void setDictionaryAt(AbstractTable::SharedDictionaryPtr dict, size_t column, size_t row = 0, table_id_t table_id = 0) override;
   const AbstractTable::SharedDictionaryPtr& dictionaryAt(size_t column, size_t row = 0, table_id_t table_id = 0) const override;
   const AbstractTable::SharedDictionaryPtr& dictionaryByTableId(size_t column, table_id_t table_id) const override;
@@ -111,6 +112,8 @@ public:
   // lock for high congestion tables
   locking::Spinlock _write_lock;
 
+  std::atomic<std::size_t> _delta_size;
+
   //* Vector containing the main tables
   atable_ptr_t _main_table;
 
@@ -130,19 +133,19 @@ public:
   // TX Management
   // _cidBeginVector stores the CID of the transaction that created the row
   // _cidEndVector stores the CID of the transaction that deleted the row
-#ifdef PERSISTENCY_NVRAM
+  #ifdef PERSISTENCY_NVRAM
   storage::NVVector<tx::transaction_cid_t> _cidBeginVector;
   storage::NVVector<tx::transaction_cid_t> _cidEndVector;
-#else
-  std::vector<tx::transaction_cid_t> _cidBeginVector;
-  std::vector<tx::transaction_cid_t> _cidEndVector;
-#endif
+  #else
+  tbb::concurrent_vector<tx::transaction_id_t> _cidBeginVector;
+  tbb::concurrent_vector<tx::transaction_id_t> _cidEndVector;
+  #endif
+
   // Stores the TID for each record to identify your own writes
-  std::vector<tx::transaction_id_t> _tidVector;
+  tbb::concurrent_vector<tx::transaction_id_t> _tidVector;
+
   friend class PrettyPrinter;
 };
 
 }}
 
-
-#endif  // SRC_LIB_STORAGE_STORE_H_

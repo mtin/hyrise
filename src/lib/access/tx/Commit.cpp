@@ -11,10 +11,8 @@ namespace {
 
 void Commit::executePlanOperation() {
   tx::TransactionManager::commitTransaction(_txContext, _flush_log);
-  
-  // add all input data to the output
-  for (size_t i=0; i<input.numberOfTables(); ++i) {
-  	addResult(input.getTable(i));
+  for(const auto& x : input.getTables()) {
+    addResult(x);
   }
 }
 

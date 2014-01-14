@@ -9,10 +9,10 @@ namespace access {
 
 class JoinScanTests : public AccessTest {};
 
-TEST_F(JoinScanTests, basic_join_scan_by_fieldId_test) {
-  auto t1 = Loader::shortcuts::load("test/join_transactions.tbl");
-  auto t2 = Loader::shortcuts::load("test/join_exchange.tbl");
-  auto reference = Loader::shortcuts::load("test/reference/join_result.tbl");
+TEST_F(JoinScanTests, basic_join_scan_test) {
+  auto t1 = io::Loader::shortcuts::load("test/join_transactions.tbl");
+  auto t2 = io::Loader::shortcuts::load("test/join_exchange.tbl");
+  auto reference = io::Loader::shortcuts::load("test/reference/join_result.tbl");
 
   JoinScan js(JoinType::EQUI);
   js.addInput(t1);
@@ -28,9 +28,9 @@ TEST_F(JoinScanTests, basic_join_scan_by_fieldId_test) {
 }
 
 TEST_F(JoinScanTests, basic_join_scan_by_fieldName_test) {
-  auto t1 = Loader::shortcuts::load("test/join_transactions.tbl");
-  auto t2 = Loader::shortcuts::load("test/join_exchange.tbl");
-  auto reference = Loader::shortcuts::load("test/reference/join_result.tbl");
+  auto t1 = io::Loader::shortcuts::load("test/join_transactions.tbl");
+  auto t2 = io::Loader::shortcuts::load("test/join_exchange.tbl");
+  auto reference = io::Loader::shortcuts::load("test/reference/join_result.tbl");
 
   JoinScan js(JoinType::EQUI);
   js.addInput(t1);

@@ -1,11 +1,13 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_ACCESS_EXPRESSION_TYPES_H_
-#define SRC_LIB_ACCESS_EXPRESSION_TYPES_H_
+#pragma once
 
 #include <map>
 #include <string>
 
 #include <json.h>
+
+namespace hyrise {
+namespace access {
 
 enum ExpressionType { AND = 0, OR = 1, NOT = 2, EXP_EQ = 3 };
 
@@ -23,6 +25,8 @@ struct PredicateType {
     EqualsExpressionRaw = 13,
     LessThanExpressionRaw = 14,
     GreaterThanExpressionRaw = 15,
+    LikeExpression = 16,
+    InExpression = 17,
 
     EqualsExpressionValue = 20,
     GreaterThanExpressionValue = 21,
@@ -38,5 +42,5 @@ typedef std::map<std::string, ExpressionType> expression_map_t;
 PredicateType::type parsePredicateType(const Json::Value &value);
 ExpressionType parseExpressionType(const Json::Value &value);
 
+} } // namespace hyrise::access
 
-#endif  // SRC_LIB_ACCESS_EXPRESSION_TYPES_H_
