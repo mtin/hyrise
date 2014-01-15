@@ -198,7 +198,8 @@ void IndexAwareTableScan::_getIndexResults(std::shared_ptr<const storage::Store>
 
     if (!b.isSorted()) {
       // copy and sort
-      b_sorted = new pos_list_t(b.size());
+      b_sorted = new pos_list_t();
+      b_sorted->reserve(b.size());
       b.copyInto(*b_sorted);
       std::sort(b_sorted->begin(), b_sorted->end());
       b = storage::PositionRange(b_sorted->begin(), b_sorted->end(), true);
