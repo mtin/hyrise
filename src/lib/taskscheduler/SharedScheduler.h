@@ -12,6 +12,8 @@
 #include <taskscheduler/DynamicPriorityScheduler.h>
 #include <stdexcept>
 
+#define NUM_RESERVED_CORES 3
+
 namespace hyrise {
 namespace taskscheduler {
 
@@ -64,7 +66,7 @@ public:
     return bool(_sharedScheduler);
   }
 
-  void init(const std::string &scheduler, int cores = getNumberOfCoresOnSystem(), int maxTaskSize = 0){
+  void init(const std::string &scheduler, int cores = getNumberOfCoresOnSystem()-NUM_RESERVED_CORES, int maxTaskSize = 0){
 
     if(_sharedScheduler)
       throw SchedulerException("Scheduler has already been initialized");
@@ -80,7 +82,7 @@ public:
   /*
    * stops current scheduler gracefully; starts new scheduler
    */
-  void resetScheduler(const std::string &scheduler, int cores = getNumberOfCoresOnSystem()){
+  void resetScheduler(const std::string &scheduler, int cores = getNumberOfCoresOnSystem()-NUM_RESERVED_CORES){
     if(_sharedScheduler) {
       _sharedScheduler->shutdown();
     }

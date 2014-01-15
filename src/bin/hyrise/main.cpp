@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
   ("logdef,l", po::value<std::string>(&logPropertyFile)->default_value("build/log.properties"), "Log4CXX Log Properties File")
   ("maxTaskSize,m", po::value<size_t>(&maxTaskSize)->default_value(DEFAULT_MTS), "Maximum task size used in dynamic parallelization scheduler. Use 0 for unbounded task run time.")
   ("scheduler,s", po::value<std::string>(&scheduler_name)->default_value("CentralScheduler"), "Name of the scheduler to use")
-  ("threads,t", po::value<int>(&worker_threads)->default_value(getNumberOfCoresOnSystem()-3), "Number of worker threads for scheduler (only relevant for scheduler with fixed number of threads)");
+  ("threads,t", po::value<int>(&worker_threads)->default_value(getNumberOfCoresOnSystem()-NUM_RESERVED_CORES), "Number of worker threads for scheduler (only relevant for scheduler with fixed number of threads)");
   po::variables_map vm;
 
   try {

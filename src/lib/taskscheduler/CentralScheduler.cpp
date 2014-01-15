@@ -21,7 +21,7 @@ bool registered  =
 
 CentralScheduler::CentralScheduler(int threads) {
     _status = START_UP;
-    auto _available_cores = getNumberOfCoresOnSystem()-3;
+    auto _available_cores = getNumberOfCoresOnSystem()-NUM_RESERVED_CORES;
   // create and launch threads
   if(threads > _available_cores){
     std::cout << "Tried to use more threads (" << threads << ") then cores (" << _available_cores << ") - no binding of threads takes place" << std::endl;
