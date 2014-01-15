@@ -83,139 +83,125 @@ Json::Value TpccNewOrderProcedure::execute() {
   }
   const float w_tax = tWarehouse->getValue<hyrise_float_t>("W_TAX", 0);
 
-  bool holds_district_lock = false;
-  try {
-    std::const_pointer_cast<storage::Store>(getTpccTable("DISTRICT"))->lock();
-    holds_district_lock = true;
+  auto tDistrict = getDistrict();
+  if (tDistrict->size() == 0) {
+    std::ostringstream os;
+    os << "no district with id " << _d_id << " for warehouse " << _w_id;
+    throw std::runtime_error(os.str());
+  }
+  const float d_tax = tDistrict->getValue<hyrise_float_t>("D_TAX", 0);
+  _o_id = tDistrict->getValue<hyrise_int_t>("D_NEXT_O_ID", 0);
 
-    auto tDistrict = getDistrict();
-    if (tDistrict->size() == 0) {
-      std::ostringstream os;
-      os << "no district with id " << _d_id << " for warehouse " << _w_id;
-      throw std::runtime_error(os.str());
-    }
-    const float d_tax = tDistrict->getValue<hyrise_float_t>("D_TAX", 0);
-    _o_id = tDistrict->getValue<hyrise_int_t>("D_NEXT_O_ID", 0);
-
-    auto tCustomer = getCustomer();
-    if (tCustomer->size() == 0) {
-      std::ostringstream os;
-      os << "no customer with id: " << _c_id;
-      throw std::runtime_error(os.str());
-    }
-
-
-    const float c_discount = tCustomer->getValue<hyrise_float_t>("C_DISCOUNT", 0);
-    const std::string c_last = tCustomer->getValue<hyrise_string_t>("C_LAST", 0);
-    const std::string c_credit = tCustomer->getValue<hyrise_string_t>("C_CREDIT", 0);
-
-    incrementNextOrderId(std::const_pointer_cast<storage::AbstractTable>(tDistrict));
-    createOrder();
-    createNewOrder();
-
-    int s_ytd;
-    std::string s_data, s_dist;
-    float total = 0;
-
-    for (Json::ArrayIndex i = 0; i < static_cast<Json::ArrayIndex>(_ol_cnt); ++i) {
-      auto& item = _items.at(i);
-      const int quantity = _items.at(i).quantity;
-
-      auto tStock = getStockInfo(item);
-      if (tStock->size() == 0) {
-        std::ostringstream os;
-        os << "internal error: no stock information for item: " << item.id << " in warehouse " << item.w_id;
-        throw std::runtime_error(os.str());
-      }
-
-      s_ytd = tStock->getValue<hyrise_int_t>("S_YTD", 0);
-      s_ytd += quantity;
-
-      int s_quantity = tStock->getValue<hyrise_int_t>("S_QUANTITY", 0);
-      item.s_order_cnt = tStock->getValue<hyrise_int_t>("S_ORDER_CNT", 0);
-
-      if (s_quantity >= quantity + 10) {
-        s_quantity = s_quantity - quantity;
-      }
-      else {
-        s_quantity = s_quantity + 91 - quantity;
-        ++item.s_order_cnt;
-      }
-      item.s_quantity = s_quantity;
-      item.s_remote_cnt = tStock->getValue<hyrise_int_t>("S_REMOTE_CNT", 0);
-
-      const auto s_data = tStock->getValue<hyrise_string_t>("S_DATA", 0);
-      item.original &= s_data.find("ORIGINAL") != s_data.npos;
-
-      std::ostringstream os;
-      os << "S_DIST_" << std::setw(2) << std::setfill('0') << std::right << _d_id;
-      const std::string s_dist_name = os.str(); //e.g. S_DIST_01
-      _ol_dist_info = tStock->getValue<hyrise_string_t>(s_dist_name, 0);
-
-      total += item.amount();
-
-      updateStock(std::const_pointer_cast<storage::AbstractTable>(tStock), item);
-      createOrderLine(item, i + 1);
-    }
-
-    if (_rollback) {
-      rollback();
-    } else {
-      commit();
-    }
-
-    std::const_pointer_cast<storage::Store>(getTpccTable("DISTRICT"))->unlock();
-    holds_district_lock = false;
-
-    Json::Value result;
-    result["W_ID"] = _w_id;
-    result["D_ID"] = _d_id;
-    result["C_ID"] = _c_id;
-    result["C_LAST"] = c_last;
-    result["C_CREDIT"] = c_credit;
-    result["C_DISCOUNT"] = c_discount;
-    result["W_TAX"] = w_tax;
-    result["D_TAX"] = d_tax;
-    result["O_OL_CNT"] = _ol_cnt;
-    result["O_ID"] = _o_id;
-    result["D_NEXT_O_ID"] = _o_id+1;
-    result["O_ENTRY_D"] = _date;
-
-    if (_rollback) {
-      result["total-amount"] = "Item number is not valid";
-      return result;
-    }
-    //needed for what?
-    total *=  (1 - c_discount) * (1 + w_tax + d_tax);
-    result["total-amount"] = total;
-
-    Json::Value items(Json::arrayValue);
-    for (Json::ArrayIndex i = 0; i < static_cast<Json::ArrayIndex>(_ol_cnt); ++i) {
-      Json::Value item;
-      const auto& cur = _items.at(i);
-      item["OL_SUPPLY_W_ID"] = cur.w_id;
-      item["OL_I_ID"] = cur.id;
-      item["I_NAME"] = cur.name;
-      item["OL_QUANTITY"] = cur.quantity;
-      item["S_QUANTITY"] = cur.s_quantity;
-      if (cur.original)
-        item["brand-generic"] = "B";
-      else
-        item["brand-generic"] = "G";
-      item["I_PRICE"] = cur.price;
-      item["OL_AMOUNT"] = cur.price * cur.quantity;
-
-      items.append(item);
-    }
-    result["items"] = items;
-
-    return result;
-  } catch(std::runtime_error &e) {
-    if(holds_district_lock) std::const_pointer_cast<storage::Store>(getTpccTable("DISTRICT"))->unlock();
-    throw;
-    // TODO: Switch to scoped spinlock
+  auto tCustomer = getCustomer();
+  if (tCustomer->size() == 0) {
+    std::ostringstream os;
+    os << "no customer with id: " << _c_id;
+    throw std::runtime_error(os.str());
   }
 
+
+  const float c_discount = tCustomer->getValue<hyrise_float_t>("C_DISCOUNT", 0);
+  const std::string c_last = tCustomer->getValue<hyrise_string_t>("C_LAST", 0);
+  const std::string c_credit = tCustomer->getValue<hyrise_string_t>("C_CREDIT", 0);
+
+  incrementNextOrderId(std::const_pointer_cast<storage::AbstractTable>(tDistrict));
+  createOrder();
+  createNewOrder();
+
+  int s_ytd;
+  std::string s_data, s_dist;
+  float total = 0;
+
+  for (Json::ArrayIndex i = 0; i < static_cast<Json::ArrayIndex>(_ol_cnt); ++i) {
+    auto& item = _items.at(i);
+    const int quantity = _items.at(i).quantity;
+
+    auto tStock = getStockInfo(item);
+    if (tStock->size() == 0) {
+      std::ostringstream os;
+      os << "internal error: no stock information for item: " << item.id << " in warehouse " << item.w_id;
+      throw std::runtime_error(os.str());
+    }
+
+    s_ytd = tStock->getValue<hyrise_int_t>("S_YTD", 0);
+    s_ytd += quantity;
+
+    int s_quantity = tStock->getValue<hyrise_int_t>("S_QUANTITY", 0);
+    item.s_order_cnt = tStock->getValue<hyrise_int_t>("S_ORDER_CNT", 0);
+
+    if (s_quantity >= quantity + 10) {
+      s_quantity = s_quantity - quantity;
+    }
+    else {
+      s_quantity = s_quantity + 91 - quantity;
+      ++item.s_order_cnt;
+    }
+    item.s_quantity = s_quantity;
+    item.s_remote_cnt = tStock->getValue<hyrise_int_t>("S_REMOTE_CNT", 0);
+
+    const auto s_data = tStock->getValue<hyrise_string_t>("S_DATA", 0);
+    item.original &= s_data.find("ORIGINAL") != s_data.npos;
+
+    std::ostringstream os;
+    os << "S_DIST_" << std::setw(2) << std::setfill('0') << std::right << _d_id;
+    const std::string s_dist_name = os.str(); //e.g. S_DIST_01
+    _ol_dist_info = tStock->getValue<hyrise_string_t>(s_dist_name, 0);
+
+    total += item.amount();
+
+    updateStock(std::const_pointer_cast<storage::AbstractTable>(tStock), item);
+    createOrderLine(item, i + 1);
+  }
+
+  if (_rollback) {
+    rollback();
+  } else {
+    commit();
+  }
+
+  Json::Value result;
+  result["W_ID"] = _w_id;
+  result["D_ID"] = _d_id;
+  result["C_ID"] = _c_id;
+  result["C_LAST"] = c_last;
+  result["C_CREDIT"] = c_credit;
+  result["C_DISCOUNT"] = c_discount;
+  result["W_TAX"] = w_tax;
+  result["D_TAX"] = d_tax;
+  result["O_OL_CNT"] = _ol_cnt;
+  result["O_ID"] = _o_id;
+  result["D_NEXT_O_ID"] = _o_id+1;
+  result["O_ENTRY_D"] = _date;
+
+  if (_rollback) {
+    result["total-amount"] = "Item number is not valid";
+    return result;
+  }
+  //needed for what?
+  total *=  (1 - c_discount) * (1 + w_tax + d_tax);
+  result["total-amount"] = total;
+
+  Json::Value items(Json::arrayValue);
+  for (Json::ArrayIndex i = 0; i < static_cast<Json::ArrayIndex>(_ol_cnt); ++i) {
+    Json::Value item;
+    const auto& cur = _items.at(i);
+    item["OL_SUPPLY_W_ID"] = cur.w_id;
+    item["OL_I_ID"] = cur.id;
+    item["I_NAME"] = cur.name;
+    item["OL_QUANTITY"] = cur.quantity;
+    item["S_QUANTITY"] = cur.s_quantity;
+    if (cur.original)
+      item["brand-generic"] = "B";
+    else
+      item["brand-generic"] = "G";
+    item["I_PRICE"] = cur.price;
+    item["OL_AMOUNT"] = cur.price * cur.quantity;
+
+    items.append(item);
+  }
+  result["items"] = items;
+
+  return result;
 }
 
 void TpccNewOrderProcedure::createNewOrder() {
