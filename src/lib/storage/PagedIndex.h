@@ -17,9 +17,13 @@
 #include <memory>
 #include <boost/dynamic_bitset.hpp>
 
+namespace hyrise {
+namespace storage {
+
+template<typename T>
 class PagedIndex : public hyrise::storage::AbstractIndex {
 private:
-  typedef std::map<ValueId, boost::dynamic_bitset<>> paged_index_t;
+  typedef std::vector<boost::dynamic_bitset<>> paged_index_t;
   paged_index_t _index;
   size_t _pageSize;
 
@@ -40,27 +44,20 @@ public:
         std::cout << "page_size: " << _pageSize << std::endl;
         std::cout << "num_of_pages: " << num_of_pages << std::endl;
       }
-      
+
+      _index.resize(in->dictionaryAt(column)->size(), boost::dynamic_bitset<>(num_of_pages, 0));
         
       for (size_t row = 0; row < in->size(); ++row) {
         ValueId valueId = in->getValueId(column, row);
 
-        typename paged_index_t::iterator find = _index.find(valueId);
-        if (find == _index.end()) {
-          boost::dynamic_bitset<> b(num_of_pages, 0); // create bitset with 1 bit per page
-          b[row/_pageSize] = 1; // set bit to 1 for page where we found the current entry
-          _index[valueId] = b; // add bitset to index
-        } else {
-          find->second[row/_pageSize] = 1;
-        }
+        _index[valueId.valueId][row/_pageSize] = 1;
       }
 
       if (debug) {
-        for (const auto & e : _index) {
-          //in->getValueForValueId(column, e.first);
-          std::cout << e.first << " - ";
-          for (size_t i=0; i<e.second.size(); ++i) 
-            std::cout << e.second[i];
+        for (int i=0; i<_index.size(); ++i) {
+          std::cout << in->getValueForValueId<T>(column, ValueId(i, 0)) << " - ";
+          for (size_t o=0; o<_index[i].size(); ++o) 
+            std::cout << _index[i][o];
           std::cout << std::endl;
         }
       }
@@ -70,18 +67,8 @@ public:
   /**
    * returns a list of positions where key was found.
    */
-template<typename T>
-  boost::dynamic_bitset<> getPagesForKey(T key) {
-    typename paged_index_t::iterator it = _index.find(key);
-    if (it != _index.end()) {
-      return it->second;
-    } else {
-      boost::dynamic_bitset<> empty;
-      return empty;
-    }
-  };
 
-template<typename T>
+//template<typename T>
   hyrise::storage::pos_list_t* getPositionsForKey(T key, field_t column, const hyrise::storage::c_atable_ptr_t& table) {
     hyrise::storage::pos_list_t *result = new hyrise::storage::pos_list_t();
 
@@ -95,15 +82,10 @@ template<typename T>
     ValueId keyValueId;
     keyValueId = table->getValueIdForValue(column, key);
 
-    // look for key in index
-    typename paged_index_t::iterator it = _index.find(keyValueId);
-    if (it == _index.end())
-      return result;
-
     // scan through pages
-    for (size_t i=0; i<it->second.size(); ++i) {
+    for (size_t i=0; i<_index[keyValueId.valueId].size(); ++i) {
       // skip 0
-      if (it->second[i] != 1)
+      if (_index[keyValueId.valueId][i] != 1)
         continue;
 
       // for every 1, scan through table values, compare them with valueId
@@ -124,4 +106,7 @@ template<typename T>
   }
 
 };
+
+} } // namespace hyrise::storage
+
 #endif  // SRC_LIB_STORAGE_PAGEDINDEX_H_
