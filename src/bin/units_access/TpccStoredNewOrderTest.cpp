@@ -49,9 +49,9 @@ Json::Value TpccStoredNewOrderTest::doNewOrder(int w_id, int d_id, int c_id, con
   EXPECT_EQ(c_id, getValuei(response, "C_ID"));\
   EXPECT_EQ("CLName" + toString(c_id), getValues(response, "C_LAST"));\
   getValues(response, "C_CREDIT");/*TODO check for value*/\
-  EXPECT_FLOAT_EQ(0.1 * w_id + 0.01 * c_id, getValuef(response, "C_DISCOUNT"));\
+  EXPECT_FLOAT_EQ(0.01 * c_id, getValuef(response, "C_DISCOUNT"));\
   EXPECT_FLOAT_EQ(0.1 * w_id, getValuef(response, "W_TAX"));\
-  EXPECT_FLOAT_EQ(0.01 * d_id, getValuef(response, "D_TAX"));\
+  EXPECT_FLOAT_EQ(0.05, getValuef(response, "D_TAX"));\
   EXPECT_EQ(itemlist.size(), getValuei(response, "O_OL_CNT"));\
   EXPECT_EQ(o_id, getValuei(response, "O_ID"));\
   getValues(response, "O_ENTRY_D");/*TODO check for value*/\
@@ -95,7 +95,7 @@ Json::Value TpccStoredNewOrderTest::doNewOrder(int w_id, int d_id, int c_id, con
   EXPECT_EQ(c_id, getValuei(response, "C_ID"));\
   EXPECT_EQ("CLName" + toString(c_id), getValues(response, "C_LAST"));\
   getValues(response, "C_CREDIT");/*TODO check for value*/\
-  EXPECT_FLOAT_EQ(0.1 * w_id + 0.01 * c_id, getValuef(response, "C_DISCOUNT"));\
+  EXPECT_FLOAT_EQ(0.01 * c_id, getValuef(response, "C_DISCOUNT"));\
   EXPECT_EQ(o_id, getValuei(response, "O_ID"));\
   \
   EXPECT_EQ(getTable(Customer)->size() , i_customer_size);\
