@@ -162,7 +162,11 @@ TEST_F(DumpTests, simple_dump_should_not_dump_delta) {
   ASSERT_TABLE_EQUAL(t, simpleTable);
 }
 
+#ifdef PERSISTENCY_BUFFEREDLOGGER
 TEST_F(DumpTests, dump_index_test) {
+#else
+TEST_F(DumpTests, DISABLED_dump_index_test) {
+#endif
   auto *sm = StorageManager::getInstance();
   auto t1 = Loader::shortcuts::load("test/index_test.tbl");
   auto t2 = Loader::shortcuts::load("test/index_test.tbl");
