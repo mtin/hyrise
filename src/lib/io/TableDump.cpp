@@ -20,6 +20,7 @@
 #include "io/CSVLoader.h"
 #include "io/StorageManager.h"
 
+#include "helper/checked_cast.h"
 #include "helper/stringhelpers.h"
 #include "helper/vector_helpers.h"
 
@@ -30,6 +31,11 @@
 #include "storage/meta_storage.h"
 #include "storage/GroupkeyIndex.h"
 #include "storage/DeltaIndex.h"
+
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/memory.hpp>
+
+#define DUMP_ACTUAL_INDICES
 
 namespace hyrise { namespace storage {
 
@@ -46,7 +52,7 @@ namespace DumpHelper {
 }
 
 struct CreateGroupkeyIndexFunctor {
-  typedef std::shared_ptr<AbstractIndex> value_type;
+  typedef aindex_ptr_t value_type;
   const c_atable_ptr_t& in;
   size_t column;
 
@@ -60,8 +66,42 @@ struct CreateGroupkeyIndexFunctor {
   }
 };
 
+struct DumpGroupkeyIndexFunctor {
+  typedef void value_type;
+  aindex_ptr_t& in;
+  std::ofstream& out;
+
+  DumpGroupkeyIndexFunctor(aindex_ptr_t& idx, std::ofstream& s):
+    in(idx), out(s) {}
+
+  template<typename R>
+  value_type operator()() {
+    auto idx = checked_pointer_cast<GroupkeyIndex<R>>(in);
+    cereal::BinaryOutputArchive archive(out);
+    archive(*idx.get());
+  }
+};
+
+struct RestoreGroupkeyIndexFunctor {
+  typedef aindex_ptr_t value_type;
+  const c_atable_ptr_t& t;
+  size_t column;
+  std::ifstream& in;
+
+  RestoreGroupkeyIndexFunctor(const c_atable_ptr_t& t, size_t c, std::ifstream& s):
+    t(t), column(c), in(s) {}
+
+  template<typename R>
+  value_type operator()() {
+    auto idx = std::make_shared<GroupkeyIndex<R>>(t, column, false);
+    cereal::BinaryInputArchive archive(in);
+    //archive(idx);
+    return idx;
+  }
+};
+
 struct CreateDeltaIndexFunctor {
-  typedef std::shared_ptr<AbstractIndex> value_type;
+  typedef aindex_ptr_t value_type;
   const c_atable_ptr_t& in;
   size_t column;
 
@@ -229,6 +269,21 @@ void SimpleTableDump::dumpIndices(std::string name, store_ptr_t store) {
     std::ofstream data (fullPath, std::ios::trunc | std::ios::binary);
     std::copy(indexedColumns.begin(), indexedColumns.end(), std::ostream_iterator<size_t>(data));
     data.close();
+
+    #ifdef DUMP_ACTUAL_INDICES
+    for (const auto idxCol : indexedColumns) {
+      const std::string colName = store->nameOfColumn(idxCol);
+      auto idxMain  = io::StorageManager::getInstance()->getInvertedIndex("idx__" + name + "__" + colName);
+
+      // dump main index, expected to be of type GroupkeyIndex
+      fullPath = _baseDirectory + "/" + name + "/idx__" + name + "__" + colName + ".dat";
+      std::ofstream outstream(fullPath, std::ios::trunc | std::ios::binary);
+      DumpGroupkeyIndexFunctor fun(idxMain, outstream);
+      type_switch<hyrise_basic_types> ts;
+      ts(store->typeOfColumn(idxCol), fun);
+      outstream.close();
+    }
+    #endif
   }
 }
 
@@ -304,13 +359,20 @@ void TableDumpLoader::loadIndices(storage::atable_ptr_t intable) {
     data.close();
 
     for (auto column : indexedColumns) {
+      #ifdef DUMP_ACTUAL_INDICES
+      std::string idxPath = _base + "/" + _table + "/idx__" + _table + "__" + intable->nameOfColumn(column) + ".dat";
+      std::ifstream instream(idxPath, std::ios::binary);
+      storage::RestoreGroupkeyIndexFunctor funMain(intable, column, instream);
+      #else
       storage::CreateGroupkeyIndexFunctor funMain(intable, column);
+      #endif
+
       storage::type_switch<hyrise_basic_types> tsMain;
-      std::shared_ptr<storage::AbstractIndex> idxMain = tsMain(intable->typeOfColumn(column), funMain);
+      storage::aindex_ptr_t idxMain = tsMain(intable->typeOfColumn(column), funMain);
 
       storage::CreateDeltaIndexFunctor funDelta(intable, column);
       storage::type_switch<hyrise_basic_types> tsDelta;
-      std::shared_ptr<storage::AbstractIndex> idxDelta = tsDelta(intable->typeOfColumn(column), funDelta);
+      storage::aindex_ptr_t idxDelta = tsDelta(intable->typeOfColumn(column), funDelta);
 
       StorageManager::getInstance()->addInvertedIndex("idx__" + intable->getName() + "__" + intable->nameOfColumn(column), idxMain);
       StorageManager::getInstance()->addInvertedIndex("idx_delta__" + intable->getName() + "__" + intable->nameOfColumn(column), idxDelta);
