@@ -48,9 +48,9 @@ Json::Value TpccStoredPaymentTest::doPayment(int w_id, int d_id, int c_id, const
   const auto d_nbr = toString((w_id - 1) * 10 + d_id);\
   EXPECT_EQ("DStreet1-" + d_nbr, getValues(response, "D_STREET_1"));\
   EXPECT_EQ("DStreet2-" + d_nbr, getValues(response, "D_STREET_2"));\
-  EXPECT_EQ("DCity" + d_nbr, getValues(response, "D_CITY"));\
-  EXPECT_EQ("DState" + d_nbr, getValues(response, "D_STATE"));\
-  EXPECT_EQ("DZip" + d_nbr, getValues(response, "D_ZIP"));\
+  EXPECT_EQ("D_City" + d_nbr, getValues(response, "D_CITY"));\
+  EXPECT_EQ("D_State" + d_nbr, getValues(response, "D_STATE"));\
+  EXPECT_EQ("D_Zip" + d_nbr, getValues(response, "D_ZIP"));\
   /*customer stuff*/\
   const auto c_nbr = toString(c_id);\
   EXPECT_EQ("CFName" + c_nbr, getValues(response, "C_FIRST"));\
@@ -65,11 +65,9 @@ Json::Value TpccStoredPaymentTest::doPayment(int w_id, int d_id, int c_id, const
   EXPECT_TRUE(response.isMember("C_SINCE"));/*TODO maybe check value*/\
   EXPECT_TRUE(response.isMember("C_CREDIT"));/*TODO maybe check value*/\
   EXPECT_TRUE(response.isMember("C_CREDIT_LIM"));/*TODO maybe check value*/\
-  EXPECT_FLOAT_EQ(0.1 * w_id + 0.01 * c_id, getValuef(response, "C_DISCOUNT"));\
+  EXPECT_FLOAT_EQ(0.01 * c_id, getValuef(response, "C_DISCOUNT"));\
   EXPECT_TRUE(response.isMember("C_BALANCE"));/*TODO maybe check value*/\
   EXPECT_TRUE(response.isMember("C_DATA"));/*TODO maybe check value*/\
-
-
 
 #define T_PaymentId(w_id, d_id, c_id, c_w_id, c_d_id, h_amount) \
 {\
@@ -90,13 +88,10 @@ Json::Value TpccStoredPaymentTest::doPayment(int w_id, int d_id, int c_id, const
   i_history_size += 1;\
 }
 
-#define T_PaymentCLast(w_id, d_id, c_last, c_w_id, c_d_id, h_amount) \
+#define T_PaymentCLast(w_id, d_id, c_last, c_w_id, c_d_id, h_amount, c_id) \
 {\
   const auto response = doPayment(w_id, d_id, 0, c_last, c_w_id, c_d_id, h_amount);\
 \
-  const std::string start = "CLName";\
-  const std::string clast = c_last;\
-  const int c_id = stol(clast.substr(start.size()));\
   T_DISABLED_check_values(w_id, d_id, c_id, c_last, c_w_id, c_d_id, h_amount)\
   \
   EXPECT_EQ(getTable(Customer)->size() , i_customer_size);\
@@ -115,7 +110,7 @@ TEST_F(TpccStoredPaymentTest, minimal) {
   //         (w_id, d_id, c_id, c_w_id, c_d_id, h_amount);
   T_PaymentId(1   , 1   , 3   , 1     , 1     , 300.0f  );
   //            (w_id, d_id, c_last        , c_w_id, c_d_id, h_amount);
-  T_PaymentCLast(1   , 1   , "CLName2"     , 1     , 1     , 123.0f  );
+  T_PaymentCLast(1   , 1   , "CLName2"     , 1     , 1     , 123.0f, 3  );
 }
 
 TEST_F(TpccStoredPaymentTest, DISABLED_Payment) {
@@ -130,14 +125,14 @@ TEST_F(TpccStoredPaymentTest, DISABLED_Payment) {
   T_PaymentId(2   , 5   , 2   , 2     , 5     , 123.45f  );
 
   //            (w_id, d_id, c_last        , c_w_id, c_d_id, h_amount);
-  T_PaymentCLast(1   , 1   , "CLName2"     , 1     , 1     , 123.0f  );
-  T_PaymentCLast(2   , 9   , "CLName2"     , 1     , 1     , 234.0f  );
-  T_PaymentCLast(1   , 1   , "CLName1"     , 1     , 1     , 355.0f  );
-  T_PaymentCLast(2   , 7   , "CLName1"     , 2     , 10    , 456.0f  );
-  T_PaymentCLast(2   , 7   , "CLName2"     , 1     , 2     , 567.0f  );
-  T_PaymentCLast(1   , 7   , "CLName2"     , 1     , 10    , 687.0f  );
-  T_PaymentCLast(1   , 1   , "CLName2"     , 2     , 10    , 798.0f  );
-  T_PaymentCLast(2   , 3   , "CLName2"     , 1     , 2     , 809.0f  );
+  T_PaymentCLast(1   , 1   , "CLName2"     , 1     , 1     , 123.0f  , 3);
+  // T_PaymentCLast(2   , 9   , "CLName2"     , 1     , 1     , 234.0f  );
+  // T_PaymentCLast(1   , 1   , "CLName1"     , 1     , 1     , 355.0f  );
+  // T_PaymentCLast(2   , 7   , "CLName1"     , 2     , 10    , 456.0f  );
+  // T_PaymentCLast(2   , 7   , "CLName2"     , 1     , 2     , 567.0f  );
+  // T_PaymentCLast(1   , 7   , "CLName2"     , 1     , 10    , 687.0f  );
+  // T_PaymentCLast(1   , 1   , "CLName2"     , 2     , 10    , 798.0f  );
+  // T_PaymentCLast(2   , 3   , "CLName2"     , 1     , 2     , 809.0f  );
 }
 
 TEST_F(TpccStoredPaymentTest, DISABLED_wrongAmount) {
