@@ -16,8 +16,10 @@
 #include <access/MaterializingScan.h>
 #include <access/MergeJoin.hpp>
 #include <access/MergeTable.h>
+#include <access/PersistTable.h>
 #include <access/PosUpdateScan.h>
 #include <access/ProjectionScan.h>
+#include <access/RecoverTable.h>
 #include <access/SimpleRawTableScan.h>
 #include <access/SimpleTableScan.h>
 #include <access/IndexAwareTableScan.h>
