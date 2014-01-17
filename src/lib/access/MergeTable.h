@@ -23,6 +23,17 @@ public:
   static std::shared_ptr<PlanOperation> parse(const Json::Value& data);
 };
 
+class MergeStoreIndexAwareBaseline : public PlanOperation {
+private:
+	std::string _index_name;
+public:
+  virtual ~MergeStoreIndexAwareBaseline();
+  void executePlanOperation();
+  static std::shared_ptr<PlanOperation> parse(const Json::Value& data);
+
+  void setIndexName(const std::string &t);
+};
+
 
 }
 }

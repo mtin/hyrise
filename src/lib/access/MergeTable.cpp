@@ -3,6 +3,9 @@
 
 #include "access/system/QueryParser.h"
 
+#include "io/StorageManager.h"
+#include "storage/PagedIndex.h"
+
 #include "helper/checked_cast.h"
 #include "storage/Store.h"
 
@@ -47,6 +50,7 @@ const std::string MergeTable::vname() {
   return "MergeTable";
 }
 
+
 namespace {
   auto _2 = QueryParser::registerPlanOperation<MergeStore>("MergeStore");
 }
@@ -65,6 +69,41 @@ std::shared_ptr<PlanOperation> MergeStore::parse(const Json::Value& data) {
   return std::make_shared<MergeStore>();
 }
 
+
+
+namespace {
+  auto _3 = QueryParser::registerPlanOperation<MergeStoreIndexAwareBaseline>("MergeStoreIndexAwareBaseline");
+}
+
+MergeStoreIndexAwareBaseline::~MergeStoreIndexAwareBaseline() {
+}
+
+void MergeStoreIndexAwareBaseline::executePlanOperation() {
+  auto t = checked_pointer_cast<const storage::Store>(getInputTable());
+  auto store = std::const_pointer_cast<storage::Store>(t);
+  store->merge();
+
+  addResult(store);
+
+  // get index
+  hyrise::io::StorageManager *sm = hyrise::io::StorageManager::getInstance();
+  auto idx = sm->getInvertedIndex(_index_name);
+  auto pagedIdx = std::dynamic_pointer_cast<hyrise::storage::PagedIndex>(idx);
+
+  // rebuild index
+  pagedIdx->rebuildIndex(store->getMainTable());
+}
+
+std::shared_ptr<PlanOperation> MergeStoreIndexAwareBaseline::parse(const Json::Value& data) {
+  auto i = BasicParser<MergeStoreIndexAwareBaseline>::parse(data);
+  i->setIndexName(data["index_name"].asString());
+
+  return i;
+}
+
+void MergeStoreIndexAwareBaseline::setIndexName(const std::string &t) {
+  _index_name = t;
+}
 
 }
 }
