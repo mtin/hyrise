@@ -218,16 +218,8 @@ storage::c_atable_ptr_t executeAndWait(
     std::string* evt,
     tx::transaction_id_t tid) {
   using namespace hyrise;
-  using namespace access;
-  using namespace tx;
- 
-  std::stringstream query;
-  query << "query=" << httpQuery;
-  if (tid == tx::UNKNOWN)
-    tid = getNewTXContext().tid;
-  query << "&session_context=" << tid;
-
-  std::unique_ptr<MockedConnection> conn = make_unique<MockedConnection>(query.str());
+  using namespace hyrise::access;
+  std::unique_ptr<MockedConnection> conn(new MockedConnection("performance=true&query="+httpQuery));
 
   SharedScheduler::getInstance().resetScheduler("WSCoreBoundQueuesScheduler", poolSize);
   const auto& scheduler = SharedScheduler::getInstance().getScheduler();
