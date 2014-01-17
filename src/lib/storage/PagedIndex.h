@@ -20,12 +20,13 @@
 namespace hyrise {
 namespace storage {
 
-template<typename T>
+
 class PagedIndex : public hyrise::storage::AbstractIndex {
 private:
   typedef std::vector<boost::dynamic_bitset<>> paged_index_t;
   paged_index_t _index;
-  size_t _pageSize;
+  const size_t _pageSize;
+  const field_t _column;
 
 public:
   virtual ~PagedIndex() {};
@@ -36,26 +37,20 @@ public:
       //e.second.shrink_to_fit();
   }
 
-  explicit PagedIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column, size_t pageSize = 4, bool debug = 0): _pageSize(pageSize) {
+  explicit PagedIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column, size_t pageSize = 4, bool debug = 0): _pageSize(pageSize), _column(column) {
     if (in != nullptr) {
-      size_t num_of_pages = std::ceil(in->size() / (double)_pageSize);
       if (debug) {
+        size_t num_of_pages = std::ceil(in->size() / (double)_pageSize);
         std::cout << "table_size: " << in->size() << std::endl;
         std::cout << "page_size: " << _pageSize << std::endl;
         std::cout << "num_of_pages: " << num_of_pages << std::endl;
       }
 
-      _index.resize(in->dictionaryAt(column)->size(), boost::dynamic_bitset<>(num_of_pages, 0));
-        
-      for (size_t row = 0; row < in->size(); ++row) {
-        ValueId valueId = in->getValueId(column, row);
-
-        _index[valueId.valueId][row/_pageSize] = 1;
-      }
+      rebuildIndex(in);
 
       if (debug) {
-        for (int i=0; i<_index.size(); ++i) {
-          std::cout << in->getValueForValueId<T>(column, ValueId(i, 0)) << " - ";
+        for (size_t i=0; i<_index.size(); ++i) {
+          //std::cout << in->getValueForValueId<T>(column, ValueId(i, 0)) << " - ";
           for (size_t o=0; o<_index[i].size(); ++o) 
             std::cout << _index[i][o];
           std::cout << std::endl;
@@ -64,11 +59,25 @@ public:
     }
   };
 
+  void rebuildIndex(const hyrise::storage::c_atable_ptr_t& in) {
+    if (in != nullptr) {
+      size_t num_of_pages = std::ceil(in->size() / (double)_pageSize);
+
+      _index.resize(in->dictionaryAt(_column)->size(), boost::dynamic_bitset<>(num_of_pages, 0));
+        
+      for (size_t row = 0; row < in->size(); ++row) {
+        ValueId valueId = in->getValueId(_column, row);
+
+        _index[valueId.valueId][row/_pageSize] = 1;
+      }
+    }
+  }
+
   /**
    * returns a list of positions where key was found.
    */
 
-//template<typename T>
+template<typename T>
   hyrise::storage::pos_list_t* getPositionsForKey(T key, field_t column, const hyrise::storage::c_atable_ptr_t& table) {
     hyrise::storage::pos_list_t *result = new hyrise::storage::pos_list_t();
 
