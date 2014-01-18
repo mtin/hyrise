@@ -44,8 +44,8 @@ auto create_concurrent_storage = [](std::size_t cols) { return std::make_shared<
 Store::Store(atable_ptr_t main_table) :
     _delta_size(0),
     _main_table(main_table),
-    delta(main_table->copy_structure_modifiable(nullptr, 0, true, true)),
-    //delta(main_table->copy_structure(create_concurrent_dict, create_concurrent_storage)),
+    //delta(main_table->copy_structure_modifiable(nullptr, 0, true, true)),
+    delta(main_table->copy_structure(create_concurrent_dict, create_concurrent_storage)),
     merger(createDefaultMerger()),
     _cidBeginVector(main_table->size(), 0),
     _cidEndVector(main_table->size(), tx::INF_CID),

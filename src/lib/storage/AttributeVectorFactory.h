@@ -5,7 +5,7 @@
 
 #include <storage/BaseAttributeVector.h>
 #include <storage/FixedLengthVector.h>
-//#include <storage/VolatileAttributeVector.h>
+#include <storage/ConcurrentFixedLengthVector.h>
 #include <storage/BitCompressedVector.h>
 #ifdef PERSISTENCY_NVRAM
 #include <storage/NVAttributeVector.h>
@@ -30,7 +30,7 @@ public:
     } else
 #endif
     {
-      return std::make_shared<FixedLengthVector<T> >(columns, rows);
+      return std::make_shared<ConcurrentFixedLengthVector<T> >(columns, rows);
     }
   }
 
@@ -47,7 +47,7 @@ public:
       } else
 #endif
       {
-        return std::make_shared<FixedLengthVector<T> >(columns, rows);
+        return std::make_shared<ConcurrentFixedLengthVector<T> >(columns, rows);
       }
     } else {
       return std::make_shared<BitCompressedVector<T> >(columns, rows, bits);

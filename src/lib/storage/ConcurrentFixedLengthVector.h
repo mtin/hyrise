@@ -50,7 +50,7 @@ class ConcurrentFixedLengthVector : public AbstractFixedLengthVector<T> {
   }
 
   virtual void clear() {NOT_IMPLEMENTED}
-  virtual void rewriteColumn(const size_t, const size_t) {NOT_IMPLEMENTED}
+  virtual void rewriteColumn(const size_t, const size_t) {}
   virtual void *data() override {NOT_IMPLEMENTED}
  private:
   void check_access(std::size_t columns, std::size_t rows) const {
