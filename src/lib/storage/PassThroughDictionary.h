@@ -28,23 +28,27 @@ class PassThroughDictionary : public BaseDictionary<T> {
 
   };
 
-  static_assert(sizeof(T) == sizeof(value_id_t), 
+  static_assert(sizeof(T) == sizeof(value_id_t),
 		     "PassThroughDictionary can only be used with types contained in value_id_t");
 
 public:
 
   explicit PassThroughDictionary(size_t s = 0) {}
 
-  value_id_t addValue(T value) { 
+  value_id_t addValue(T value) {
     return pt_dict_union_t(value).vid;
   }
 
-  T getValueForValueId(value_id_t value_id) { 
+  T getValueForValueId(value_id_t value_id) {
     return pt_dict_union_t(value_id).value;
   }
 
   value_id_t getValueIdForValue(const T& value) const {
     return pt_dict_union_t(value).vid;
+  }
+
+  value_id_t findValueIdForValue(const T &value) const {
+    STORAGE_NOT_IMPLEMENTED(PassThroughDictionary, getValueIdPtrForValue());
   }
 
   value_id_t getLowerBoundValueIdForValue(T other) {
@@ -87,7 +91,7 @@ public:
 
   DictionaryIterator<T> begin(){ return iterator(std::make_shared<PassThroughDictionaryIterator<T> >()); }
   DictionaryIterator<T> end() { return iterator(std::make_shared<PassThroughDictionaryIterator<T> >()); }
-    
+
 };
 
 /*

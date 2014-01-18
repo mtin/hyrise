@@ -323,9 +323,9 @@ public:
     const auto& map = checked_pointer_cast<BaseDictionary<T>>(dictionaryAt(column, row));
     ValueId valueId;
     valueId.table = 0;
-    bool existed = map->valueExists(value);
-    valueId.valueId = map->insert(value);
-    if(!existed) {
+    valueId.valueId = map->findValueIdForValue(value);
+    if(valueId.valueId == std::numeric_limits<value_id_t>::max()) {
+      valueId.valueId = map->addValue(value);
       io::Logger::getInstance().logDictionary<T>(getName(), column, value, valueId.valueId);
     }
     setValueId(column, row, valueId);

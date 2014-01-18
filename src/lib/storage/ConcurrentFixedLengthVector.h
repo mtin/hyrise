@@ -11,7 +11,7 @@ template <typename T>
 class ConcurrentFixedLengthVector : public AbstractFixedLengthVector<T> {
  public:
   ConcurrentFixedLengthVector(std::size_t columns, std::size_t rows) :
-      _columns(columns), _values(columns * rows) {}
+      _columns(columns), _size(rows), _values(columns * rows) {}
 
   virtual T get(size_t column, size_t row) const override {
     return getRef(column, row);
@@ -33,6 +33,7 @@ class ConcurrentFixedLengthVector : public AbstractFixedLengthVector<T> {
 
   virtual void resize(size_t rows) override {
     reserve(rows);
+    _size = rows;
   }
 
   virtual std::uint64_t capacity() override {
@@ -40,7 +41,7 @@ class ConcurrentFixedLengthVector : public AbstractFixedLengthVector<T> {
   }
 
   virtual std::uint64_t size() override {
-    return _values.size() / _columns;
+    return _size;
   }
 
   virtual void setNumRows(std::size_t num) override { NOT_IMPLEMENTED }
@@ -60,6 +61,7 @@ class ConcurrentFixedLengthVector : public AbstractFixedLengthVector<T> {
 #endif
   }
   const std::size_t _columns;
+  size_t _size;
   tbb::concurrent_vector<T> _values;
 };
 

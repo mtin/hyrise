@@ -18,9 +18,10 @@ public:
 
   virtual T getValueForValueId(value_id_t value_id) = 0;
   virtual value_id_t getValueIdForValue(const T &value) const = 0;
+  virtual value_id_t findValueIdForValue(const T &value) const = 0;
 
   /*
-   * Returns the value id of the first value that does not 
+   * Returns the value id of the first value that does not
    * compare less than other.
    *
    * @note needs to be implemented in each subclass
@@ -29,7 +30,7 @@ public:
   virtual value_id_t getLowerBoundValueIdForValue(T other) = 0;
 
   /*
-   * Returns the value id of the first value that compares 
+   * Returns the value id of the first value that compares
    * greater than other.
    *
    * @note needs to be implemented in each subclass

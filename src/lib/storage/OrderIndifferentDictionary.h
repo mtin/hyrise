@@ -121,7 +121,7 @@ public:
     if (value_id >= _value_list.size()) {
       throw std::out_of_range("value id out of range");
     }
-#endif    
+#endif
     return _value_list[value_id];
   }
 
@@ -151,6 +151,15 @@ public:
       throw std::out_of_range("Value not found");
     }
     return _index.at(value);
+  }
+
+  virtual value_id_t findValueIdForValue(const T &value) const {
+    typename index_type::const_iterator it = _index.find(value);
+    if (it != _index.end()) {
+      return it->second;
+    } else {
+      return std::numeric_limits<value_id_t>::max();
+    }
   }
 
   value_id_t getLowerBoundValueIdForValue(T other) {

@@ -86,6 +86,15 @@ public:
     return index;
   }
 
+  value_id_t findValueIdForValue(const T &value) const {
+    auto binary_search = std::lower_bound(_values->begin(), _values->end(), value);
+    if (binary_search != _values->end() && *binary_search == value) {
+      return binary_search - _values->begin();
+    } else {
+      return std::numeric_limits<value_id_t>::max();
+    }
+  }
+
   value_id_t getLowerBoundValueIdForValue(T other) {
     auto binary_search = std::lower_bound(_values->begin(), _values->end(), other);
     size_t index = binary_search - _values->begin();

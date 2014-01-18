@@ -95,9 +95,8 @@ public:
    * returns a list of positions where key was found.
    */
   PositionRange getPositionsForKey(T key) {
-    // TODO: optimize to avoid searching the dictionary twice
-    if (_dictionary->valueExists(key)) {
-      auto value_id = _dictionary->getValueIdForValue(key);
+    auto value_id = _dictionary->findValueIdForValue(key);
+    if (value_id != std::numeric_limits<value_id_t>::max()) {
       auto start = _offsets[value_id];
       auto end = _offsets[value_id+1];
       return PositionRange(_postings.begin()+start, _postings.begin()+end, true);
