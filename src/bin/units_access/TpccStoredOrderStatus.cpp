@@ -30,7 +30,6 @@ Json::Value TpccStoredOrderStatusTest::doOrderStatus(int w_id, int d_id, int c_i
 #define T_OrderStatus_check_values(w_id, d_id, c_id, c_last)\
   EXPECT_EQ(w_id, getValuei(response, "W_ID"));\
   EXPECT_EQ(d_id, getValuei(response, "D_ID"));\
-  EXPECT_EQ(c_id, getValuei(response, "C_ID"));\
   /*customer stuff*/\
   const auto c_nbr = toString(c_id);\
   EXPECT_EQ("CFName" + c_nbr, getValues(response, "C_FIRST"));\

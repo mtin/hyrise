@@ -16,6 +16,10 @@
 #include "storage/AbstractIndex.h"
 #include "storage/AbstractTable.h"
 
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/vector.hpp>
+
 namespace hyrise {
 namespace storage {
 
@@ -50,15 +54,15 @@ private:
 public:
   virtual ~DeltaIndex() {
     pthread_rwlock_destroy(&_rw_lock);
-  };
+  }
 
   void shrink() {
     throw std::runtime_error("Shrink not supported for DeltaIndex");
   }
 
-  explicit DeltaIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column) : _table(in), _column(column) {
+  explicit DeltaIndex(const c_atable_ptr_t& in, field_t column) : _table(in), _column(column) {
     pthread_rwlock_init(&_rw_lock, NULL);
-  };
+  }
 
   void write_lock() {
     if (pthread_rwlock_wrlock(&_rw_lock) != 0)
@@ -96,9 +100,7 @@ public:
       // ... and insert
       find->second.insert(it, pos);
     }
-  };
-
-
+  }
 
   PositionRange getPositionsForKey(T key) {
     typename inverted_index_t::iterator it = _index.find(key);
@@ -108,29 +110,28 @@ public:
       // empty result
       return PositionRange(_empty.begin(), _empty.end(), true);
     }
-  };
+  }
 
   PositionRange getPositionsForKeyLT(T key) {
     return getPositionsBetween(_index.cbegin(), _index.lower_bound(key));
-  };
+  }
 
   PositionRange getPositionsForKeyLTE(T key) {
     return getPositionsBetween(_index.cbegin(), _index.upper_bound(key));
-  };
+  }
 
   PositionRange getPositionsForKeyBetween(T a, T b) {
     // return range ]a,b[
     return getPositionsBetween(_index.lower_bound(a), _index.upper_bound(b));
-  };
+  }
 
   PositionRange getPositionsForKeyGT(T key) {
     return getPositionsBetween(_index.upper_bound(key), _index.cend());
-  };
+  }
 
   PositionRange getPositionsForKeyGTE(T key) {
     return getPositionsBetween(_index.lower_bound(key), _index.cend());
-  };
-
+  }
 };
 
 }

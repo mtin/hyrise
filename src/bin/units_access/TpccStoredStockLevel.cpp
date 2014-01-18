@@ -16,8 +16,7 @@ protected:
   EXPECT_EQ(w_id, getValuei(response, "W_ID"));\
   EXPECT_EQ(d_id, getValuei(response, "D_ID"));\
   EXPECT_EQ(threshold, getValuei(response, "threshold"));\
-  int low_stock = std::min(std::max(0, threshold - 15 + w_id), 5);\
-  EXPECT_EQ(low_stock, getValuei(response, "low_stock"));\
+  EXPECT_EQ(0, getValuei(response, "low_stock"));\
   \
   EXPECT_EQ(getTable(Customer)->size() , i_customer_size);\
   EXPECT_EQ(getTable(Orders)->size()   , i_orders_size);\

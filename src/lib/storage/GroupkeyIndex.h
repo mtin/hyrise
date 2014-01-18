@@ -15,6 +15,9 @@
 
 #include <memory>
 
+#include <cereal/types/vector.hpp>
+#include <cereal/types/string.hpp>
+
 namespace hyrise {
 namespace storage {
 
@@ -30,13 +33,13 @@ private:
   typedef std::shared_ptr<dict_t> dict_ptr_t;
   typedef std::vector<pos_t> groupkey_offsets_t;
   typedef std::vector<pos_t> groupkey_postings_t;
-  
+
   groupkey_offsets_t _offsets;
   groupkey_postings_t _postings;
   dict_ptr_t _dictionary;
 
 public:
-  virtual ~GroupkeyIndex() {};
+  virtual ~GroupkeyIndex() {}
 
   void shrink() {
     throw std::runtime_error("Shrink not supported for GroupkeyIndex");
@@ -48,8 +51,8 @@ public:
 
   void unlock() {}
 
-  explicit GroupkeyIndex(const c_atable_ptr_t& in, field_t column) {
-    if (in != nullptr) {
+  explicit GroupkeyIndex(const c_atable_ptr_t& in, field_t column, bool create = true) {
+    if (in != nullptr && create) {
       // save pointer to dictionary
       _dictionary = std::static_pointer_cast<dict_t>(in->dictionaryAt(column));
 
@@ -82,8 +85,10 @@ public:
 
       // set last offset
       _offsets[_dictionary->size()] = _postings.size();
+    } else if (in != nullptr && !create) {
+      _dictionary = std::static_pointer_cast<dict_t>(in->dictionaryAt(column));
     }
-  };
+  }
 
 
   /**
@@ -95,12 +100,12 @@ public:
       auto value_id = _dictionary->getValueIdForValue(key);
       auto start = _offsets[value_id];
       auto end = _offsets[value_id+1];
-      return PositionRange(_postings.begin()+start, _postings.begin()+end, true); 
+      return PositionRange(_postings.begin()+start, _postings.begin()+end, true);
     } else {
       // empty result
       return PositionRange(_postings.begin(), _postings.begin(), true);
     }
-  };
+  }
 
   PositionRange getPositionsForKeyLT(T key) {
     auto value_id = _dictionary->getLowerBoundValueIdForValue(key);
@@ -113,7 +118,7 @@ public:
       // all
       return PositionRange(_postings.begin(), _postings.end(), false);
     }
-  };
+  }
 
   PositionRange getPositionsForKeyLTE(T key) {
     auto value_id = _dictionary->getUpperBoundValueIdForValue(key);
@@ -126,7 +131,7 @@ public:
       // all
       return PositionRange(_postings.begin(), _postings.end(), false);
     }
-  };
+  }
 
   PositionRange getPositionsForKeyGT(T key) {
     auto value_id = _dictionary->getUpperBoundValueIdForValue(key);
@@ -139,7 +144,7 @@ public:
       // empty
       return PositionRange(_postings.end(), _postings.end(), false);
     }
-  };
+  }
 
   PositionRange getPositionsForKeyGTE(T key) {
     auto value_id = _dictionary->getLowerBoundValueIdForValue(key);
@@ -152,7 +157,7 @@ public:
       // empty
       return PositionRange(_postings.end(), _postings.end(), false);
     }
-  };
+  }
 
   // returns range ]a,b[
   PositionRange getPositionsForKeyBetween(T a, T b) {
@@ -160,7 +165,7 @@ public:
     auto value_id_b = _dictionary->getLowerBoundValueIdForValue(b);
     const bool value_a_exists = value_id_a < _dictionary->size();
     const bool value_b_exists = value_id_b < _dictionary->size();
-    
+
     if (value_a_exists && value_b_exists) {
       auto start = _offsets[value_id_a];
       auto end = _offsets[value_id_b];
@@ -175,8 +180,12 @@ public:
       // empty
       return PositionRange(_postings.end(), _postings.end(), false);
     }
-  };
+  }
 
+  template <class Archive>
+  void serialize(Archive &ar) {
+    ar(_offsets, _postings);
+  }
 };
 
 }
