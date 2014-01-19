@@ -21,7 +21,7 @@ namespace hyrise {
 namespace storage {
 
 
-class PagedIndex : public hyrise::storage::AbstractIndex {
+class PagedIndex : public AbstractIndex {
 private:
   typedef std::vector<boost::dynamic_bitset<>> paged_index_t;
   paged_index_t _index;
@@ -32,10 +32,14 @@ public:
   virtual ~PagedIndex() {};
 
   void shrink() {
-      std::cout << "SHRINK NOT IMPLEMENTED YEY: " <<std::endl;
-//for (auto & e : _index)
-      //e.second.shrink_to_fit();
+    throw std::runtime_error("Shrink not supported for GroupkeyIndex");
   }
+
+  void write_lock() {}
+ 
+  void read_lock() {}
+
+  void unlock() {}
 
   explicit PagedIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column, size_t pageSize = 4, bool debug = 0): _pageSize(pageSize), _column(column) {
     if (in != nullptr) {
