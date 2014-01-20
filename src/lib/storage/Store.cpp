@@ -2,20 +2,24 @@
 #include <storage/Store.h>
 #include <iostream>
 
-
 #include <io/TransactionManager.h>
 #include <io/StorageManager.h>
 #include <storage/storage_types.h>
 #include <storage/PrettyPrinter.h>
 #include <storage/DeltaIndex.h>
 #include <storage/meta_storage.h>
+#include <storage/storage_types.h>
 
 #include <helper/vector_helpers.h>
 #include <helper/locking.h>
 #include <helper/cas.h>
 
-#define INITIAL_RESERVE 5000000
-#define REUSE_MAIN_DICTS
+#include "storage/DictionaryFactory.h"
+#include "storage/ConcurrentUnorderedDictionary.h"
+#include "storage/ConcurrentFixedLengthVector.h"
+
+#define INITIAL_RESERVE 0
+//#define REUSE_MAIN_DICTS
 
 namespace hyrise { namespace storage {
 
@@ -28,9 +32,20 @@ Store::Store() :
   setUuid();
 }
 
+namespace {
+
+auto create_concurrent_dict = [](DataType dt) { return makeDictionary(types::getConcurrentType(dt)); };
+auto create_concurrent_storage = [](std::size_t cols) { return std::make_shared<ConcurrentFixedLengthVector<value_id_t>>(cols, 0);
+
+};
+
+}
+
 Store::Store(atable_ptr_t main_table) :
+    _delta_size(0),
     _main_table(main_table),
-    delta(main_table->copy_structure_modifiable(nullptr, 0, true, true)),
+    //delta(main_table->copy_structure_modifiable(nullptr, 0, true, true)),
+    delta(main_table->copy_structure(create_concurrent_dict, create_concurrent_storage)),
     merger(createDefaultMerger()),
     _cidBeginVector(main_table->size(), 0),
     _cidEndVector(main_table->size(), tx::INF_CID),
@@ -49,6 +64,7 @@ void Store::merge() {
 
   // Create new delta and merge
   atable_ptr_t new_delta = delta->copy_structure_modifiable(nullptr, 0, true, true);
+  //atable_ptr_t new_delta = delta->copy_structure(create_concurrent_dict, create_concurrent_storage);
   new_delta->setName(getName());
   if(loggingEnabled()) new_delta->enableLogging();
 
@@ -65,10 +81,17 @@ void Store::merge() {
   auto tables = merger->merge(tmp, true, validPositions);
   assert(tables.size() == 1);
   _main_table = tables.front();
+
   // Fixup the cid and tid vectors
+  #ifdef PERSISTENCY_NVRAM
   _cidBeginVector.assign(_main_table->size(), tx::UNKNOWN_CID);
   _cidEndVector.assign(_main_table->size(), tx::INF_CID);
   _tidVector.assign(_main_table->size(), tx::START_TID);
+  #else
+  _cidBeginVector = tbb::concurrent_vector<tx::transaction_cid_t>(_main_table->size(), tx::UNKNOWN_CID);
+  _cidEndVector = tbb::concurrent_vector<tx::transaction_cid_t>(_main_table->size(), tx::INF_CID);
+  _tidVector = tbb::concurrent_vector<tx::transaction_id_t>(_main_table->size(), tx::START_TID);
+  #endif
 
   #ifdef REUSE_MAIN_DICTS
   // copy merged main's dictionaries for delta
@@ -76,12 +99,20 @@ void Store::merge() {
     const AbstractDictionary* dict = _main_table->dictionaryAt(column).get();
     switch(typeOfColumn(column)) {
       case IntegerType:
+      case IntegerTypeDelta:
+      case IntegerTypeDeltaConcurrent:
+      case IntegerNoDictType:
         new_delta->setDictionaryAt(std::make_shared<OrderIndifferentDictionary<hyrise_int_t>>(((OrderPreservingDictionary<hyrise_int_t>*)dict)->getValueList()), column);
         break;
       case FloatType:
+      case FloatTypeDelta:
+      case FloatTypeDeltaConcurrent:
+      case FloatNoDictType:
         new_delta->setDictionaryAt(std::make_shared<OrderIndifferentDictionary<hyrise_float_t>>(((OrderPreservingDictionary<hyrise_float_t>*)dict)->getValueList()), column);
         break;
       case StringType:
+      case StringTypeDelta:
+      case StringTypeDeltaConcurrent:
         new_delta->setDictionaryAt(std::make_shared<OrderIndifferentDictionary<hyrise_string_t>>(((OrderPreservingDictionary<hyrise_string_t>*)dict)->getValueList()), column);
         break;
     }
@@ -90,6 +121,7 @@ void Store::merge() {
 
   // Replace the delta partition
   delta = new_delta;
+  _delta_size = new_delta->size();
 
   // if enabled, persist new main onto disk
   #ifdef PERSISTENCY_BUFFEREDLOGGER
@@ -117,7 +149,7 @@ atable_ptr_t Store::getDeltaTable() const {
   return delta;
 }
 
-const ColumnMetadata *Store::metadataAt(const size_t column_index, const size_t row_index, const table_id_t table_id) const {
+const ColumnMetadata& Store::metadataAt(const size_t column_index, const size_t row_index, const table_id_t table_id) const {
   size_t offset = _main_table->size();
   if (row_index < offset) {
     return _main_table->metadataAt(column_index, row_index, table_id);
@@ -296,24 +328,20 @@ std::pair<size_t, size_t> Store::resizeDelta(size_t num) {
 }
 
 std::pair<size_t, size_t> Store::appendToDelta(size_t num) {
+  #ifdef PERSISTENCY_NVRAM
   static locking::Spinlock mtx;
   std::lock_guard<locking::Spinlock> lck(mtx);
+  #endif
 
-  size_t start = delta->size();
-  std::pair<size_t, size_t> result = {start, start + num};
-
-  // Update Delta, CID, TID and valid
-  if(start+num > INITIAL_RESERVE) {
-    std::cout << "WARNING: " << getName() << ": resize delta to " << start+num << ", exiting.." << std::endl;
-    exit(-1);
-  }
+  size_t start =_delta_size.fetch_add(num);
   delta->resize(start + num);
+
   auto main_tables_size = _main_table->size();
   _cidBeginVector.resize(main_tables_size + start + num, tx::INF_CID);
   _cidEndVector.resize(main_tables_size + start + num, tx::INF_CID);
   _tidVector.resize(main_tables_size + start + num, tx::START_TID);
 
-  return std::move(result);
+  return {start, start + num};
 }
 
 void Store::copyRowToDelta(const c_atable_ptr_t& source, const size_t src_row, const size_t dst_row, tx::transaction_id_t tid) {

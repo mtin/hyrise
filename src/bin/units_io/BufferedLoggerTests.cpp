@@ -53,9 +53,9 @@ TEST_F(BufferedLoggerTests, log_test) {
   ASSERT_FALSE(memcmp(log, reference, log_s.st_size));
 }
 
-TEST_F(BufferedLoggerTests, insert_and_restore_test) {
+TEST_F(BufferedLoggerTests, DISABLED_insert_and_restore_test) {
   BufferedLogger::getInstance().truncate();
-  
+
   auto rows = Loader::shortcuts::load("test/alltypes.tbl");
   auto empty = Loader::shortcuts::load("test/alltypes_empty.tbl");
 

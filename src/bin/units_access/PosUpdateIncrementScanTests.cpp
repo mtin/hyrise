@@ -22,15 +22,15 @@ public:
     hyrise::tx::TransactionManager::getInstance().reset();
 
     AccessTest::SetUp();
-    t = Loader::shortcuts::load("test/tables/companies.tbl");
+    t = io::Loader::shortcuts::load("test/tables/companies.tbl");
   }
 
   storage::atable_ptr_t t;
 };
 
 TEST_F(PosUpdateIncrementTests, basic_increment_test) {
-  auto reference = Loader::shortcuts::load("test/reference/companies_after_one_increments.tbl");
-  
+  auto reference = io::Loader::shortcuts::load("test/reference/companies_after_one_increments.tbl");
+
   // Increment first
   auto writeCtx =hyrise::tx::TransactionManager::getInstance().buildContext();
 
@@ -63,14 +63,14 @@ TEST_F(PosUpdateIncrementTests, basic_increment_test) {
   vp.setTXContext(readCtx);
   vp.addInput(sts2.getResultTable());
   vp.execute();
-  
+
   auto result = vp.getResultTable();
   ASSERT_TABLE_EQUAL(result, reference);
 }
 
 TEST_F(PosUpdateIncrementTests, increment_multiple_rows_test) {
-  auto reference = Loader::shortcuts::load("test/reference/companies_after_mutiple_rows_increment.tbl");
-  
+  auto reference = io::Loader::shortcuts::load("test/reference/companies_after_mutiple_rows_increment.tbl");
+
   // Increment first
   auto writeCtx =hyrise::tx::TransactionManager::getInstance().buildContext();
 
@@ -103,7 +103,7 @@ TEST_F(PosUpdateIncrementTests, increment_multiple_rows_test) {
   vp.setTXContext(readCtx);
   vp.addInput(sts2.getResultTable());
   vp.execute();
-  
+
   auto result = vp.getResultTable();
   ASSERT_TABLE_EQUAL(result, reference);
 }

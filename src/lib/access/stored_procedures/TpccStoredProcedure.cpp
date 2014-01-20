@@ -282,7 +282,7 @@ void TpccStoredProcedure::commit() {
 }
 
 void TpccStoredProcedure::rollback() {
-  if(tx::TransactionManager::isRunningTransaction(_tx.tid) == false) {
+  if(tx::TransactionManager::isValidTransactionId(_tx.tid) == false) {
     // TX has most likely been aborted/rolled back by internal measures
     return;
   }

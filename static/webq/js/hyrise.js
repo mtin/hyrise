@@ -29,12 +29,49 @@ function totalTime(data) {
 	return simpleFormat(result, 2);
 }
 
+function addQuery(q) {
+    if (localStorage) {
+	if (q["id"]) {
+	    localStorage[q["id"]] = JSON.stringify(q, null, 2);
+	} else {
+	    var d = new Date();
+	    localStorage[d.toISOString()] = JSON.stringify(q, null, 2);
+	}
+    }
+}
+
+function getQuery(id) {
+    if (localStorage) {
+	return localStorage[id];
+    }
+}
+
+function getQueries() {
+    var result = {};
+    for (var i=0; i < localStorage.length; ++i) {
+	var k = localStorage.key(i);
+	result[k] = localStorage[k];
+    }
+    return result;
+}
+
+function updateQueryHistory() {
+    $("#query_history").html("");
+    $("#query_history").append("<option></option>");
+    // Get all history queries
+    var queries = getQueries();
+    $.each(queries, function(k,v) {
+      $("#query_history").append("<option value=\"" + k + "\">"+ k + "</option>");
+    });
+
+}
+
 function runQuery() {
 	// Clear the inner HTML
 	$("#msg").empty();
 	$("#msg_error").empty();
 	$("#json_result").empty();
-	$("#btn_submit").button("loading");
+	//$("#btn_submit").button("loading");
 	$("#txtquery").attr("rows", 2);
 
 	
@@ -57,12 +94,19 @@ function runQuery() {
 			}
 
 			// Do the dot transformation
-			d = JSON.parse(d);
-			var performance = parsePerformanceData(d["performanceData"]);
+                        if (typeof(d) != "object")
+			  d = JSON.parse(d);
 
-			$("#msg").append(" " + totalTime(d["performanceData"]) + "ms");
+                        var performance = null;
+                        if (d["performanceData"]) {
+			  performance = parsePerformanceData(d["performanceData"]);
+			  $("#msg").append(" " + totalTime(d["performanceData"]) + "ms");
+                        }
 
-			var svg = Viz(toDot(JSON.parse($("#txtquery").val()), performance), "svg");
+		        // Add Query to localstorage
+		        var qJson = JSON.parse($("#txtquery").val());
+                      
+			var svg = Viz(toDot(qJson, performance), "svg");
 			if (svg) {
 			  $("#query_plan").html(svg);
 			}
@@ -148,13 +192,15 @@ function makeKey(key) {
 
 function maxPerf(performance) {
 	var result  = 0;
-	$.each(performance, function(k,v){result = v > result ? v : result;});
+        if (performance)
+	  $.each(performance, function(k,v){result = v > result ? v : result;});
 	return result;
 }
 
 function minPerf(performance) {
 	var result = Number.MAX_VALUE;
-	$.each(performance, function(k,v){result = v < result ? v : result;});
+        if (performance)
+	  $.each(performance, function(k,v){result = v < result ? v : result;});
 	return result;
 }
 
@@ -175,10 +221,17 @@ function toDot(json_graph, performance) {
 
 	$.each(json_graph["operators"], function(key, value){
 		result += "operator_" + makeKey(key) + " [label=\"{"+value["type"]+"|";
-		result += simpleFormat(performance[key], 4) + " ms";
+
+                if (performance)
+		  result += simpleFormat(performance[key], 4) + " ms";
+
 		result +="}\""; 
-		var fontSize = Math.round((performance[key] - minp) / perfStep)  * stepping + minf;
-		result += ",fontsize="+ fontSize;
+          
+                if (performance) {
+		  var fontSize = Math.round((performance[key] - minp) / perfStep)  * stepping + minf;
+		  result += ",fontsize="+ fontSize;
+                }
+
 		result += "];\n"
 	});
 	$.each(json_graph["edges"], function(i,v){

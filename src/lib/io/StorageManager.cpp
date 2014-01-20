@@ -34,7 +34,7 @@ namespace hyrise {
 namespace io {
 
 template<typename... Args>
-void StorageManager::addStorageTable(std::string name, Args && ... args) {
+void StorageManager::addStorageTable(const std::string& name, Args && ... args) {
   add(name, Loader::load(std::forward<Args>(args)...));
 }
 
@@ -45,22 +45,22 @@ StorageManager *StorageManager::getInstance() {
   return static_cast<StorageManager*>(&ResourceManager::getInstance());
 }
 
-void StorageManager::loadTable(std::string name, std::shared_ptr<AbstractTable> table) {
+void StorageManager::loadTable(const std::string& name, std::shared_ptr<storage::AbstractTable> table) {
   add(name, table);
 }
 
-void StorageManager::replaceTable(std::string name, std::shared_ptr<AbstractTable> table) {
+void StorageManager::replaceTable(const std::string& name, std::shared_ptr<storage::AbstractTable> table) {
   replace(name, table);
 }
 
-void StorageManager::loadTable(std::string name, const Loader::params &parameters) {
+void StorageManager::loadTable(const std::string& name, const Loader::params &parameters) {
   Loader::params *p = parameters.clone();
   p->setBasePath(Settings::getInstance()->getDBPath() + "/");
   addStorageTable(name, *p);
   delete p;
 }
 
-void StorageManager::loadTableFile(std::string name, std::string fileName) {
+void StorageManager::loadTableFile(const std::string& name, std::string fileName) {
   CSVInput input(makePath(fileName));
   CSVHeader header(makePath(fileName));
   Loader::params p;
@@ -69,8 +69,8 @@ void StorageManager::loadTableFile(std::string name, std::string fileName) {
   addStorageTable(name, p);
 }
 
-void StorageManager::loadTableFileWithHeader(std::string name, std::string datafileName,
-                                             std::string headerFileName) {
+void StorageManager::loadTableFileWithHeader(const std::string& name, const std::string& datafileName,
+                                             const std::string& headerFileName) {
   CSVInput input(makePath(datafileName));
   CSVHeader header(makePath(headerFileName));
   Loader::params p;
@@ -79,11 +79,11 @@ void StorageManager::loadTableFileWithHeader(std::string name, std::string dataf
   addStorageTable(name, p);
 }
 
-std::string StorageManager::makePath(std::string fileName) {
+std::string StorageManager::makePath(const std::string& fileName) {
   return Settings::getInstance()->getDBPath() + "/" + fileName;
 }
 
-std::shared_ptr<AbstractTable> StorageManager::getTable(std::string name) {
+std::shared_ptr<storage::AbstractTable> StorageManager::getTable(const std::string& name) {
   if (!exists(name)) {
     std::string tbl_file = Settings::getInstance()->getDBPath() + "/" + name + ".tbl";
     struct stat stFileInfo;
@@ -91,10 +91,10 @@ std::shared_ptr<AbstractTable> StorageManager::getTable(std::string name) {
     if (stat(tbl_file.c_str(), &stFileInfo) == 0)
       loadTableFile(name, name + ".tbl");
   }
-  return get<AbstractTable>(name);
+  return get<storage::AbstractTable>(name);
 }
 
-void StorageManager::removeTable(std::string name) {
+void StorageManager::removeTable(const std::string& name) {
   if (exists(name))
     remove(name);
 }
@@ -102,7 +102,7 @@ void StorageManager::removeTable(std::string name) {
 std::vector<std::string> StorageManager::getTableNames() const {
   std::vector<std::string> ret;
   for (const auto &resource : all())
-    if (std::dynamic_pointer_cast<AbstractTable>(resource.second) != nullptr)
+    if (std::dynamic_pointer_cast<storage::AbstractTable>(resource.second) != nullptr)
       ret.push_back(resource.first);
   return ret;
 }
@@ -119,15 +119,15 @@ void StorageManager::printResources() const {
   for (const auto &kv : all()) {
     const auto &name = kv.first;
     const auto &resource = kv.second;
-    if (auto table = std::dynamic_pointer_cast<AbstractTable>(resource)) {
+    if (auto table = std::dynamic_pointer_cast<storage::AbstractTable>(resource)) {
       std::cout << "Table "
                 << table->size() << " rows "
                 << table->columnCount() << " columns" << std::endl
                 << "    Columns:";
 
       for (field_t i = 0; i != table->columnCount(); i++)
-         std::cout << " " << table->metadataAt(i)->getName();
-    } else if (std::dynamic_pointer_cast<AbstractIndex>(resource)) {
+         std::cout << " " << table->metadataAt(i).getName();
+    } else if (std::dynamic_pointer_cast<storage::AbstractIndex>(resource)) {
       std::cout << "Index " << name;
     } else {
       std::cout << "Unknown resource type " << name;
@@ -137,18 +137,18 @@ void StorageManager::printResources() const {
   std::cout << "====================" << std::endl;
 }
 
-void StorageManager::addInvertedIndex(std::string name, std::shared_ptr<AbstractIndex> index) {
+void StorageManager::addInvertedIndex(const std::string& name, std::shared_ptr<storage::AbstractIndex> index) {
   if (exists(name))
     replace(name, index);
   else
     add(name, index);
 }
 
-std::shared_ptr<AbstractIndex> StorageManager::getInvertedIndex(std::string name) {
-  return get<AbstractIndex>(name);
+std::shared_ptr<storage::AbstractIndex> StorageManager::getInvertedIndex(const std::string& name) {
+  return get<storage::AbstractIndex>(name);
 }
 
-void StorageManager::persistTable(const std::string &name) {
+void StorageManager::persistTable(const std::string& name) {
   if (!exists(name)) {
     throw std::runtime_error("Cannot persist nonexisting table");
   }
@@ -187,9 +187,9 @@ void StorageManager::recoverTables() {
   }
 }
 
-void StorageManager::recoverTable(const std::string &name) {
+void StorageManager::recoverTable(const std::string& name) {
   std::string basePath = Settings::getInstance()->getDBPath() + "/log";
-  storage::TableDumpLoader loader(basePath, name);
+  io::TableDumpLoader loader(basePath, name);
   CSVHeader header(basePath + "/" + name + "/header.dat", CSVHeader::params().setCSVParams(csv::HYRISE_FORMAT));
   auto t = Loader::load(Loader::params().setInput(loader).setHeader(header));
   t->setName(name);
@@ -201,6 +201,4 @@ void StorageManager::recoverTable(const std::string &name) {
   add(name, t);
 }
 
-}
-} // namespace hyrise::io
-
+} } // namespace hyrise::io

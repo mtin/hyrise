@@ -1,16 +1,18 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_STORAGE_ATTRIBUTEVECTORFACTORY_H_
-#define SRC_LIB_STORAGE_ATTRIBUTEVECTORFACTORY_H_
+#pragma once
 
 #include <memory>
 
 #include <storage/BaseAttributeVector.h>
 #include <storage/FixedLengthVector.h>
-#include <storage/VolatileAttributeVector.h>
+#include <storage/ConcurrentFixedLengthVector.h>
 #include <storage/BitCompressedVector.h>
 #ifdef PERSISTENCY_NVRAM
 #include <storage/NVAttributeVector.h>
 #endif
+
+namespace hyrise {
+namespace storage {
 
 class AttributeVectorFactory {
 public:
@@ -28,13 +30,13 @@ public:
     } else
 #endif
     {
-      return std::make_shared<VolatileAttributeVector<T> >(columns, rows);
+      return std::make_shared<ConcurrentFixedLengthVector<T> >(columns, rows);
     }
   }
 
   template <typename T>
-  static std::shared_ptr<BaseAttributeVector<T>> getAttributeVector2(size_t columns,
-      size_t rows,
+  static std::shared_ptr<BaseAttributeVector<T>> getAttributeVector2(size_t columns = 1,
+      size_t rows = 0,
       bool compressed = false,
       std::vector<uint64_t> bits = std::vector<uint64_t> {},
       bool nonvolatile = false) {
@@ -45,7 +47,7 @@ public:
       } else
 #endif
       {
-        return std::make_shared<VolatileAttributeVector<T> >(columns, rows);
+        return std::make_shared<ConcurrentFixedLengthVector<T> >(columns, rows);
       }
     } else {
       return std::make_shared<BitCompressedVector<T> >(columns, rows, bits);
@@ -54,4 +56,5 @@ public:
   }
 };
 
-#endif  // SRC_LIB_STORAGE_ATTRIBUTEVECTORFACTORY_H_
+} } // namespace hyrise::storage
+

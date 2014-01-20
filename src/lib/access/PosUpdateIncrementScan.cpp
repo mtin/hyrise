@@ -23,12 +23,12 @@ struct add_json_value_functor {
 
   typedef void value_type;
 
-  hyrise::storage::atable_ptr_t tab;
+  storage::atable_ptr_t tab;
   size_t col;
   size_t row;
   Json::Value val;
 
-  inline add_json_value_functor(hyrise::storage::atable_ptr_t t): tab(t) {
+  inline add_json_value_functor(storage::atable_ptr_t t): tab(t) {
   }
 
   inline void set(size_t c, size_t r, Json::Value v) {
@@ -43,14 +43,14 @@ struct add_json_value_functor {
 
 };
 
-PosUpdateIncrementScan::PosUpdateIncrementScan(std::string column, Json::Value offset) : _column(column), _offset(offset) {} 
+PosUpdateIncrementScan::PosUpdateIncrementScan(std::string column, Json::Value offset) : _column(column), _offset(offset) {}
 
 std::shared_ptr<PlanOperation> PosUpdateIncrementScan::parse(const Json::Value& data) {
   return std::make_shared<PosUpdateIncrementScan>(data["column"].asString(), data["offset"]);
 }
 
 void PosUpdateIncrementScan::executePlanOperation() {
-  auto pc = checked_pointer_cast<const PointerCalculator>(input.getTable(0));
+  auto pc = checked_pointer_cast<const storage::PointerCalculator>(input.getTable(0));
   auto store = std::const_pointer_cast<storage::Store>(
       checked_pointer_cast<const storage::Store>(pc->getActualTable()));
 
@@ -73,7 +73,7 @@ void PosUpdateIncrementScan::executePlanOperation() {
       throw tx::transaction_error("Aborted TX because TID of other TX found (Op: PosUpdateIncrementScan, Table: " + store->getName() + ")");
     }
     modRecord.deletePos(store, old_row);
-    
+
     store->copyRowToDelta(store, old_row, delta_row, _txContext.tid);
     // Apply offset to original value in new row
     /*const auto& column_type = store->typeOfColumn(column_idx);
@@ -85,10 +85,10 @@ void PosUpdateIncrementScan::executePlanOperation() {
 
     // Update delta indices
     store->addRowToDeltaIndices(main_size+delta_row);
-    
+
     // add inserted pos to mod record. use absolute pos not pos in delta (!)
     modRecord.insertPos(store, main_size+delta_row);
- 
+
 
 #ifdef PERSISTENCY_BUFFEREDLOGGER
     const size_t columnCount = store->columnCount();

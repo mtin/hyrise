@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_STORAGE_RAWTABLE_H_
-#define SRC_LIB_STORAGE_RAWTABLE_H_
+#pragma once
 
 #include <cassert>
 #include <cstring>
@@ -22,7 +21,7 @@ struct record_header {
 };
 
 struct RowHelper {
-  
+
   const metadata_vec_t& _m;
   std::vector<byte*> _tempData;
 
@@ -42,7 +41,7 @@ struct RowHelper {
   }
 
   void reset();
-  
+
   /**
    * This helper method builds the actual data stream that represents
    * the row as a binary block. All fixed length values are encoded
@@ -68,9 +67,7 @@ void RowHelper::set(size_t index, std::string val);
 template<>
 std::string RowHelper::convert(const byte *d, DataType t);
 
-
-}}}
-
+} // namespace rawtable
 
 class RawTable : public AbstractTable {
   typedef unsigned char byte;
@@ -85,7 +82,7 @@ class RawTable : public AbstractTable {
   //* Number of tuples
   size_t _size;
 
-  // Row wise offset vector that helps to pinpoint the 
+  // Row wise offset vector that helps to pinpoint the
   // correct memory location for each row
   std::vector<size_t> _offsets;
 
@@ -99,7 +96,7 @@ public:
   RawTable(const metadata_vec_t& m, size_t initial_size = 0);
 
   virtual ~RawTable();
-  
+
   size_t size() const;
 
   size_t columnCount() const;
@@ -108,22 +105,20 @@ public:
 
   void resize(const size_t nr_of_values);
 
+  const ColumnMetadata& metadataAt(const size_t column_index, const size_t row_index = 0, const table_id_t table_id = 0) const override;
 
-  virtual const ColumnMetadata *metadataAt(const size_t column, const size_t row = 0, 
-                                           const table_id_t table_id = 0) const;
-  
   unsigned partitionCount() const;
 
   virtual table_id_t subtableCount() const;
-  
-  virtual hyrise::storage::atable_ptr_t copy() const;
+
+  virtual atable_ptr_t copy() const;
 
   byte* computePosition(const size_t& column, const size_t& row) const;
 
   template <typename T>
   T getValue(const size_t column, const size_t row) const {
     const byte* tuple = computePosition(column, row);
-    return hyrise::storage::rawtable::RowHelper::convert<T>(tuple, _metadata[column].getType());
+    return rawtable::RowHelper::convert<T>(tuple, _metadata[column].getType());
   }
 
 
@@ -155,32 +150,32 @@ public:
   void appendRow(byte* tuple);
 
 
-  void appendRows(const hyrise::storage::atable_ptr_t& rows);
+  void appendRows(const atable_ptr_t& rows);
 
   virtual void debugStructure(size_t level=0) const;
 
-  
+
   ////////////////////////////////////////////////////////////////////////////////////////
-  // Disabled Methodsw 
-  virtual hyrise::storage::atable_ptr_t copy_structure(const field_list_t *fields = nullptr, 
-                                                        const bool reuse_dict = false, 
-                                                        const size_t initial_size = 0, 
-                                                        const bool with_containers = true, 
-                                                        const bool compressed = false) const {
+  // Disabled Methodsw
+  virtual atable_ptr_t copy_structure(const field_list_t *fields = nullptr,
+                                      const bool reuse_dict = false,
+                                      const size_t initial_size = 0,
+                                      const bool with_containers = true,
+                                      const bool compressed = false) const {
     STORAGE_NOT_IMPLEMENTED(RawTable, copy_structure());
   }
 
-  virtual hyrise::storage::atable_ptr_t copy_structure_modifiable(const field_list_t *fields = nullptr, 
-                                                                   const size_t initial_size = 0, 
+  virtual atable_ptr_t copy_structure_modifiable(const field_list_t *fields = nullptr,
+                                                                   const size_t initial_size = 0,
                                                                    const bool with_containers = true) const {
     STORAGE_NOT_IMPLEMENTED(RawTable, copy_structure_modifiable());
   }
 
 
-  ValueId getValueId(const size_t column, const size_t row) const { 
+  ValueId getValueId(const size_t column, const size_t row) const {
     STORAGE_NOT_IMPLEMENTED(RawTable, getValueId());
   }
-  
+
   void setValueId(const size_t column, const size_t row, const ValueId valueId) {
     STORAGE_NOT_IMPLEMENTED(RawTable, setValueId());
   }
@@ -189,18 +184,18 @@ public:
     STORAGE_NOT_IMPLEMENTED(RawTable, partitionWidth());
   }
 
-  virtual const AbstractTable::SharedDictionaryPtr& dictionaryAt(const size_t column, 
-                                                          const size_t row = 0, 
-                                                          const table_id_t table_id = 0) const { 
+  virtual const AbstractTable::SharedDictionaryPtr& dictionaryAt(const size_t column,
+                                                          const size_t row = 0,
+                                                          const table_id_t table_id = 0) const {
     STORAGE_NOT_IMPLEMENTED(RawTable, partitionWidth());
   }
 
-  virtual const AbstractTable::SharedDictionaryPtr& dictionaryByTableId(const size_t column, 
-                                                                 const table_id_t table_id) const { 
+  virtual const AbstractTable::SharedDictionaryPtr& dictionaryByTableId(const size_t column,
+                                                                 const table_id_t table_id) const {
     STORAGE_NOT_IMPLEMENTED(RawTable, dictionaryByTableId());
   }
 
-  virtual void setDictionaryAt(AbstractTable::SharedDictionaryPtr dict, 
+  virtual void setDictionaryAt(AbstractTable::SharedDictionaryPtr dict,
                                const size_t column, const size_t row = 0, const table_id_t table_id = 0) {
     STORAGE_NOT_IMPLEMENTED(RawTable, dictionaryAt());
   }
@@ -211,4 +206,6 @@ public:
 
 
 };
-#endif // SRC_LIB_STORAGE_RAWTABLE_H_
+
+} } // namespace hyrise::storage
+

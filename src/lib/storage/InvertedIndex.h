@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_STORAGE_INVERTEDINDEX_H_
-#define SRC_LIB_STORAGE_INVERTEDINDEX_H_
+#pragma once
 
 #include <vector>
 #include <map>
@@ -13,12 +12,17 @@
 #include "storage/AbstractIndex.h"
 #include "storage/AbstractTable.h"
 
+#include <unordered_map>
 #include <memory>
+
+namespace hyrise {
+namespace storage {
 
 template<typename T>
 class InvertedIndex : public AbstractIndex {
 private:
-  typedef std::map<T, pos_list_t> inverted_index_t;
+  using inverted_index_t = std::map<T, pos_list_t>;
+  //using inverted_index_t = std::unordered_map<T, pos_list_t>;
   inverted_index_t _index;
 
   pos_list_t getPositionsBetween(typename inverted_index_t::const_iterator begin, const typename inverted_index_t::const_iterator end) {
@@ -40,12 +44,12 @@ public:
   };
 
   void write_lock() {};
- 
+
   void read_lock() {};
 
   void unlock() {};
 
-  explicit InvertedIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column) {
+  explicit InvertedIndex(const c_atable_ptr_t& in, field_t column) {
     if (in != nullptr) {
       for (size_t row = 0; row < in->size(); ++row) {
         T tmp = in->getValue<T>(column, row);
@@ -60,7 +64,6 @@ public:
       }
     }
   };
-
 
   /**
    * returns a list of positions where key was found.
@@ -95,5 +98,16 @@ public:
     return getPositionsBetween(_index.lower_bound(key), _index.cend());
   };
 
+  bool exists(T key) const {
+    return _index.count(key) > 0;
+  }
+
+  const pos_list_t& getPositionsForKeyRef(T key) {
+    const auto& it = _index.find(key);
+    return it->second;
+  };
+
 };
-#endif  // SRC_LIB_STORAGE_INVERTEDINDEX_H_
+
+} } // namespace hyrise::storage
+

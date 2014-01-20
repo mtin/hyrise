@@ -10,10 +10,11 @@
 
 #include "access/system/PlanOperation.h"
 #include "io/TransactionManager.h"
+#include "io/StorageManager.h"
 #include "testing/TableEqualityTest.h"
 
 namespace hyrise {
-namespace access { 
+namespace access {
 
 using namespace boost::filesystem;
 
@@ -25,7 +26,7 @@ using ::testing::ValuesIn;
 class AutoJsonTest : public TestWithParam<std::string> {
  public:
   AutoJsonTest() {
-    sm = StorageManager::getInstance();
+    sm = io::StorageManager::getInstance();
   }
   virtual ~AutoJsonTest() { }
 
@@ -41,7 +42,7 @@ class AutoJsonTest : public TestWithParam<std::string> {
 
  protected:
   std::string json_name;
-  StorageManager *sm;
+  io::StorageManager *sm;
 };
 
 TEST_P(AutoJsonTest, Query) {
@@ -56,13 +57,13 @@ TEST_P(AutoJsonTest, Query) {
     out = executeAndWait(q);
   } catch (const std::runtime_error& e) {
     if (!has_xfail) {
-      throw e; 
+      throw e;
     }
   }
-  
+
   if (sm->exists("reference")) {
     ASSERT_TRUE((bool)out);
-    auto ref = StorageManager::getInstance()->getTable("reference");
+    auto ref = io::StorageManager::getInstance()->getTable("reference");
     EXPECT_NE(ref.get(), out.get()) << "May not use 'reference' table to compare with itself";
     EXPECT_RELATION_EQ(ref, out);
   }

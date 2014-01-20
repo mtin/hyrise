@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_IO_RESOURCEMANAGER_H_
-#define SRC_LIB_IO_RESOURCEMANAGER_H_
+#pragma once
 
 #include <map>
 #include <memory>
@@ -11,9 +10,12 @@
 #include "helper/types.h"
 #include "helper/checked_cast.h"
 
-class AbstractResource;
-
 namespace hyrise {
+
+namespace storage {
+class AbstractRessource;
+} // namespace storage
+
 namespace io {
 
 class ResourceManagerException :  public std::runtime_error {
@@ -39,15 +41,15 @@ class ResourceNotExistsException : public ResourceManagerException {
 /// *need* to be thread-safe.
 class ResourceManager {
  public:
-  typedef std::map<std::string, std::shared_ptr<AbstractResource> > resource_map;
+  typedef std::map<std::string, std::shared_ptr<storage::AbstractResource> > resource_map;
   /// Retrieve singleton ResourceManager instance
   static ResourceManager& getInstance();
 
   /// Adds a new resource
-  void add(const std::string& name, const std::shared_ptr<AbstractResource>& resource) const;
+  void add(const std::string& name, const std::shared_ptr<storage::AbstractResource>& resource) const;
 
   /// Retrieves a resource by name
-  std::shared_ptr<AbstractResource> getResource(const std::string& name) const;
+  std::shared_ptr<storage::AbstractResource> getResource(const std::string& name) const;
 
   /// Retrieves a resource by name and assures its type T
   template <typename T>
@@ -59,22 +61,22 @@ class ResourceManager {
   void remove(const std::string& name) const;
 
   /// Replaces an existing resource
-  void replace(const std::string& name, const std::shared_ptr<AbstractResource>& resource) const;
-  
+  void replace(const std::string& name, const std::shared_ptr<storage::AbstractResource>& resource) const;
+
   /// Removes all resources
   void clear() const;
 
   /// Test for resource existance
   /// @param[in] name Resource name
-  bool exists(const std::string& name, const bool thread_safe=true) const;
+  bool exists(const std::string& name) const;
 
   /// Test for resource existance, throws ResourceManagerException
   /// @param[in] name Resource name
-  void assureExists(const std::string& name, const bool thread_safe=true, const bool release_lock_on_exception=false) const;
+  void assureExists(const std::string& name) const;
 
   /// Return number of elements in storage
   size_t size() const;
-  
+
   /// Get a copy of the full resource map, otherwise, we would need to
   /// lock the whole structure while other operations are running on
   /// top of it
@@ -83,18 +85,12 @@ class ResourceManager {
   /// The actual schema
   mutable resource_map _resources;
   /// Mutex protecting the _schema map
-  // mutable std::recursive_mutex _resource_mutex;
-  mutable pthread_rwlock_t _rw_lock;
+  mutable std::recursive_mutex _resource_mutex;
 
-  ResourceManager() { pthread_rwlock_init(&_rw_lock, NULL); };
+  ResourceManager() = default;
   ResourceManager(const ResourceManager &) = delete;
   ResourceManager &operator= (const ResourceManager &) = delete;
-
-  ~ResourceManager() { pthread_rwlock_destroy(&_rw_lock); };
-
 };
 
 }}  // namespace hyrise::io
-
-#endif  // SRC_LIB_IO_RESOURCEMANAGER_H_
 

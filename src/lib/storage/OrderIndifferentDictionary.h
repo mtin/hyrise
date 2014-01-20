@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_STORAGE_ORDERINDIFFERENTDICTIONARY_H_
-#define SRC_LIB_STORAGE_ORDERINDIFFERENTDICTIONARY_H_
+#pragma once
 
 #include <exception>
 #include <vector>
@@ -14,6 +13,9 @@
 #include "storage/storage_types.h"
 #include "storage/BaseDictionary.h"
 #include "storage/DictionaryIterator.h"
+
+namespace hyrise {
+namespace storage {
 
 // FIXME should be aware of allocator
 template <typename T>
@@ -74,7 +76,13 @@ public:
   }
 
   OrderIndifferentDictionary(const std::shared_ptr<vector_type> &value_list) {
+    // first, copy the value list
     _value_list = *(value_list.get());
+
+    // second, build tree index on top of this
+    size_t s = _value_list.size();
+    for (size_t i=0; i<s; ++i)
+      _index.insert(std::pair<T, value_id_t>(_value_list[i], i));
   }
 
   virtual ~OrderIndifferentDictionary() {
@@ -109,6 +117,11 @@ public:
   }
 
   virtual T getValueForValueId(value_id_t value_id) {
+#ifdef EXPENSIVE_ASSERTIONS
+    if (value_id >= _value_list.size()) {
+      throw std::out_of_range("value id out of range");
+    }
+#endif
     return _value_list[value_id];
   }
 
@@ -133,29 +146,27 @@ public:
     return _index.count(v) == 1;
   }
 
-  /*
-   *  Returns the value id given a value
-   *
-   * Unfortunately its not possible to not perform a better search, since
-   * the value lookup is always linear
-   *
-   * @note complexity is O(n)
-   *
-   * @param value the value
-   */
   virtual value_id_t getValueIdForValue(const T &value) const {
-    if (_index.count(value) > 0) {
-      return _index.at(value);
+    if (_index.count(value) == 0) {
+      throw std::out_of_range("Value not found");
     }
-
-    throw std::runtime_error("Value not found");
+    return _index.at(value);
   }
 
-  value_id_t getValueIdForValueSmaller(T other) {
+  virtual value_id_t findValueIdForValue(const T &value) const {
+    typename index_type::const_iterator it = _index.find(value);
+    if (it != _index.end()) {
+      return it->second;
+    } else {
+      return std::numeric_limits<value_id_t>::max();
+    }
+  }
+
+  value_id_t getLowerBoundValueIdForValue(T other) {
     throw std::runtime_error("This cannot be called since value ids have no ordered meaning");
   }
 
-  value_id_t getValueIdForValueGreater(T other) {
+  value_id_t getUpperBoundValueIdForValue(T other) {
     throw std::runtime_error("This cannot be calles since value ids have no ordered meaning");
   }
 
@@ -196,5 +207,5 @@ public:
 
 };
 
-#endif  // SRC_LIB_STORAGE_ORDERINDIFFERENTDICTIONARY_H_
+} } // namespace hyrise::storage
 

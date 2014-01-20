@@ -8,6 +8,8 @@
 
 #include "TableRangeView.h"
 #include "storage/PrettyPrinter.h"
+#include "storage/ColumnMetadata.h"
+
 #include <iostream>
 namespace hyrise { namespace storage {
 
@@ -17,6 +19,16 @@ TableRangeView::TableRangeView(atable_ptr_t t, size_t s, size_t e): _table(t), _
 
 TableRangeView::~TableRangeView() {
   // TODO Auto-generated destructor stub
+}
+
+c_atable_ptr_t TableRangeView::getActualTable() const {
+  auto p = std::dynamic_pointer_cast<const TableRangeView>(_table);
+
+  if (!p) {
+    return _table;
+  } else {
+    return p->getActualTable();
+  }
 }
 
 size_t TableRangeView::getStart() const{
@@ -72,7 +84,7 @@ atable_ptr_t TableRangeView::copy_structure(const field_list_t *fields, const bo
   return _table->copy_structure(fields, reuse_dict, initial_size, with_containers, compressed);
 }
 
-const ColumnMetadata *TableRangeView::metadataAt(const size_t column, const size_t row, const table_id_t table_id) const{
+const ColumnMetadata& TableRangeView::metadataAt(const size_t column, const size_t row, const table_id_t table_id) const {
   size_t actual_row;
   actual_row = row + _start;
 

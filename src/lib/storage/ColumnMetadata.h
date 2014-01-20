@@ -1,12 +1,13 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-
-#ifndef SRC_LIB_STORAGE_COLUMNMETADATA_H_
-#define SRC_LIB_STORAGE_COLUMNMETADATA_H_
+#pragma once
 
 #include <storage/storage_types.h>
 
 #include <string>
 #include <stdexcept>
+
+namespace hyrise {
+namespace storage {
 
 class ColumnMetaCreationException : public std::runtime_error {
  public:
@@ -20,7 +21,7 @@ class ColumnMetadata {
   DataType type;
 
  public:
-  static ColumnMetadata *metadataFromString(std::string typestring, std::string name = "");
+  static ColumnMetadata metadataFromString(std::string typestring, std::string name = "");
 
   ColumnMetadata(std::string n, DataType t) : name(n), type(t) { }
 
@@ -28,6 +29,10 @@ class ColumnMetadata {
 
   DataType getType() const {
     return type;
+  }
+
+  void setType(DataType t) {
+    type = t;
   }
 
   std::string getName() const {
@@ -47,10 +52,10 @@ class ColumnMetadata {
     return new ColumnMetadata(name, type);
   }
 
-  bool matches(const ColumnMetadata *col) const {
-    return (col->getName() == name) && (col->getType() == type);
+  bool matches(const ColumnMetadata& col) const {
+    return (col.getName() == name) && (col.getType() == type);
   }
 };
 
-#endif  // SRC_LIB_STORAGE_COLUMNMETADATA_H_
+} } // namespace hyrise::storage
 

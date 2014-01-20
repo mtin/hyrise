@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_STORAGE_BITCOMPRESSEDVECTOR_H_
-#define SRC_LIB_STORAGE_BITCOMPRESSEDVECTOR_H_
+#pragma once
 
 #include <cassert>
 #include <cmath>
@@ -10,21 +9,30 @@
 #include <mutex>
 #include <string>
 #include <stdexcept>
+#include <type_traits>
 
-#include "memory/MallocStrategy.h"
 #include "storage/BaseAttributeVector.h"
 
 #ifndef WORD_LENGTH
 #define WORD_LENGTH 64
 #endif
 
+namespace hyrise {
+namespace storage {
 
+// Compute the maximum number representable for n-bit width integers.
+template <typename T,
+          class = typename std::enable_if<std::is_integral<T>::value>::type>
+T maxValueForBits(const std::size_t bits) {
+  assert(bits <= sizeof(T) * 8);
+  if (bits == sizeof(T) * 8) return static_cast<T>(-1);
+  else return (1ull << bits) -1;
+}
 /*
   can only save positive numbers
 */
 template <typename T>
 class BitCompressedVector : public BaseAttributeVector<T> {
-  using Strategy = MallocStrategy;
   // Typedef for the data
   typedef uint64_t storage_t;
   typedef std::vector<uint64_t> bit_size_list_t;
@@ -54,12 +62,14 @@ public:
 
   BitCompressedVector(size_t columns,
                       size_t rows,
-                      std::vector<uint64_t> bits): _data(nullptr), _size(0), _allocatedBlocks(0), _columns(columns), _bits(bits) {
+                      std::vector<uint64_t> bits={}): _data(nullptr), _size(0), _allocatedBlocks(0), _columns(columns), _bits(bits) {
+    // When bits is unset, behave like a fixed length vector
+    if (bits.size() == 0) { _bits = std::vector<uint64_t>(_columns, sizeof(T) * 8); }
     reserve(rows);
   }
 
   virtual ~BitCompressedVector() {
-    Strategy::deallocate(_data, _allocatedBlocks * sizeof(storage_t));
+    free(_data);
   }
 
   void *data() {
@@ -95,7 +105,10 @@ public:
 
   void set(size_t column, size_t row, T value) {
     checkAccess(column, row);
-
+#ifdef EXPENSIVE_ASSERTIONS
+    if (value > maxValueForBits<T>(_bits[column]))
+      throw std::out_of_range("trying to insert value larger than can be stored");
+#endif
     auto offset = _blockOffset(row);
     auto colOffset = _offsetForColumn(column);
     auto block = _blockPosition(row) + (offset + colOffset) / _bit_width;
@@ -135,7 +148,7 @@ public:
 
       // Only deallocate if there was something allocated
       if (newMemory != nullptr)
-        Strategy::deallocate(newMemory, _allocatedBlocks * sizeof(storage_t));
+        free(newMemory);
 
       // set new allocarted blocks
       _allocatedBlocks = _blocks(rows);
@@ -148,7 +161,7 @@ public:
    */
   void clear() {
     _size = 0;
-    Strategy::deallocate(_data, _allocatedBlocks * sizeof(storage_t));
+    free(_data);
     _data = nullptr;
   }
 
@@ -249,9 +262,8 @@ private:
   */
   inline storage_t *_allocate(uint64_t numBlocks) {
 
-    auto data = static_cast<storage_t *>(Strategy::allocate(numBlocks * sizeof(storage_t)));
+    auto data = static_cast<storage_t *>(malloc(numBlocks * sizeof(storage_t)));
     if (data == nullptr) {
-      Strategy::deallocate(data, numBlocks * sizeof(storage_t));
       throw std::bad_alloc();
     }
     std::memset(data, 0, numBlocks * sizeof(storage_t));
@@ -260,4 +272,5 @@ private:
 
 };
 
-#endif  // SRC_LIB_STORAGE_BITCOMPRESSEDVECTOR_H_
+} } // namespace hyrise::storage
+

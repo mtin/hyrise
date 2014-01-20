@@ -7,6 +7,9 @@
 
 #include "WSCoreBoundPriorityQueue.h"
 
+namespace hyrise {
+namespace taskscheduler {
+
 WSCoreBoundPriorityQueue::WSCoreBoundPriorityQueue(int core, WSCoreBoundPriorityQueuesScheduler *scheduler): AbstractCoreBoundQueue(), _allQueues(nullptr) {
   _core = core;
   _scheduler = scheduler;
@@ -30,6 +33,12 @@ void WSCoreBoundPriorityQueue::executeTask() {
     if(!task) {
       // try to steal work
       task = stealTasks();
+
+      // WSCoreBoundPriorityQueue based on tbb's queue keeps spinning for the time beeing;
+      // we cannot trust _runQueue.size() and if we implement our own size(), we can use
+      // a mutexed std::priority_queue 
+      
+      /*
       if (!task){
         //if queue still empty go to sleep and wait until new tasks have been arrived
         std::unique_lock<lock_t> ul(_queueMutex);
@@ -41,7 +50,7 @@ void WSCoreBoundPriorityQueue::executeTask() {
             _condition.wait(ul);            
           }
         }
-      }
+      }*/
     }
     if (task) {
       //LOG4CXX_DEBUG(logger, "Started executing task" << std::hex << &task << std::dec << " on core " << _core);
@@ -128,3 +137,6 @@ std::vector<std::shared_ptr<Task> > WSCoreBoundPriorityQueue::emptyQueue() {
 void WSCoreBoundPriorityQueue::refreshQueues(){
   _allQueues = _scheduler->getTaskQueues();
 }
+
+} } // namespace hyrise::taskscheduler
+

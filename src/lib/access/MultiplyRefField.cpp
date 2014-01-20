@@ -25,8 +25,8 @@ void MultiplyRefField::executeMultiply() {
   const auto &itab = getInputTable();
   const auto &mulTab = getInputTable(1);
 
-  std::vector<const ColumnMetadata*> meta {new ColumnMetadata("value", D), new ColumnMetadata("pos", IntegerType)};
-  auto result = std::make_shared<Table>(&meta, nullptr, stop * stopInner, false, false);
+  std::vector<storage::ColumnMetadata> meta {storage::ColumnMetadata("value", D), storage::ColumnMetadata("pos", IntegerType)};
+  auto result = std::make_shared<storage::Table>(&meta, nullptr, stop * stopInner, false, false);
   result->resize(stop * stopInner);
 
   // Pos list for matching Rows
@@ -44,7 +44,7 @@ void MultiplyRefField::executeMultiply() {
     }
   }
 
-  auto left = PointerCalculator::create(getInputTable(), pos);
+  auto left = storage::PointerCalculator::create(getInputTable(), pos);
 
   std::vector<storage::atable_ptr_t> vc({left, result});
   storage::atable_ptr_t tt = std::make_shared<storage::MutableVerticalTable>(vc);
@@ -55,9 +55,13 @@ void MultiplyRefField::executeMultiply() {
 void MultiplyRefField::executePlanOperation() {
   switch(getInputTable()->typeOfColumn(_field_definition[1])) {
     case IntegerType:
-      return executeMultiply<storage::hyrise_int_t, IntegerType>();
+    case IntegerTypeDelta:
+    case IntegerTypeDeltaConcurrent:
+      return executeMultiply<storage::hyrise_int_t, IntegerTypeDelta>();
     case FloatType:
-      return executeMultiply<storage::hyrise_float_t, FloatType>();
+    case FloatTypeDelta:
+    case FloatTypeDeltaConcurrent:
+      return executeMultiply<storage::hyrise_float_t, FloatTypeDelta>();
     default:
       throw std::runtime_error("The data type of the given field is not supported in MultiplyRefField");
   }

@@ -1,9 +1,13 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
 #include "storage/MutableVerticalTable.h"
 
+#include <iostream>
+
+#include "helper/vector_helpers.h"
+
 namespace hyrise { namespace storage {
 
-MutableVerticalTable::MutableVerticalTable(std::vector<std::vector<const ColumnMetadata *> *> metadata,
+MutableVerticalTable::MutableVerticalTable(std::vector<std::vector<ColumnMetadata > *> metadata,
                                            std::vector<std::vector<adict_ptr_t> *> *dictionaries,
                                            size_t size,
                                            bool sorted,
@@ -80,7 +84,7 @@ size_t MutableVerticalTable::getOffsetInContainer(const size_t column_index) con
   return offset_in_container[column_index];
 }
 
-const ColumnMetadata *MutableVerticalTable::metadataAt(const size_t column_index, const size_t row_index, const table_id_t table_id) const {
+const ColumnMetadata& MutableVerticalTable::metadataAt(const size_t column_index, const size_t row_index, const table_id_t table_id) const {
   return containerAt(column_index)->metadataAt(offset_in_container[column_index]);
 }
 
@@ -207,6 +211,11 @@ atable_ptr_t MutableVerticalTable::copy_structure_modifiable(const field_list_t 
 
   atable_ptr_t r = std::make_shared<MutableVerticalTable>(new_containers, initial_size);
   return r;
+}
+
+atable_ptr_t MutableVerticalTable::copy_structure(abstract_dictionary_callback a, abstract_attribute_vector_callback b) const {
+  auto new_containers = functional::collect(containers, [&](const atable_ptr_t& t) { return t->copy_structure(a, b); });
+  return std::make_shared<MutableVerticalTable>(new_containers);
 }
 
 table_id_t MutableVerticalTable::subtableCount() const {

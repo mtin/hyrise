@@ -22,7 +22,7 @@ public:
 
   virtual void SetUp() {
     AccessTest::SetUp();
-    t = Loader::shortcuts::load("test/index_test.tbl");
+    t = io::Loader::shortcuts::load("test/index_test.tbl");
 
     CreateGroupkeyIndex ci;
     ci.addInput(t);
@@ -48,7 +48,7 @@ public:
     cd2.setIndexName("idx_delta__foo__col_1");
     cd2.execute();
 
-    auto row = Loader::shortcuts::load("test/index_insert_test.tbl");
+    auto row = io::Loader::shortcuts::load("test/index_insert_test.tbl");
     storage::atable_ptr_t table(new storage::Store(row));
     auto ctx = tx::TransactionManager::getInstance().buildContext();
     InsertScan ins;
@@ -62,7 +62,7 @@ public:
 };
 
 TEST_F(IndexAwareTableScanTests, basic_index_aware_table_scan_test_eq) {
-  auto reference = Loader::shortcuts::load("test/reference/index_aware_test_result.tbl");
+  auto reference = io::Loader::shortcuts::load("test/reference/index_aware_test_result.tbl");
 
   IndexAwareTableScan is;
   is.addInput(t);
@@ -75,7 +75,7 @@ TEST_F(IndexAwareTableScanTests, basic_index_aware_table_scan_test_eq) {
 }
 
 TEST_F(IndexAwareTableScanTests, basic_index_aware_table_scan_test_lt) {
-  auto reference = Loader::shortcuts::load("test/reference/index_aware_test_result_lt.tbl");
+  auto reference = io::Loader::shortcuts::load("test/reference/index_aware_test_result_lt.tbl");
 
   IndexAwareTableScan is;
   is.addInput(t);
@@ -88,7 +88,7 @@ TEST_F(IndexAwareTableScanTests, basic_index_aware_table_scan_test_lt) {
 }
 
 TEST_F(IndexAwareTableScanTests, basic_index_aware_table_scan_test_intersect) {
-  auto reference = Loader::shortcuts::load("test/reference/index_aware_test_result_intersect.tbl");
+  auto reference = io::Loader::shortcuts::load("test/reference/index_aware_test_result_intersect.tbl");
 
   IndexAwareTableScan is;
   is.addInput(t);

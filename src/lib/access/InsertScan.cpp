@@ -59,7 +59,7 @@ void InsertScan::executePlanOperation() {
         for(size_t c=0; c<columnCount; ++c) {
           if(serialFields.count(c) != 0) {
             std::string serialName = std::to_string(store->getUuid()) + "_" + store->nameOfColumn(c);
-            Json::Value v(resMgr.get<Serial>(serialName)->next());
+            Json::Value v(resMgr.get<storage::Serial>(serialName)->next());
             extended_raw_data[r][c] = v;
             ++columnOffset;
           } else {
@@ -78,26 +78,26 @@ void InsertScan::executePlanOperation() {
 
       mods.insertPos(store, firstPosition+i);
 
-#ifdef PERSISTENCY_BUFFEREDLOGGER
+      #ifdef PERSISTENCY_BUFFEREDLOGGER
       uint64_t bitmask = (1 << (columnCount)) - 1;
       std::vector<ValueId> vids = store->copyValueIds(firstPosition+i);
       if(store->loggingEnabled()) io::Logger::getInstance().logValue(_txContext.tid, store->getName(), firstPosition+i, 0, bitmask, &vids);
-#endif
+      #endif
     }
   } else {
     for(size_t i=0; i<rowCount; ++i) {
       store->copyRowToDelta(_data, i, writeArea.first+i, _txContext.tid);
-      
+
       // Update delta indices
       store->addRowToDeltaIndices(firstPosition+i);
 
       mods.insertPos(store, firstPosition+i);
 
-#ifdef PERSISTENCY_BUFFEREDLOGGER
+      #ifdef PERSISTENCY_BUFFEREDLOGGER
       uint64_t bitmask = (1 << (columnCount)) - 1;
       std::vector<ValueId> vids = store.get()->copyValueIds(i);
       if(store->loggingEnabled()) io::Logger::getInstance().logValue(_txContext.tid, store->getName(), firstPosition+i, 0, bitmask, &vids);
-#endif
+      #endif
     }
   }
 

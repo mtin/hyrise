@@ -226,22 +226,37 @@ void BufferedLogger::restore() {
         auto store = std::dynamic_pointer_cast<storage::Store>(StorageManager::getInstance()->getTable(table_name));
         switch(store->typeOfColumn(column)) {
           // kill me...
-          case IntegerType: {
-            auto dict = std::dynamic_pointer_cast<OrderIndifferentDictionary<storage::hyrise_int_t>>(store->getDeltaTable()->dictionaryAt(column));
+          case IntegerType:
+          case IntegerTypeDelta:
+          case IntegerTypeDeltaConcurrent: {
+            auto dict = std::dynamic_pointer_cast<storage::OrderIndifferentDictionary<storage::hyrise_int_t>>(store->getDeltaTable()->dictionaryAt(column));
             assert(dict);
             auto value = *(storage::hyrise_int_t*)cursor;
             dict->setValue(value, value_id);
             break;
           }
-          case FloatType: {
-            auto dict = std::dynamic_pointer_cast<OrderIndifferentDictionary<storage::hyrise_float_t>>(store->getDeltaTable()->dictionaryAt(column));
+          case IntegerNoDictType: {
+            // TODO: refactor this one since it shouldn't have a dict?!
+            auto dict = std::dynamic_pointer_cast<storage::OrderIndifferentDictionary<storage::hyrise_int_t>>(store->getDeltaTable()->dictionaryAt(column));
+            assert(dict);
+            auto value = *(storage::hyrise_int_t*)cursor;
+            dict->setValue(value, value_id);
+            break;
+          }
+          case FloatType:
+          case FloatTypeDelta:
+          case FloatNoDictType:
+          case FloatTypeDeltaConcurrent: {
+            auto dict = std::dynamic_pointer_cast<storage::OrderIndifferentDictionary<storage::hyrise_float_t>>(store->getDeltaTable()->dictionaryAt(column));
             assert(dict);
             auto value = *(storage::hyrise_float_t*)cursor;
             dict->setValue(value, value_id);
             break;
           }
-          case StringType: {
-            auto dict = std::dynamic_pointer_cast<OrderIndifferentDictionary<storage::hyrise_string_t>>(store->getDeltaTable()->dictionaryAt(column));
+          case StringType:
+          case StringTypeDelta:
+          case StringTypeDeltaConcurrent: {
+            auto dict = std::dynamic_pointer_cast<storage::OrderIndifferentDictionary<storage::hyrise_string_t>>(store->getDeltaTable()->dictionaryAt(column));
             assert(dict);
             auto value = storage::hyrise_string_t(cursor, value_size);
             dict->setValue(value, value_id);

@@ -1,6 +1,7 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
 #include "TableDiff.h"
 
+#include <iostream>
 #include <storage/AbstractTable.h>
 #include <storage/meta_storage.h>
 
@@ -8,7 +9,7 @@ namespace hyrise { namespace storage {
 namespace{
 /// Functor class for usage with hyrise::storage::type_switch to compare table cells by value
 
-hyrise::storage::type_switch<hyrise_basic_types> ts;
+type_switch<hyrise_basic_types> ts;
 
 class EqualValueFunctor {
 private:
@@ -111,7 +112,7 @@ TableDiff TableDiff::diffTables(const AbstractTable* const left,
   //compare relation scheme
   diff.fields.resize(left->columnCount(), TableDiff::FieldWrong);
   for (auto i = mapFields.begin(); i != mapFields.end(); ++i) {
-    if (right->typeOfColumn(i->second) == left->typeOfColumn(i->first))
+    if (types::isCompatible(right->typeOfColumn(i->second),left->typeOfColumn(i->first)))
       diff.fields[i->first] = TableDiff::FieldCorrect;
     else
       diff.fields[i->first] = TableDiff::FieldWrongType;
@@ -146,4 +147,5 @@ TableDiff TableDiff::diffTables(const AbstractTable* const left,
   return diff;
 }
 
-}}
+} } // namespace hyrise::storage
+

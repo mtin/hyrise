@@ -18,14 +18,14 @@ void CreateRadixTable::executePlanOperation() {
   auto tableSize = getInputTable()->size();
 
   // Prepare output
-  std::vector<const ColumnMetadata*> meta1 {ColumnMetadata::metadataFromString(types::integer_t, "hash")};
-  std::vector<const ColumnMetadata*> meta2 {ColumnMetadata::metadataFromString(types::integer_t, "pos")};
+  std::vector<storage::ColumnMetadata> meta1 {storage::ColumnMetadata::metadataFromString(types::integer_name, "hash")};
+  std::vector<storage::ColumnMetadata> meta2 {storage::ColumnMetadata::metadataFromString(types::integer_name, "pos")};
 
   // Create the result tables
-  auto hashes = std::make_shared<Table>(&meta1, nullptr, tableSize, true, false);
+  auto hashes = std::make_shared<storage::Table>(&meta1, nullptr, tableSize, true, false);
   hashes->resize(tableSize);
 
-  auto positions = std::make_shared<Table>(&meta2, nullptr, tableSize, true, false);
+  auto positions = std::make_shared<storage::Table>(&meta2, nullptr, tableSize, true, false);
   positions->resize(tableSize);
 
   std::vector<storage::atable_ptr_t> tmp {hashes, positions};
@@ -56,15 +56,25 @@ RadixCluster::RadixCluster(): _bits(0),
 
 void RadixCluster::executePlanOperation() {
   switch(getInputTable()->typeOfColumn(_field_definition[0])) {
-    case IntegerType:
-      executeClustering<storage::hyrise_int_t>();
-      break;
-    case FloatType:
-      executeClustering<storage::hyrise_float_t>();
-      break;
-    case StringType:
-      executeClustering<storage::hyrise_string_t>();
-      break;
+  case IntegerType:
+  case IntegerTypeDelta:
+  case IntegerTypeDeltaConcurrent:
+    executeClustering<storage::hyrise_int_t>();
+    break;
+  case IntegerNoDictType:
+    executeClustering<storage::hyrise_int32_t>();
+    break;
+  case FloatType:
+  case FloatTypeDelta:
+  case FloatTypeDeltaConcurrent:
+  case FloatNoDictType:
+    executeClustering<storage::hyrise_float_t>();
+    break;
+  case StringType:
+  case StringTypeDelta:
+  case StringTypeDeltaConcurrent:
+    executeClustering<storage::hyrise_string_t>();
+    break;
   }
 }
 
@@ -132,7 +142,7 @@ void RadixCluster2ndPass::executePlanOperation() {
   // Get the prefix sum from the input
   const auto& in_data = getDataVector(getInputTable(2)).first;
 
-  auto prefix = std::dynamic_pointer_cast<FixedLengthVector<value_id_t>>(in_data->copy());
+  auto prefix = std::dynamic_pointer_cast<storage::FixedLengthVector<value_id_t>>(in_data->copy());
 
   // Cast the vectors to the lowest part in the hierarchy
   auto data_hash = getDataVector(result).first;

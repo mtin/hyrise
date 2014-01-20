@@ -11,7 +11,6 @@
 
 #include "storage/Store.h"
 #include "storage/PointerCalculator.h"
-#include "storage/AbstractTable.h"
 #include "storage/meta_storage.h"
 #include "io/TransactionError.h"
 
@@ -30,12 +29,11 @@ PosUpdateScan::~PosUpdateScan() {
 
 
 void PosUpdateScan::executePlanOperation() {
-  auto c_pc = checked_pointer_cast<const PointerCalculator>(input.getTable(0));
+  auto c_pc = checked_pointer_cast<const storage::PointerCalculator>(input.getTable(0));
   auto c_store = checked_pointer_cast<const storage::Store>(c_pc->getActualTable());
 
   // Cast the constness away
   auto store = std::const_pointer_cast<storage::Store>(c_store);
-
 
   // Get the offset for inserts into the delta and the size of the delta that
   // we need to increase by the positions we are inserting
@@ -54,7 +52,7 @@ void PosUpdateScan::executePlanOperation() {
   size_t counter = 0;
   for(const auto& p : *(c_pc->getPositions())) {
     // First delete the old record
-    bool deleteOk = store->markForDeletion(p, _txContext.tid) == hyrise::tx::TX_CODE::TX_OK;
+    bool deleteOk = store->markForDeletion(p, _txContext.tid) == tx::TX_CODE::TX_OK;
     if(!deleteOk) {
       txmgr.rollbackTransaction(_txContext);
       throw tx::transaction_error("Aborted TX because TID of other TX found (Op: PosUpdateScan, Table: " + store->getName() + ")");

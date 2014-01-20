@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_STORAGE_SIMPLESTORE_H_
-#define SRC_LIB_STORAGE_SIMPLESTORE_H_
+#pragma once
 
 #include <helper/types.h>
 
@@ -15,7 +14,7 @@ class SimpleStore : public AbstractTable {
 
 private:
 
-  hyrise::storage::atable_ptr_t _main;
+  atable_ptr_t _main;
   std::shared_ptr<RawTable> _delta;
 
 public:
@@ -23,7 +22,7 @@ public:
   typedef RawTable delta_table_t;
   typedef AbstractTable main_table_t;
 
-  explicit SimpleStore(hyrise::storage::atable_ptr_t t);
+  explicit SimpleStore(atable_ptr_t t);
 
   virtual ~SimpleStore() {}
 
@@ -45,15 +44,15 @@ public:
   /**
    * @see AbstractTable
    */
-  const ColumnMetadata* metadataAt(size_t c, size_t r, table_id_t t) const { return _main->metadataAt(c,r,t); }
+  const ColumnMetadata& metadataAt(size_t c, size_t r, table_id_t t) const { return _main->metadataAt(c,r,t); }
 
   /**
    * @see AbstractTable
    */
-  hyrise::storage::atable_ptr_t copy_structure_modifiable(const field_list_t *fields = nullptr, 
-                                                                   const size_t initial_size = 0, 
+  atable_ptr_t copy_structure_modifiable(const field_list_t *fields = nullptr,
+                                                                   const size_t initial_size = 0,
                                                                    const bool with_containers = true) const {
-    throw std::runtime_error("RawTable ("+ STORAGE_DEBUG_WHERE_WHAT(__FILE__, __LINE__) +") does not support copy structure modifiable"); 
+    throw std::runtime_error("RawTable ("+ STORAGE_DEBUG_WHERE_WHAT(__FILE__, __LINE__) +") does not support copy structure modifiable");
   }
 
   template <typename T>
@@ -94,20 +93,20 @@ public:
   /**
    * @see AbstractTable
    */
-  const AbstractTable::SharedDictionaryPtr& dictionaryAt(const size_t column, 
-                                                  const size_t row = 0, 
+  const AbstractTable::SharedDictionaryPtr& dictionaryAt(const size_t column,
+                                                  const size_t row = 0,
                                                   const table_id_t table_id = 0) const;
 
   /**
    * @see AbstractTable
    */
-  const AbstractTable::SharedDictionaryPtr& dictionaryByTableId(const size_t column, 
+  const AbstractTable::SharedDictionaryPtr& dictionaryByTableId(const size_t column,
                                                          const table_id_t table_id) const;
 
   /**
    * @see AbstractTable
    */
-  void setDictionaryAt(AbstractTable::SharedDictionaryPtr dict, 
+  void setDictionaryAt(AbstractTable::SharedDictionaryPtr dict,
                        const size_t column, const size_t row = 0, const table_id_t table_id = 0);
 
   unsigned int partitionCount() const;
@@ -118,15 +117,15 @@ public:
   std::shared_ptr<main_table_t> getMain() const { return _main; }
   ///////////////////////////////////////////////////////////////////////////////////////
   /// Disabled Methods
-  hyrise::storage::atable_ptr_t copy() const;
+  atable_ptr_t copy() const;
 
   /**
    * @see AbstractTable
    */
-  hyrise::storage::atable_ptr_t copy_structure(const field_list_t *fields = nullptr, 
-                                                        const bool reuse_dict = false, 
-                                                        const size_t initial_size = 0, 
-                                                        const bool with_containers = true, 
+  atable_ptr_t copy_structure(const field_list_t *fields = nullptr,
+                                                        const bool reuse_dict = false,
+                                                        const size_t initial_size = 0,
+                                                        const bool with_containers = true,
                                                         const bool compressed = false) const {
     STORAGE_NOT_IMPLEMENTED(SimpleStore, copy_structure());
   }
@@ -152,4 +151,3 @@ private:
 
 }}
 
-#endif //SRC_LIB_STORAGE_SIMPLESTORE_H_

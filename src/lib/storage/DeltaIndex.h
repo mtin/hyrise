@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_STORAGE_DELTAINDEX_H_
-#define SRC_LIB_STORAGE_DELTAINDEX_H_
+#pragma once
 
 #include <vector>
 #include <map>
@@ -16,6 +15,13 @@
 #include "storage/storage_types.h"
 #include "storage/AbstractIndex.h"
 #include "storage/AbstractTable.h"
+
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/vector.hpp>
+
+namespace hyrise {
+namespace storage {
 
 // An inverted index for the delta that can be queried and
 // is modifiable to add new values. However, the structure
@@ -48,21 +54,21 @@ private:
 public:
   virtual ~DeltaIndex() {
     pthread_rwlock_destroy(&_rw_lock);
-  };
+  }
 
   void shrink() {
     throw std::runtime_error("Shrink not supported for DeltaIndex");
   }
 
-  explicit DeltaIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column) : _table(in), _column(column) {
+  explicit DeltaIndex(const c_atable_ptr_t& in, field_t column) : _table(in), _column(column) {
     pthread_rwlock_init(&_rw_lock, NULL);
-  };
+  }
 
   void write_lock() {
     if (pthread_rwlock_wrlock(&_rw_lock) != 0)
       std::cout << "ERROR while write locking delta index" <<std::endl;
   }
-  
+
   void read_lock() {
     if (pthread_rwlock_rdlock(&_rw_lock) != 0)
       std::cout << "ERROR while read locking delta index" <<std::endl;
@@ -87,16 +93,14 @@ public:
       _index.insert(std::make_pair(value, *poslist) );
     } else {
       // find position to insert...
-      auto it = find->second.end(); 
+      auto it = find->second.end();
       --it;
       while (*it > pos) --it;
       ++it;
       // ... and insert
       find->second.insert(it, pos);
     }
-  };
-
-
+  }
 
   PositionRange getPositionsForKey(T key) {
     typename inverted_index_t::iterator it = _index.find(key);
@@ -106,28 +110,29 @@ public:
       // empty result
       return PositionRange(_empty.begin(), _empty.end(), true);
     }
-  };
+  }
 
   PositionRange getPositionsForKeyLT(T key) {
     return getPositionsBetween(_index.cbegin(), _index.lower_bound(key));
-  };
+  }
 
   PositionRange getPositionsForKeyLTE(T key) {
     return getPositionsBetween(_index.cbegin(), _index.upper_bound(key));
-  };
+  }
 
   PositionRange getPositionsForKeyBetween(T a, T b) {
     // return range ]a,b[
     return getPositionsBetween(_index.lower_bound(a), _index.upper_bound(b));
-  };
+  }
 
   PositionRange getPositionsForKeyGT(T key) {
     return getPositionsBetween(_index.upper_bound(key), _index.cend());
-  };
+  }
 
   PositionRange getPositionsForKeyGTE(T key) {
     return getPositionsBetween(_index.lower_bound(key), _index.cend());
-  };
-
+  }
 };
-#endif  // SRC_LIB_STORAGE_DELTAINDEX_H_
+
+}
+}

@@ -1,6 +1,7 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_IO_STORAGEMANAGER_H_
-#define SRC_LIB_IO_STORAGEMANAGER_H_
+#pragma once
+
+#include "io/ResourceManager.h"
 
 #include <atomic>
 #include <map>
@@ -9,16 +10,18 @@
 #include <string>
 #include <vector>
 
-#include "io/ResourceManager.h"
+namespace hyrise {
 
+namespace storage {
 class AbstractTable;
 class AbstractIndex;
 class AbstractResource;
+} // namespace storage
 
-namespace Loader { class params; }
-
-namespace hyrise {
 namespace io {
+namespace Loader {
+class params;
+} // namespace Loader
 
 /// Central holder of schema information
 class StorageManager : public ResourceManager {
@@ -30,7 +33,7 @@ class StorageManager : public ResourceManager {
   /// Adds a new storage table to _schema, forwards to all constructors of StorageTable
   /// that start with (std::string name, ....)
   template<typename... Args>
-  void addStorageTable(std::string name, Args&& ... args);
+  void addStorageTable(const std::string& name, Args&& ... args);
 
  public:
   /// Retrieve singleton storage-manager instance
@@ -39,42 +42,42 @@ class StorageManager : public ResourceManager {
   /// Table loading with parameters
   /// @param[in] name Table name
   /// @param[in] parameters Loader parameters for delayed load
-  void loadTable(std::string name, const Loader::params &parameters);
+  void loadTable(const std::string& name, const Loader::params &parameters);
 
   /// Table loading with table
   /// @param[in] name Table name
   /// @param[in] table Shared table pointer
-  void loadTable(std::string name, std::shared_ptr<AbstractTable> table);
+  void loadTable(const std::string& name, std::shared_ptr<storage::AbstractTable> table);
 
   /// Convenience loading from fileName
   /// @param[in] name Table name
   /// @param[in] fileName Path to to hyrise-format file
-  void loadTableFile(std::string name, std::string fileName);
+  void loadTableFile(const std::string& name, std::string fileName);
 
   /// Convenience loading for files with separate header
   /// @param[in] name Table name
   /// @param[in] dataFileName Path to to hyrise-format data file
   /// @param[in] headerFileName Path to to hyrise-format header file
-  void loadTableFileWithHeader(std::string name, std::string dataFileName,
-                               std::string headerFileName);
+  void loadTableFileWithHeader(const std::string& name, const std::string& dataFileName,
+                               const std::string& headerFileName);
   /// Replace existing table
   /// @param[in] name Table name to be replaced
   /// @param[in] table Shared table pointer
-  void replaceTable(std::string name, std::shared_ptr<AbstractTable> table);
+  void replaceTable(const std::string& name, std::shared_ptr<storage::AbstractTable> table);
 
-  void removeTable(std::string name);
+  void removeTable(const std::string& name);
 
   void removeAll();
 
   /// Get a table
   /// @param[in] name Table name
-  std::shared_ptr<AbstractTable> getTable(std::string name);
+  std::shared_ptr<storage::AbstractTable> getTable(const std::string& name);
 
   /// saves the inverted index as name.
-  void addInvertedIndex(std::string name, std::shared_ptr<AbstractIndex> _index);
+  void addInvertedIndex(const std::string& name, std::shared_ptr<storage::AbstractIndex> _index);
 
   /// returns the index stored under name name.
-  std::shared_ptr<AbstractIndex> getInvertedIndex(std::string name);
+  std::shared_ptr<storage::AbstractIndex> getInvertedIndex(const std::string& name);
 
   /// Retrieve all table names
   std::vector<std::string> getTableNames() const;
@@ -84,21 +87,14 @@ class StorageManager : public ResourceManager {
 
   /// Get full path for fileName
   /// @param[in] fileName fileName
-  std::string makePath(std::string fileName);
+  std::string makePath(const std::string& fileName);
 
-  void persistTable(const std::string &name);
+  void persistTable(const std::string& name);
 
   void recoverTables();
 
-  void recoverTable(const std::string &name);
+  void recoverTable(const std::string& name);
 };
 
-}
-}  // namespace hyrise::io
-
-
-
-typedef hyrise::io::StorageManager StorageManager;
-
-#endif  // SRC_LIB_IO_STORAGEMANAGER_H_
+} }  // namespace hyrise::io
 

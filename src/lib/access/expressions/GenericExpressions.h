@@ -12,6 +12,7 @@
 
 #include "helper/types.h"
 #include "helper/make_unique.h"
+#include "helper/checked_cast.h"
 #include "helper/vector_helpers.h"
 
 
@@ -54,6 +55,17 @@ namespace hyrise { namespace access {
  struct GenericExpressionsHelper{
  };
 
+#define STORE_TWO_FIELD_SEQ_FLD1_LTE_FLOAT (f1)(hyrise_float_t)(<=)(asFloat)
+#define STORE_TWO_FIELD_SEQ_FLD1_LTE_INT (f1)(hyrise_int_t)(<=)(asInt)
+#define STORE_TWO_FIELD_SEQ_FLD2_GTE_FLOAT (f2)(hyrise_float_t)(>=)(asFloat)
+#define STORE_TWO_FIELD_SEQ_FLD2_GTE_INT (f2)(hyrise_int_t)(>=)(asInt)
+
+#define STORE_TWO_FIELD_SEQ_FLOAT_BTW (STORE_TWO_FIELD_SEQ_FLD1_LTE_FLOAT)(STORE_TWO_FIELD_SEQ_FLD2_GTE_FLOAT)
+#define STORE_TWO_FIELD_SEQ_INT_BTW (STORE_TWO_FIELD_SEQ_FLD1_LTE_INT)(STORE_TWO_FIELD_SEQ_FLD2_GTE_INT)
+
+DEFINE_EXPRESSION_CLASS(STORE_FLV_F1_LTEQ_FLOAT_AND_F2_GTEQ_FLOAT, STORE_TWO_FIELD_SEQ_FLOAT_BTW, ()(&&));
+DEFINE_EXPRESSION_CLASS(STORE_FLV_F1_LTEQ_INT_AND_F2_GTEQ_INT, STORE_TWO_FIELD_SEQ_INT_BTW, ()(&&));
+
 #define FLD_1 (f1)(hyrise_int_t)(==)(asUInt64)
 #define FLD_2 (f2)(hyrise_int_t)(==)(asUInt64)
 #define FLD_3 (f3)(hyrise_int_t)(==)(asUInt64)
@@ -75,6 +87,7 @@ DEFINE_EXPRESSION_CLASS(Store_FLV_F1_EQ_INT_AND_F2_EQ_INT_AND_F3_EQ_INT_AND_F4_G
 DEFINE_EXPRESSION_CLASS(Store_FLV_F1_EQ_INT, STORE_ONE_FIELD_SEQ, ());
 DEFINE_EXPRESSION_CLASS(Store_FLV_F1_EQ_STRING, ((f1)(hyrise_string_t)(==)(asString)), ());
 DEFINE_EXPRESSION_CLASS(Store_FLV_F1_EQ_STRING_OR_F2_NEQ_FLOAT, ((f1)(hyrise_string_t)(==)(asString))((f2)(hyrise_float_t)(!=)(asFloat)), ()(||));
+DEFINE_EXPRESSION_CLASS(Store_FLV_F1_EQ_INT32_OR_F2_NEQ_FLOAT, ((f1)(hyrise_int32_t)(==)(asInt))((f2)(hyrise_float_t)(!=)(asFloat)), ()(||));
 
 
 #define STORE_TWO_FIELD_SEQ_FLD1 (f1)(hyrise_int_t)(==)(asUInt64)

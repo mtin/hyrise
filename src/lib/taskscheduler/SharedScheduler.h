@@ -6,11 +6,16 @@
  *      Author: jwust
  */
 
-#ifndef SRC_LIB_TASKSCHEDULER_SHAREDSCHEDULER_H_
-#define SRC_LIB_TASKSCHEDULER_SHAREDSCHEDULER_H_
+#pragma once
 
 #include <taskscheduler/AbstractTaskScheduler.h>
+#include <taskscheduler/DynamicPriorityScheduler.h>
 #include <stdexcept>
+
+#define NUM_RESERVED_CORES 3
+
+namespace hyrise {
+namespace taskscheduler {
 
 struct AbstractTaskSchedulerFactory {
   virtual std::shared_ptr<AbstractTaskScheduler> create(int cores) const = 0;
@@ -38,9 +43,11 @@ class SharedScheduler{
   typedef std::map< std::string, std::unique_ptr<AbstractTaskSchedulerFactory>> factory_map_t;
   factory_map_t _schedulers;
   std::shared_ptr<AbstractTaskScheduler> _sharedScheduler;
+
 public:
 
   ~SharedScheduler(){
+    _schedulers.clear();
   }
 
   template<typename TaskSchedulerClass>
@@ -59,12 +66,15 @@ public:
     return bool(_sharedScheduler);
   }
 
-  void init(const std::string &scheduler, int cores = getNumberOfCoresOnSystem()){
+  void init(const std::string &scheduler, int cores = getNumberOfCoresOnSystem()-NUM_RESERVED_CORES, int maxTaskSize = 0){
 
     if(_sharedScheduler)
       throw SchedulerException("Scheduler has already been initialized");
     if(_schedulers.find(scheduler) != _schedulers.end()){
       _sharedScheduler = _schedulers[scheduler]->create(cores);
+      if (auto dynamicScheduler = std::dynamic_pointer_cast<DynamicPriorityScheduler>(_sharedScheduler)) {
+      	dynamicScheduler->setMaxTaskSize(maxTaskSize);
+      }
     } else
       throw SchedulerException("Requested scheduler was not registered");
   }
@@ -72,7 +82,7 @@ public:
   /*
    * stops current scheduler gracefully; starts new scheduler
    */
-  void resetScheduler(const std::string &scheduler, int cores = getNumberOfCoresOnSystem()){
+  void resetScheduler(const std::string &scheduler, int cores = getNumberOfCoresOnSystem()-NUM_RESERVED_CORES){
     if(_sharedScheduler) {
       _sharedScheduler->shutdown();
     }
@@ -90,4 +100,5 @@ public:
   static SharedScheduler &getInstance();
 };
 
-#endif  // SRC_LIB_TASKSCHEDULER_SHAREDSCHEDULER_H_
+} } // namespace hyrise::taskscheduler
+

@@ -5,8 +5,7 @@
  * For any undocumented method see AbstractTable.
  * @see AbstractTable
  */
-#ifndef SRC_LIB_STORAGE_TABLE_H_
-#define SRC_LIB_STORAGE_TABLE_H_
+#pragma once
 
 #include <string>
 #include <vector>
@@ -21,6 +20,9 @@
 #include "storage/BaseAttributeVector.h"
 #include "storage/AttributeVectorFactory.h"
 
+namespace hyrise {
+namespace storage {
+
 /**
  * Table is the innermost entity in the table structure. It stores the actual
  * values like a regular table and cannot be splitted further.
@@ -34,7 +36,7 @@ private:
   typedef std::vector<SharedDictionary> DictionaryVector;
 
   typedef Table table_type;
-  typedef std::vector<const ColumnMetadata *> MetadataVector;
+  typedef std::vector<ColumnMetadata > MetadataVector;
 
 
   // The shared ptr to the attributes we store inside the table
@@ -71,6 +73,13 @@ public:
         bool compressed = true,
         bool nonvolatile = false);
 
+  // Construct table from vector of metadata,
+  // a storage vector and dictionaries
+  // Expects: m.size() == dicts.size()
+  Table(std::vector<ColumnMetadata> m,
+        SharedAttributeVector av,
+        std::vector<SharedDictionary> dicts);
+
   ~Table();
 
   size_t size() const;
@@ -85,7 +94,7 @@ public:
 
   void resize(const size_t nr_of_values);
 
-  virtual const ColumnMetadata *metadataAt(const size_t column, const size_t row = 0, const table_id_t table_id = 0) const;
+  const ColumnMetadata& metadataAt(const size_t column_index, const size_t row_index = 0, const table_id_t table_id = 0) const override;
 
   virtual const AbstractTable::SharedDictionaryPtr& dictionaryAt(const size_t column, const size_t row = 0, const table_id_t table_id = 0) const;
 
@@ -93,10 +102,10 @@ public:
 
   virtual void setDictionaryAt(AbstractTable::SharedDictionaryPtr dict, const size_t column, const size_t row = 0, const table_id_t table_id = 0);
 
-  virtual  hyrise::storage::atable_ptr_t copy_structure(const field_list_t *fields = nullptr, const bool reuse_dict = false, const size_t initial_size = 0, const bool with_containers = true, const bool compressed = false) const;
+  virtual  atable_ptr_t copy_structure(const field_list_t *fields = nullptr, const bool reuse_dict = false, const size_t initial_size = 0, const bool with_containers = true, const bool compressed = false) const;
 
-  virtual  hyrise::storage::atable_ptr_t copy_structure_modifiable(const field_list_t *fields = nullptr, const size_t initial_size = 0, const bool with_containers = true) const;
-
+  virtual  atable_ptr_t copy_structure_modifiable(const field_list_t *fields = nullptr, const size_t initial_size = 0, const bool with_containers = true) const;
+  virtual atable_ptr_t copy_structure(abstract_dictionary_callback, abstract_attribute_vector_callback) const override;
 
   void setAttributes(SharedAttributeVector b);
 
@@ -112,7 +121,7 @@ public:
     return columnCount();
   }
 
-  virtual hyrise::storage::atable_ptr_t copy() const;
+  virtual atable_ptr_t copy() const;
 
   void setNumRows(size_t s) {
     tuples->setNumRows(s);
@@ -124,12 +133,10 @@ public:
     return { t };
   }
 
-  virtual void debugStructure(size_t level=0) const {
-    std::cout << std::string(level, '\t') << "Table " << this << std::endl;
-  }
-
   void persist_scattered(const pos_list_t& elements, bool new_elements = true) const override;
+
+  virtual void debugStructure(size_t level=0) const;
 };
 
-#endif  // SRC_LIB_STORAGE_TABLE_H_
+} } // namespace hyrise::storage
 

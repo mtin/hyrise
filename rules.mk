@@ -188,7 +188,7 @@ NVSIMULATOR_READ_NS ?= 0
 NVSIMULATOR_WRITE_NS ?= 0
 VERBOSE_BUILD ?= 0
 
-include settings.mk
+include $(PROJECT_ROOT)/settings.mk
 
 BLD ?= debug
 COMPILER ?= g++48
@@ -201,6 +201,7 @@ endif
 ifeq ($(WITH_PROFILER),1)
 PLUGINS += profiler
 endif
+
 
 ifeq ($(WITH_V8),1)
 ifndef V8_BASE_DIRECTORY
@@ -276,10 +277,6 @@ LDFLAGS += $(LDFLAGS.$(BLD))
 .PHONY          : all clean test ci_test ci_build ci_valgrind_test
 .DEFAULT_GOAL   := all
 
-all:
-	@echo "$@ done for BLD='$(BLD)'"
-clean:
-	rm -rf $(OBJDIR) $(all)
 
 TESTPARAM = --minimal
 test:
@@ -288,26 +285,30 @@ ci_test: test
 ci_valgrind_test: TESTPARAM =
 ci_valgrind_test: TESTPREFIX = valgrind --leak-check=full --xml=yes --xml-file=$<.memcheck
 ci_valgrind_test: test
-include makefiles/ci.mk
+include $(PROJECT_ROOT)/makefiles/ci.mk
 
 ci_build: ci_steps
-
-# a noop to keep make happy
-%.d :
-
-% :
-	$(call echo_cmd,LINK $(CXX) $(BLD) $@) $(CXX) $(CXXFLAGS) -o $@ $(filter %.o,$^) -Wl,-whole-archive $(addprefix -l,$(LIBS)) -Wl,-no-whole-archive $(addprefix -L,$(LINK_DIRS)) $(LDFLAGS)
-
-%.a:
-	$(call echo_cmd,AR $(AR) $@) $(AR) crs $@ $(filter %.o,$?)
 
 %/.fake:
 	@mkdir -p $(@D)
 	@touch $@
 
-# Necessary to allow for a second expansio to create dirs
+$(RESULT_DIR)/%.a:
+	$(call echo_cmd,AR $(AR) $@) $(AR) crs $@ $(filter %.o,$?)
+
+$(RESULT_DIR)/%:
+	$(call echo_cmd,LINK $(CXX) $(BLD) $@) $(CXX) $(CXXFLAGS) -o $@ $(filter %.o,$^) -Wl,-whole-archive $(addprefix -l,$(LIBS)) -Wl,-no-whole-archive $(addprefix -L,$(LINK_DIRS)) $(LDFLAGS)
+
+# Necessary to allow for a second expansion to create dirs
 .SECONDEXPANSION:
 test: $$(test-tgts)
+
+all: $$(all)
+	@echo "$@ done for BLD='$(BLD)'"
+
+clean:
+	rm -rf $(OBJDIR) $(all)
+
 
 $(OBJDIR)%.cpp.o : %.cpp | $$(@D)/.fake
 	$(call echo_cmd,CXX $(CXX) $(BLD) $<) $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(addprefix -I,$(INCLUDE_DIRS)) -c -o $@ $<

@@ -2,6 +2,7 @@
 #include "storage/TableBuilder.h"
 
 #include "storage/AbstractTable.h"
+#include "storage/DictionaryFactory.h"
 #include "storage/OrderIndifferentDictionary.h"
 #include "storage/Table.h"
 #include "storage/MutableVerticalTable.h"
@@ -21,34 +22,30 @@ for (const auto & i: args.groups())
     throw TableBuilderError("Specified Layout does not match number of columns");
 }
 
-hyrise::storage::atable_ptr_t TableBuilder::createTable(param_list::param_list_t::const_iterator begin,
+atable_ptr_t TableBuilder::createTable(param_list::param_list_t::const_iterator begin,
     param_list::param_list_t::const_iterator end,
     const bool compressed) {
   // Meta data container
-  std::vector<const ColumnMetadata *> vc;
+  std::vector<ColumnMetadata > vc;
   std::vector<AbstractTable::SharedDictionaryPtr > vd;
 
   for (; begin != end; ++begin) {
     vc.push_back(ColumnMetadata::metadataFromString((*begin).type, (*begin).name));
-    vd.push_back(
-      DictionaryFactory<OrderIndifferentDictionary>::build(vc.back()->getType()));
+    vd.push_back(makeDictionary(vc.back().getType()));
   }
 
   auto tmp = std::make_shared<Table>(&vc, &vd, 0, 0, compressed);
 
-for (const auto & column_meta: vc)
-    delete column_meta;
-
   return tmp;
 }
 
-hyrise::storage::atable_ptr_t TableBuilder::build(param_list args, const bool compressed) {
+atable_ptr_t TableBuilder::build(param_list args, const bool compressed) {
   if (args.groups().size() == 0)
     args.appendGroup(args.size());
 
   checkParams(args);
 
-  std::vector<hyrise::storage::atable_ptr_t> base;
+  std::vector<atable_ptr_t> base;
   auto offset = args.params().begin();
 
   // For each group calculate the offset that is used to extract the columns
@@ -69,3 +66,4 @@ hyrise::storage::atable_ptr_t TableBuilder::build(param_list args, const bool co
 
 
 }}
+

@@ -1,5 +1,4 @@
-#ifndef SRC_LIB_IO_BUFFEREDLOGGER_H
-#define SRC_LIB_IO_BUFFEREDLOGGER_H
+#pragma once
 
 #include <atomic>
 #include <cstdio>
@@ -21,9 +20,9 @@ public:
 
     template<typename T>
     void logDictionary(const std::string& table_name,
-                                          storage::field_t column,
-                                          const T &value,
-                                          storage::value_id_t value_id) {
+                       storage::field_t column,
+                       const T &value,
+                       storage::value_id_t value_id) {
       char entry[90];
       char *cursor = entry;
 
@@ -94,5 +93,3 @@ template<> void BufferedLogger::logDictionaryValue(char *&cursor, const storage:
 
 }
 }
-
-#endif // SRC_LIB_IO_BUFFEREDLOGGER_H

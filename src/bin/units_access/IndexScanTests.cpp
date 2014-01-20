@@ -14,7 +14,7 @@ public:
 
   virtual void SetUp() {
     AccessTest::SetUp();
-    t = Loader::shortcuts::load("test/index_test.tbl");
+    t = io::Loader::shortcuts::load("test/index_test.tbl");
     CreateIndex ci;
     ci.addInput(t);
     ci.addField(0);
@@ -26,14 +26,15 @@ public:
 };
 
 TEST_F(IndexScanTests, basic_index_scan_test) {
-  auto reference = Loader::shortcuts::load("test/reference/index_test_result.tbl");
+  auto reference = io::Loader::shortcuts::load("test/reference/index_test_result.tbl");
 
   IndexScan is;
   is.addInput(t);
   is.addField(0);
   is.setIndexName("my_index");
-  is.setPredicateType(PredicateType::EqualsExpression);
-  is.setValue1<hyrise_int_t>(200);
+  //is.setPredicateType(PredicateType::EqualsExpression);
+  //is.setValue1<hyrise_int_t>(200);
+  is.setValue<hyrise_int_t>(200);
   is.execute();
 
   auto result = is.getResultTable();

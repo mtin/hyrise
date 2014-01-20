@@ -47,7 +47,7 @@ const std::string TpccOrderStatusProcedure::vname() {
 Json::Value TpccOrderStatusProcedure::execute() {
   storage::atable_ptr_t tCustomer;
   if (_customerById) {
-    tCustomer = std::const_pointer_cast<AbstractTable>(getCustomerByCId());
+    tCustomer = std::const_pointer_cast<storage::AbstractTable>(getCustomerByCId());
     if (tCustomer->size() == 0) {
       rollback();
       std::ostringstream os;
@@ -59,7 +59,7 @@ Json::Value TpccOrderStatusProcedure::execute() {
     _c_last = tCustomer->getValue<hyrise_string_t>("C_LAST", 0);
   }
   else {
-    tCustomer = std::const_pointer_cast<AbstractTable>(getCustomersByLastName());
+    tCustomer = std::const_pointer_cast<storage::AbstractTable>(getCustomersByLastName());
     if (tCustomer->size() == 0) {
       rollback();
       throw std::runtime_error("No Customer with ID: " + _c_last);

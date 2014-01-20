@@ -1,8 +1,7 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
+#pragma once
 
-#ifndef SRC_LIB_HELPER_PROGRESS_H_
-#define SRC_LIB_HELPER_PROGRESS_H_
-
+#include <iostream>
 
 class Progress {
 
@@ -43,5 +42,3 @@ class Progress {
 
 };
 
-
-#endif  // SRC_LIB_HELPER_PROGRESS_H_

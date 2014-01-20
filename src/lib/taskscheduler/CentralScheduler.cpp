@@ -6,6 +6,10 @@
  */
 
 #include "CentralScheduler.h"
+#include <thread>
+
+namespace hyrise {
+namespace taskscheduler {
 
 log4cxx::LoggerPtr CentralScheduler::_logger = log4cxx::Logger::getLogger("taskscheduler.CentralScheduler");
 
@@ -17,7 +21,7 @@ bool registered  =
 
 CentralScheduler::CentralScheduler(int threads) {
     _status = START_UP;
-    auto _available_cores = getNumberOfCoresOnSystem()-3;
+    auto _available_cores = getNumberOfCoresOnSystem()-NUM_RESERVED_CORES;
   // create and launch threads
   if(threads > _available_cores){
     std::cout << "Tried to use more threads (" << threads << ") then cores (" << _available_cores << ") - no binding of threads takes place" << std::endl;
@@ -96,16 +100,19 @@ void WorkerThread::operator()(){
     }
     // no task in runQueue -> sleep and wait for new tasks
     else {
+
+      std::this_thread::yield();
+
       //if queue still empty go to sleep and wait until new tasks have been arrived
-      if (scheduler._runQueue.size() < 1) {
+      // if (scheduler._runQueue.size() < 1) {
         // if thread is about to stop, break execution loop
 
-        if (scheduler._status != scheduler.RUN)
-          continue;
+        // if (scheduler._status != scheduler.RUN)
+          // continue;
 
 
-        scheduler._condition.wait(ul);
-      }
+        // scheduler._condition.wait(ul);
+      // }
     }
   }
 }
@@ -176,3 +183,6 @@ void CentralScheduler::notifyReady(std::shared_ptr<Task> task) {
     // should never happen, but check to identify potential race conditions
     LOG4CXX_ERROR(_logger, "Task that notified to be ready to run was not found / found more than once in waitSet! " << std::to_string(tmp));
 }
+
+} } // namespace hyrise::taskscheduler
+

@@ -1,6 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#ifndef SRC_LIB_ACCESS_PRED_EXPRESSION_FACTORY_H_
-#define SRC_LIB_ACCESS_PRED_EXPRESSION_FACTORY_H_
+#pragma once
 
 #include "expression_types.h"
 #include "../json_converters.h"
@@ -11,6 +10,21 @@
     return new EXPRESSION<ValueType>(_input_index, _field_name, json_converter::convert<ValueType>(_value)); \
   else                                                                  \
     return new EXPRESSION<ValueType>(_input_index, _field, json_converter::convert<ValueType>(_value)); \
+  break;
+
+// for expressions that support only a specific value type
+#define GENERATE_EXPRESSION_OF_TYPE(EXPRESSION, TYPE)  case PredicateType::EXPRESSION: \
+  if (_field_name.size() > 0)                                           \
+    return new EXPRESSION(_input_index, _field_name, json_converter::convert<TYPE>(_value)); \
+  else                                                                  \
+    return new EXPRESSION(_input_index, _field, json_converter::convert<TYPE>(_value)); \
+  break;
+
+#define GENERATE_EXPRESSION_WITH_VALUE_VECTOR(EXPRESSION)  case PredicateType::EXPRESSION: \
+  if (_field_name.size() > 0)                                           \
+    return new EXPRESSION<ValueType>(_input_index, _field_name, _value); \
+  else                                                                  \
+    return new EXPRESSION<ValueType>(_input_index, _field, _value); \
   break;
 
 #define GENERATE_2VALUE_EXPRESSION(EXPRESSION)  case PredicateType::EXPRESSION: \
@@ -46,7 +60,7 @@ struct expression_factory {
                      field_t field_index,
                      PredicateType::type predicate,
                      Json::Value value,
-		     Json::Value value2) :
+		                 Json::Value value2 = Json::Value()) :
       _input_index(input_index),
       _field(field_index),
       _field_name(""),
@@ -59,7 +73,7 @@ struct expression_factory {
                      field_name_t fieldName,
                      PredicateType::type predicate,
                      Json::Value value,
-                     Json::Value value2) :
+                     Json::Value value2 = Json::Value()) :
       _input_index(input_index),
       _field_name(fieldName),
       _predicate(predicate),
@@ -76,8 +90,10 @@ struct expression_factory {
       GENERATE_EXPRESSION(EqualsExpressionRaw);
       GENERATE_EXPRESSION(LessThanExpressionRaw);
       GENERATE_EXPRESSION(GreaterThanExpressionRaw);
+      GENERATE_EXPRESSION_OF_TYPE(LikeExpression, hyrise_string_t);
+      GENERATE_EXPRESSION_WITH_VALUE_VECTOR(InExpression);
 
-      GENERATE_2VALUE_EXPRESSION(BetweenExpression); 
+      GENERATE_2VALUE_EXPRESSION(BetweenExpression);
 
       GENERATE_GENERIC_EXPRESSION(EqualsExpressionValue, GenericExpressionValue, std::equal_to);
       GENERATE_GENERIC_EXPRESSION(LessThanExpressionValue, GenericExpressionValue, std::less);
@@ -89,7 +105,6 @@ struct expression_factory {
     }
   }
 };
-} /*ns access*/
-} /*ns hyrise*/
+} /*namespace access*/
+} /*namessace hyrise*/
 
-#endif  // SRC_LIB_ACCESS_PRED_EXPRESSION_FACTORY_H_

@@ -57,7 +57,7 @@ Json::Value TpccDeliveryProcedure::execute() {
     _total = tSum->getValue<hyrise_float_t>(0, 0);
 
     deleteNewOrder();
-    updateOrders(std::const_pointer_cast<AbstractTable>(tOrder));
+    updateOrders(std::const_pointer_cast<storage::AbstractTable>(tOrder));
     updateOrderLine();
     updateCustomer();
 
