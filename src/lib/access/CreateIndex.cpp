@@ -36,7 +36,7 @@ struct CreateIndexFunctor {
 };
 
 struct CreatePagedIndexFunctor {
-  typedef std::shared_ptr<AbstractIndex> value_type;
+  typedef std::shared_ptr<storage::AbstractIndex> value_type;
   const storage::c_atable_ptr_t& in;
   size_t column;
   size_t _pageSize;

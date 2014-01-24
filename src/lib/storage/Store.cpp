@@ -61,7 +61,7 @@ void Store::merge() {
   if (merger == nullptr) {
     throw std::runtime_error("No Merger set.");
   }
-
+  
   // Create new delta and merge
   atable_ptr_t new_delta = delta->copy_structure_modifiable(nullptr, 0, true, true);
   //atable_ptr_t new_delta = delta->copy_structure(create_concurrent_dict, create_concurrent_storage);

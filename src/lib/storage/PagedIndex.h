@@ -67,13 +67,12 @@ public:
     if (in != nullptr) {
       size_t num_of_pages = std::ceil(in->size() / (double)_pageSize);
 
-      _index.resize(in->dictionaryAt(_column)->size(), boost::dynamic_bitset<>(num_of_pages, 0));
+      paged_index_t _newIndex(in->dictionaryAt(_column)->size(), boost::dynamic_bitset<>(num_of_pages, 0));
         
-      for (size_t row = 0; row < in->size(); ++row) {
-        ValueId valueId = in->getValueId(_column, row);
+      for (size_t row = 0; row < in->size(); ++row)
+        _newIndex[in->getValueId(_column, row).valueId][row/_pageSize] = 1;
 
-        _index[valueId.valueId][row/_pageSize] = 1;
-      }
+      _index = _newIndex;
     }
   }
 
