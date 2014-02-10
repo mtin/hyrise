@@ -1,5 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#include "SimpleStoreMerger.h"
+#include "PagedIndexMerger.h"
 
 #include <memory>
 #include <set>
@@ -8,6 +8,10 @@
 #include "meta_storage.h"
 #include "RawTable.h"
 #include "SimpleStore.h"
+
+#include "io/StorageManager.h" //MF
+#include "storage/PagedIndex.h" //MF
+#include "storage/DeltaIndex.h" //MF
 
 
 namespace hyrise { namespace storage {
@@ -21,7 +25,12 @@ namespace hyrise { namespace storage {
  * this set and a mapping table is build that maps the old values from
  * the old dictionary to the new dictionary.
  */
-struct MergeDictFunctor {
+struct IndexMergeDictFunctor {
+
+  IndexMergeDictFunctor(const std::string index_name, const std::string delta_index_name, field_t index_column):
+    _index_name(index_name),
+    _delta_index_name(delta_index_name),
+    _index_column(index_column) {} //MF
 
   struct result {
     std::vector<value_id_t> mapping;
@@ -35,6 +44,10 @@ struct MergeDictFunctor {
   c_atable_ptr_t _delta;
   field_t _column;
 
+  //MF
+  const std::string _index_name;
+  const std::string _delta_index_name;
+  field_t _index_column;
 
   void prepare(c_atable_ptr_t m, c_atable_ptr_t d, field_t c) {
     _main = m;
@@ -52,7 +65,8 @@ struct MergeDictFunctor {
     for(size_t i=0; i < deltaSize; ++i) {
       data.insert(_delta->getValue<R>(_column, i));
     }
-      
+     
+    std::set<R> deltaDict = data; //MF
 
     size_t dictSize = dict->size();
     for(size_t i=0; i < dictSize; ++i)
@@ -83,13 +97,20 @@ struct MergeDictFunctor {
     for(auto e : data)
       resultDict->addValue(e);
 
-    std::cout << "resultDict:" << std::endl;
-    for (auto it : *resultDict)
-      std::cout << it << std::endl;
+    //MF
+    if (_index_column == _column) {
+      // for (unsigned i = 0; i<mapping.size(); i++)
+      //   std::cout << i << ":" << mapping[i] << std::endl;
+      // get indices
+      hyrise::io::StorageManager *sm = hyrise::io::StorageManager::getInstance();
+      auto idx = sm->getInvertedIndex(_index_name);
+      auto pagedIdx = std::dynamic_pointer_cast<hyrise::storage::PagedIndex>(idx);
+      idx = sm->getInvertedIndex(_delta_index_name);
+      auto deltaIdx = std::dynamic_pointer_cast<hyrise::storage::DeltaIndex<R>>(idx);
 
-    std::cout << "mapping:" << std::endl;
-    for (auto e: mapping)
-      std::cout << e << std::endl;
+      // merge index
+      pagedIdx->mergeIndex(_main->size() + _delta->size(), deltaDict, deltaIdx, resultDict, mapping);
+    }
 
     result r = {std::move(mapping), std::move(resultDict)};
     return r;
@@ -125,15 +146,18 @@ struct MapValueForValueId {
     size_t tabSize = _main->size();
     size_t start = _main->size() - _delta->size();
     for(size_t row = start; row < tabSize; ++row) {
-      std::cout << "setting values of old delta: r:" << row << " c:" << _dstCol 
-                      << " v:" << _delta->getValue<R>(_col, row-start) << " v_id:" << d->getValueIdForValue(_delta->getValue<R>(_col, row-start)) << std::endl; 
       _main->setValueId(_dstCol, row, ValueId{d->getValueIdForValue(_delta->getValue<R>(_col, row-start)), 0});
     }
   }
 };
 
 
-void SimpleStoreMerger::mergeValues(const std::vector<c_atable_ptr_t > &input_tables,
+PagedIndexMerger::PagedIndexMerger(const std::string index_name, const std::string delta_name, field_t column):
+  _index_name(index_name), 
+  _delta_name(delta_name),
+  _column(column) {} //MF
+
+void PagedIndexMerger::mergeValues(const std::vector<c_atable_ptr_t > &input_tables,
                               atable_ptr_t merged_table,
                               const column_mapping_t &column_mapping,
                               const uint64_t newSize,
@@ -143,16 +167,15 @@ void SimpleStoreMerger::mergeValues(const std::vector<c_atable_ptr_t > &input_ta
   if (useValid)
     throw std::runtime_error("SimpleStoreMerger does not support valid vectors");
 
-
   if(input_tables.size() != 2) throw std::runtime_error("SimpleStoreMerger does not support more than two tables");
   auto delta = input_tables[1];
   auto main = input_tables[0];
 
   // Prepare type handling
-  MergeDictFunctor fun;
+  IndexMergeDictFunctor fun(_index_name, _delta_name, _column); //MF
   type_switch<hyrise_basic_types> ts;
 
-  std::vector<MergeDictFunctor::result> mergedDictionaries(column_mapping.size());
+  std::vector<IndexMergeDictFunctor::result> mergedDictionaries(column_mapping.size());
 
   // Extract unique values for delta
   for(const auto& kv : column_mapping) {

@@ -6,6 +6,8 @@
 #include "io/StorageManager.h"
 #include "storage/PagedIndex.h"
 #include "storage/DeltaIndex.h"
+#include "storage/PagedIndexMerger.h"
+#include "storage/SimpleStoreMerger.h"
 
 #include "helper/checked_cast.h"
 #include "storage/Store.h"
@@ -22,24 +24,28 @@ MergeStoreIndexAware::~MergeStoreIndexAware() {
 }
 
 void MergeStoreIndexAware::executePlanOperation() {
-  auto t = checked_pointer_cast<const storage::Store>(getInputTable());
-  auto store = std::const_pointer_cast<storage::Store>(t);
-  store->merge();
+    std::vector<storage::c_atable_ptr_t> tables;
+  // Add all tables to the game
+  for (auto& table: input.getTables()) {
+    if (auto store = std::dynamic_pointer_cast<const storage::Store>(table)) {
+      tables.push_back(store->getMainTable());
+      tables.push_back(store->getDeltaTable());
+    } else {
+      tables.push_back(table);
+    }
+  }
 
-  addResult(store);
+  // Call the Merge
+  storage::TableMerger merger(new storage::DefaultMergeStrategy(), 
+                              //new storage::SimpleStoreMerger());
+                              new storage::PagedIndexMerger(_index_name, _delta_name, _field_definition[0]));
+  auto new_table = input.getTable(0)->copy_structure();
 
-  // get paged index
-  hyrise::io::StorageManager *sm = hyrise::io::StorageManager::getInstance();
-  auto idx = sm->getInvertedIndex(_index_name);
-  auto pagedIdx = std::dynamic_pointer_cast<hyrise::storage::PagedIndex>(idx);
-  idx = sm->getInvertedIndex(_delta_name);
-  //auto deltaIdx = std::dynamic_pointer_cast<hyrise::storage::DeltaIndex>(idx);
+  // Switch the tables
+  auto merged_tables = merger.mergeToTable(new_table, tables);
+  const auto &result = std::make_shared<storage::Store>(new_table);
 
-  // rebuild index
-  //pagedIdx->rebuildIndex(store->getMainTable());
-
-  // rebuild index with delta
-  //pagedIdx->rebuildIndexWithDelta(store->getMainTable(), );
+  output.add(result);
 }
 
 std::shared_ptr<PlanOperation> MergeStoreIndexAware::parse(const Json::Value& data) {
@@ -80,7 +86,9 @@ void MergeStoreIndexAwareBaseline::executePlanOperation() {
   }
 
   // Call the Merge
-  storage::TableMerger merger(new storage::DefaultMergeStrategy(), new storage::SequentialHeapMerger());
+  storage::TableMerger merger(new storage::DefaultMergeStrategy(), 
+                              new storage::SimpleStoreMerger());
+                              //new storage::SequentialHeapMerger());
   auto new_table = input.getTable(0)->copy_structure();
 
   // Switch the tables
