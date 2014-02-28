@@ -37,7 +37,7 @@ void MergeStoreIndexAware::executePlanOperation() {
 
   // Call the Merge
   storage::TableMerger merger(new storage::DefaultMergeStrategy(), 
-                              //new storage::SimpleStoreMerger());
+                              // add our own merger (which then calls PagedIndex->mergeIndex)
                               new storage::PagedIndexMerger(_index_name, _delta_name, _field_definition[0]));
   auto new_table = input.getTable(0)->copy_structure();
 

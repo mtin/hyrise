@@ -35,7 +35,7 @@ public:
   virtual ~PagedIndex() {};
 
   void shrink() {
-    throw std::runtime_error("Shrink not supported for GroupkeyIndex");
+    throw std::runtime_error("Shrink not supported for PagedIndex");
   }
 
   void write_lock() {}
@@ -44,7 +44,9 @@ public:
 
   void unlock() {}
 
-  explicit PagedIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column, size_t pageSize = 4, bool debug = 0): _pageSize(pageSize), _column(column) {
+  explicit PagedIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column, size_t pageSize = 4, bool debug = 0): 
+    _pageSize(pageSize), 
+    _column(column) {
     if (in != nullptr) {
 
       rebuildIndex(in);
@@ -54,6 +56,7 @@ public:
     }
   };
 
+  // build index without previous information
   void rebuildIndex(const hyrise::storage::c_atable_ptr_t& in) {
     if (in != nullptr) {
       size_t num_of_pages = std::ceil(in->size() / (double)_pageSize);
@@ -67,6 +70,7 @@ public:
     }
   }
 
+// use aux. structure from merge process to efficiently rebuild the index
 template<typename T>
   void mergeIndex(size_t newTableSize,
                   const std::set<T>& deltaDict,
@@ -84,13 +88,12 @@ template<typename T>
 
     for (auto d : deltaDict) {
       hyrise::storage::PositionRange positions = deltaIdx->getPositionsForKey(d);
-      for (auto j : positions)
+      for (auto j : positions) {
         _newIndex[resultDict->getValueIdForValue(d)][std::floor(j / (double) _pageSize)] = 1;
+      }
     }
 
     _index = _newIndex;
-
-    debugPrint();
   }
 
   /**
@@ -120,15 +123,11 @@ template<typename T>
       // for every 1, scan through table values, compare them with valueId
       size_t offsetStart = i * _pageSize;
       size_t offsetEnd = std::min<size_t>(offsetStart + _pageSize, table->size());
-      std::cout << "okay, index page " << i << " is 1, will scan from " << offsetStart << " to " << offsetEnd << std::endl;
+      
       for (size_t p=offsetStart; p<offsetEnd; ++p) {
-        // print valueid here
-        std::cout << "valueId at" << p << " " << column << table->getValueId(column, p) <<std::endl;
-        std::cout << "value at " << p << " is " << table->getValue<T>(column, p) << std::endl;
         if (value_exists && table->getValueId(column, p) != keyValueId)//(table->getValue<T>(column, p) != key)
           continue;
 
-        std::cout << "--> pushing to result list" << std::endl;
         result->push_back(p);
       }
     }

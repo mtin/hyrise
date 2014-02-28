@@ -14,6 +14,9 @@
 #include "storage/DeltaIndex.h" //MF
 
 
+// find the index merge below at line 104++
+
+
 namespace hyrise { namespace storage {
 
 /**
@@ -97,10 +100,9 @@ struct IndexMergeDictFunctor {
     for(auto e : data)
       resultDict->addValue(e);
 
-    //MF
+    //MF call idx->mergeIndex
     if (_index_column == _column) {
-      // for (unsigned i = 0; i<mapping.size(); i++)
-      //   std::cout << i << ":" << mapping[i] << std::endl;
+
       // get indices
       hyrise::io::StorageManager *sm = hyrise::io::StorageManager::getInstance();
       auto idx = sm->getInvertedIndex(_index_name);
@@ -165,9 +167,9 @@ void PagedIndexMerger::mergeValues(const std::vector<c_atable_ptr_t > &input_tab
                               const std::vector<bool>& valid) {
 
   if (useValid)
-    throw std::runtime_error("SimpleStoreMerger does not support valid vectors");
+    throw std::runtime_error("PagedIndexMerger does not support valid vectors");
 
-  if(input_tables.size() != 2) throw std::runtime_error("SimpleStoreMerger does not support more than two tables");
+  if(input_tables.size() != 2) throw std::runtime_error("PagedIndexMerger does not support more than two tables");
   auto delta = input_tables[1];
   auto main = input_tables[0];
 

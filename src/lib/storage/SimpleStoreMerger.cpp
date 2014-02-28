@@ -83,14 +83,6 @@ struct MergeDictFunctor {
     for(auto e : data)
       resultDict->addValue(e);
 
-    std::cout << "resultDict:" << std::endl;
-    for (auto it : *resultDict)
-      std::cout << it << std::endl;
-
-    std::cout << "mapping:" << std::endl;
-    for (auto e: mapping)
-      std::cout << e << std::endl;
-
     result r = {std::move(mapping), std::move(resultDict)};
     return r;
   }
@@ -125,8 +117,6 @@ struct MapValueForValueId {
     size_t tabSize = _main->size();
     size_t start = _main->size() - _delta->size();
     for(size_t row = start; row < tabSize; ++row) {
-      std::cout << "setting values of old delta: r:" << row << " c:" << _dstCol 
-                      << " v:" << _delta->getValue<R>(_col, row-start) << " v_id:" << d->getValueIdForValue(_delta->getValue<R>(_col, row-start)) << std::endl; 
       _main->setValueId(_dstCol, row, ValueId{d->getValueIdForValue(_delta->getValue<R>(_col, row-start)), 0});
     }
   }
