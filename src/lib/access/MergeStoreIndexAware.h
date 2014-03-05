@@ -7,12 +7,12 @@
 namespace hyrise {
 namespace access {
 
-class MergeStoreIndexAware : public PlanOperation {
+class MergeTableIndexAware : public PlanOperation {
 private:
   std::string _index_name;
   std::string _delta_name;
 public:
-  virtual ~MergeStoreIndexAware();
+  virtual ~MergeTableIndexAware();
   void executePlanOperation();
   static std::shared_ptr<PlanOperation> parse(const Json::Value& data);
 
@@ -20,11 +20,11 @@ public:
   void setDeltaName(const std::string &t);
 };
 
-class MergeStoreIndexAwareBaseline : public PlanOperation {
+class MergeTableIndexAwareBaseline : public PlanOperation {
 private:
 	std::string _index_name;
 public:
-  virtual ~MergeStoreIndexAwareBaseline();
+  virtual ~MergeTableIndexAwareBaseline();
   void executePlanOperation();
   static std::shared_ptr<PlanOperation> parse(const Json::Value& data);
 

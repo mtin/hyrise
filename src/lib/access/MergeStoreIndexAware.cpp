@@ -17,13 +17,13 @@ namespace access {
 
 
 namespace {
-  auto _ = QueryParser::registerPlanOperation<MergeStoreIndexAware>("MergeStoreIndexAware");
+  auto _ = QueryParser::registerPlanOperation<MergeTableIndexAware>("MergeTableIndexAware");
 }
 
-MergeStoreIndexAware::~MergeStoreIndexAware() {
+MergeTableIndexAware::~MergeTableIndexAware() {
 }
 
-void MergeStoreIndexAware::executePlanOperation() {
+void MergeTableIndexAware::executePlanOperation() {
     std::vector<storage::c_atable_ptr_t> tables;
   // Add all tables to the game
   for (auto& table: input.getTables()) {
@@ -48,32 +48,32 @@ void MergeStoreIndexAware::executePlanOperation() {
   output.add(result);
 }
 
-std::shared_ptr<PlanOperation> MergeStoreIndexAware::parse(const Json::Value& data) {
-  auto i = BasicParser<MergeStoreIndexAware>::parse(data);
+std::shared_ptr<PlanOperation> MergeTableIndexAware::parse(const Json::Value& data) {
+  auto i = BasicParser<MergeTableIndexAware>::parse(data);
   i->setIndexName(data["index_name"].asString());
   i->setDeltaName(data["delta_index_name"].asString());
 
   return i;
 }
 
-void MergeStoreIndexAware::setIndexName(const std::string &t) {
+void MergeTableIndexAware::setIndexName(const std::string &t) {
   _index_name = t;
 }
 
-void MergeStoreIndexAware::setDeltaName(const std::string &t) {
+void MergeTableIndexAware::setDeltaName(const std::string &t) {
   _delta_name = t;
 }
 
 
 
 namespace {
-  auto _2 = QueryParser::registerPlanOperation<MergeStoreIndexAwareBaseline>("MergeStoreIndexAwareBaseline");
+  auto _2 = QueryParser::registerPlanOperation<MergeTableIndexAwareBaseline>("MergeTableIndexAwareBaseline");
 }
 
-MergeStoreIndexAwareBaseline::~MergeStoreIndexAwareBaseline() {
+MergeTableIndexAwareBaseline::~MergeTableIndexAwareBaseline() {
 }
 
-void MergeStoreIndexAwareBaseline::executePlanOperation() {
+void MergeTableIndexAwareBaseline::executePlanOperation() {
   std::vector<storage::c_atable_ptr_t> tables;
   // Add all tables to the game
   for (auto& table: input.getTables()) {
@@ -106,14 +106,14 @@ void MergeStoreIndexAwareBaseline::executePlanOperation() {
   pagedIdx->rebuildIndex(result);
 }
 
-std::shared_ptr<PlanOperation> MergeStoreIndexAwareBaseline::parse(const Json::Value& data) {
-  auto i = BasicParser<MergeStoreIndexAwareBaseline>::parse(data);
+std::shared_ptr<PlanOperation> MergeTableIndexAwareBaseline::parse(const Json::Value& data) {
+  auto i = BasicParser<MergeTableIndexAwareBaseline>::parse(data);
   i->setIndexName(data["index_name"].asString());
 
   return i;
 }
 
-void MergeStoreIndexAwareBaseline::setIndexName(const std::string &t) {
+void MergeTableIndexAwareBaseline::setIndexName(const std::string &t) {
   _index_name = t;
 }
 
