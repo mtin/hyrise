@@ -1,5 +1,5 @@
 // Copyright (c) 2012 Hasso-Plattner-Institut fuer Softwaresystemtechnik GmbH. All rights reserved.
-#include "access/MergeStoreIndexAware.h"
+#include "access/MergeTableIndexAware.h"
 
 #include "access/system/QueryParser.h"
 
