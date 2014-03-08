@@ -30,6 +30,7 @@ private:
   paged_index_t _index;
   const size_t _pageSize;
   const field_t _column;
+  const bool _debug;
 
 public:
   virtual ~PagedIndex() {};
@@ -44,21 +45,23 @@ public:
 
   void unlock() {}
 
-  explicit PagedIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column, size_t pageSize = 4, bool debug = 0): 
+  explicit PagedIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column, size_t pageSize = 512, bool debug = true): 
     _pageSize(pageSize), 
-    _column(column) {
+    _column(column),
+    _debug(debug) {
     if (in != nullptr) {
 
-      rebuildIndex(in);
+      _index = buildIndex(in);
 
-      if (debug)
+      if (_debug)
         debugPrint();
     }
   };
 
-  // build index without previous information
-  void rebuildIndex(const hyrise::storage::c_atable_ptr_t& in) {
-    if (in != nullptr) {
+  /**
+   * build index without previous information
+   */
+  paged_index_t buildIndex(const hyrise::storage::c_atable_ptr_t& in) {
       size_t num_of_pages = std::ceil(in->size() / (double)_pageSize);
 
       paged_index_t _newIndex(in->dictionaryAt(_column)->size(), boost::dynamic_bitset<>(num_of_pages, 0));
@@ -66,11 +69,24 @@ public:
       for (size_t row = 0; row < in->size(); ++row)
         _newIndex[in->getValueId(_column, row).valueId][row/_pageSize] = 1;
 
-      _index = _newIndex;
-    }
+      return _newIndex;
   }
 
-// use aux. structure from merge process to efficiently rebuild the index
+  /**
+   * rebuild index without previous information
+   */
+  void rebuildIndex(const hyrise::storage::c_atable_ptr_t& in) {
+      if (in != nullptr) {
+        _index = buildIndex(in);
+
+        if (_debug)
+          debugPrint();
+      }
+  }
+
+  /**
+   * use aux. structure from merge process to efficiently rebuild the index
+   */ 
 template<typename T>
   void mergeIndex(size_t newTableSize,
                   const std::set<T>& deltaDict,
@@ -88,31 +104,38 @@ template<typename T>
 
     for (auto d : deltaDict) {
       hyrise::storage::PositionRange positions = deltaIdx->getPositionsForKey(d);
+      value_id_t valueId = resultDict->getValueIdForValue(d); //TODO
       for (auto j : positions) {
-        _newIndex[resultDict->getValueIdForValue(d)][std::floor(j / (double) _pageSize)] = 1;
+        _newIndex[valueId][std::floor(j / (double) _pageSize)] = 1;
       }
     }
 
     _index = _newIndex;
+    if (_debug)
+      debugPrintWithValues<T>(resultDict);
   }
 
   /**
    * returns a list of positions where key was found.
    */
-
 template<typename T>
   hyrise::storage::pos_list_t* getPositionsForKey(T key, field_t column, const hyrise::storage::c_atable_ptr_t& table) {
-    hyrise::storage::pos_list_t *result = new hyrise::storage::pos_list_t();
 
+    // check if given key is valid
+    if (!table->valueExists(column, key))
+      return new hyrise::storage::pos_list_t();
 
     // retrieve valueId for dictionary entry T "key"
-    bool value_exists = table->valueExists(column, key);
+    ValueId keyValueId = table->getValueIdForValue(column, key);
 
-    if (!value_exists)
-      return result;
+    return getPositionsForValueId(keyValueId, column, table);
+  }
 
-    ValueId keyValueId;
-    keyValueId = table->getValueIdForValue(column, key);
+  /**
+   * returns a list of positions where keyValueId was found.
+   */
+  hyrise::storage::pos_list_t* getPositionsForValueId(ValueId keyValueId, field_t column, const hyrise::storage::c_atable_ptr_t& table) {
+    hyrise::storage::pos_list_t *result = new hyrise::storage::pos_list_t();
 
     // scan through pages
     for (size_t i=0; i<_index[keyValueId.valueId].size(); ++i) {
@@ -120,12 +143,13 @@ template<typename T>
       if (_index[keyValueId.valueId][i] != 1)
         continue;
 
-      // for every 1, scan through table values, compare them with valueId
+      // for every 1, calc range of rows in page
       size_t offsetStart = i * _pageSize;
       size_t offsetEnd = std::min<size_t>(offsetStart + _pageSize, table->size());
       
+      // scan through table value-ids, compare them with keyValueId
       for (size_t p=offsetStart; p<offsetEnd; ++p) {
-        if (value_exists && table->getValueId(column, p) != keyValueId)//(table->getValue<T>(column, p) != key)
+        if (table->getValueId(column, p) != keyValueId)//(table->getValue<T>(column, p) != key)
           continue;
 
         result->push_back(p);
@@ -134,18 +158,36 @@ template<typename T>
     return result;
   }
 
+  /**
+   * returns the page size
+   */
   size_t getPageSize() {
     return _pageSize;
   }
 
+  /**
+   * prints the index
+   */
   void debugPrint() {
         std::cout << "page_size: " << _pageSize << std::endl;
         std::cout << "num_of_pages: " << _index.size() << std::endl;
         for (size_t i=0; i<_index.size(); ++i) {
-          //std::cout << in->getValueForValueId<T>(column, ValueId(i, 0)) << " - ";
           for (size_t o=0; o<_index[i].size(); ++o) 
             std::cout << _index[i][o];
           std::cout << std::endl;
+        }
+  }
+  /**
+   * prints the index plus resolves value-ids
+   */
+template <typename T>
+  void debugPrintWithValues(std::shared_ptr<hyrise::storage::OrderPreservingDictionary<T>> resultDict) {
+        std::cout << "page_size: " << _pageSize << std::endl;
+        std::cout << "num_of_pages: " << _index.size() << std::endl;
+        for (size_t i=0; i<_index.size(); ++i) {
+          for (size_t o=0; o<_index[i].size(); ++o) 
+            std::cout << _index[i][o];
+          std::cout << " (" << resultDict->getValueForValueId(i) << ")" << std::endl;
         }
   }
 

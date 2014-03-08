@@ -66,8 +66,6 @@ PagedIndexScan::~PagedIndexScan() {
 }
 
 void PagedIndexScan::executePlanOperation() {
-  auto start_time = std::chrono::high_resolution_clock::now();
-
   hyrise::io::StorageManager *sm = hyrise::io::StorageManager::getInstance();
   auto idx = sm->getInvertedIndex(_indexName);
 
@@ -76,11 +74,7 @@ void PagedIndexScan::executePlanOperation() {
   ScanPagedIndexFunctor fun(_value, idx, _field_definition[0], getInputTable());
   storage::pos_list_t *pos = ts(input.getTable(0)->typeOfColumn(_field_definition[0]), fun);
 
-  addResult(hyrise::storage::PointerCalculator::create(input.getTable(0), pos));
-
-  auto end_time = std::chrono::high_resolution_clock::now();
-  std::cout << std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() << " us (PagedIndexScan)" << std::endl;
-   
+  addResult(hyrise::storage::PointerCalculator::create(input.getTable(0), pos)); 
 }
 
 std::shared_ptr<PlanOperation> PagedIndexScan::parse(const Json::Value &data) {

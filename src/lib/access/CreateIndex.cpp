@@ -47,7 +47,7 @@ struct CreatePagedIndexFunctor {
   template<typename R>
   value_type operator()() {
     if (_pageSize>0)
-      return std::make_shared<hyrise::storage::PagedIndex>(in, column, _pageSize, /*debug*/false);
+      return std::make_shared<hyrise::storage::PagedIndex>(in, column, _pageSize/*, debug*/);
     return std::make_shared<hyrise::storage::PagedIndex>(in, column);
   }
 };
