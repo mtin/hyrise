@@ -5,6 +5,7 @@
 #include <set>
 
 #include "OrderPreservingDictionary.h"
+#include "OrderIndifferentDictionary.h"
 #include "meta_storage.h"
 #include "RawTable.h"
 #include "SimpleStore.h"
@@ -28,15 +29,10 @@ namespace hyrise { namespace storage {
  * this set and a mapping table is build that maps the old values from
  * the old dictionary to the new dictionary.
  */
-struct IndexMergeDictFunctor {
-
-  IndexMergeDictFunctor(const std::string index_name, const std::string delta_index_name, field_t index_column):
-    _index_name(index_name),
-    _delta_index_name(delta_index_name),
-    _index_column(index_column) {} //MF
+struct IndexMergeDictFunctorPaged {
 
   struct result {
-    std::vector<value_id_t> mapping;
+    std::shared_ptr<std::vector<value_id_t>> mapping;
     std::shared_ptr<AbstractDictionary> dict;
   };
 
@@ -47,16 +43,11 @@ struct IndexMergeDictFunctor {
   c_atable_ptr_t _delta;
   field_t _column;
 
-  //MF
-  const std::string _index_name;
-  const std::string _delta_index_name;
-  field_t _index_column;
-
   void prepare(c_atable_ptr_t m, c_atable_ptr_t d, field_t c) {
     _main = m;
     _delta = d;
     _column = c;
-  };
+  }
   
   template<typename R>
   result operator()() {
@@ -68,8 +59,6 @@ struct IndexMergeDictFunctor {
     for(size_t i=0; i < deltaSize; ++i) {
       data.insert(_delta->getValue<R>(_column, i));
     }
-     
-    std::set<R> deltaDict = data; //MF
 
     size_t dictSize = dict->size();
     for(size_t i=0; i < dictSize; ++i)
@@ -80,7 +69,7 @@ struct IndexMergeDictFunctor {
     auto end = data.cend();
     size_t mapped = 0;
     
-    std::vector<value_id_t> mapping;
+    std::shared_ptr<std::vector<value_id_t>> mapping = std::make_shared<std::vector<value_id_t>>();
 
     for(size_t i=0; i < dictSize; ++i) {
       auto val = dict->getValueForValueId(i);
@@ -93,26 +82,12 @@ struct IndexMergeDictFunctor {
       if (start != end)
         ++start;
 
-      mapping.push_back(mapped++);
+      mapping->push_back(mapped++);
     }
 
     auto resultDict = std::make_shared<OrderPreservingDictionary<R>>(data.size());
     for(auto e : data)
       resultDict->addValue(e);
-
-    //MF call idx->mergeIndex
-    if (_index_column == _column) {
-
-      // get indices
-      hyrise::io::StorageManager *sm = hyrise::io::StorageManager::getInstance();
-      auto idx = sm->getInvertedIndex(_index_name);
-      auto pagedIdx = std::dynamic_pointer_cast<hyrise::storage::PagedIndex>(idx);
-      idx = sm->getInvertedIndex(_delta_index_name);
-      auto deltaIdx = std::dynamic_pointer_cast<hyrise::storage::DeltaIndex<R>>(idx);
-
-      // merge index
-      pagedIdx->mergeIndex(_main->size() + _delta->size(), deltaDict, deltaIdx, resultDict, mapping);
-    }
 
     result r = {std::move(mapping), std::move(resultDict)};
     return r;
@@ -124,7 +99,7 @@ struct IndexMergeDictFunctor {
  * This class performs the mapping of old uncompressed delta values to
  * new valueIds in the compressed data store.
  */
-struct MapValueForValueId {
+struct MapValueForValueIdPaged {
   typedef void value_type;
 
   atable_ptr_t _main;
@@ -132,6 +107,10 @@ struct MapValueForValueId {
   c_atable_ptr_t _delta;
   field_t _col;
   field_t _dstCol;
+
+  //MF
+  std::shared_ptr<hyrise::storage::PagedIndex> _index;
+  std::shared_ptr<std::vector<value_id_t>> _mapping;
 
   void prepare(atable_ptr_t m, field_t dst, std::shared_ptr<AbstractDictionary> d, 
                size_t col, c_atable_ptr_t de) {
@@ -142,22 +121,44 @@ struct MapValueForValueId {
     _col = col;
   }
 
+  //MF
+  void prepareIndexMerge(const std::shared_ptr<PagedIndex>& index,
+                         const std::shared_ptr<std::vector<value_id_t>>& mapping) {
+    _index = index;
+    _mapping = mapping;
+  }
+
   template<typename R>
   value_type operator() () {
-    auto d = std::dynamic_pointer_cast<OrderPreservingDictionary<R>>(_dict);
+
+    auto resultDict = std::dynamic_pointer_cast<OrderPreservingDictionary<R>>(_dict);
     size_t tabSize = _main->size();
     size_t start = _main->size() - _delta->size();
-    for(size_t row = start; row < tabSize; ++row) { //TODO
-      _main->setValueId(_dstCol, row, ValueId{d->getValueIdForValue(_delta->getValue<R>(_col, row-start)), 0});
+    std::vector<value_id_t> deltaMapping; // MF
+    for(size_t row = start; row < tabSize; ++row) { 
+      deltaMapping.push_back(resultDict->getValueIdForValue(_delta->getValue<R>(_col, row-start))); // MF
+      _main->setValueId(_dstCol, row, ValueId{deltaMapping.back(), 0});
     }
+
+    // MF check if this is the column our index is working on (otherwise index is nullptr)
+    if (!_index) {
+      return;
+    }
+
+    // MF merge index
+    _index->mergeIndex(_main->size() - _delta->size(), 
+                       _delta->size(), 
+                       resultDict, 
+                       *_mapping, 
+                       deltaMapping);
+
+    _index = nullptr;
   }
 };
 
 
-PagedIndexMerger::PagedIndexMerger(const std::string index_name, const std::string delta_name, field_t column):
-  _index_name(index_name), 
-  _delta_name(delta_name),
-  _column(column) {} //MF
+PagedIndexMerger::PagedIndexMerger(std::string index_name):
+  _index_name(index_name) {} //MF
 
 void PagedIndexMerger::mergeValues(const std::vector<c_atable_ptr_t > &input_tables,
                               atable_ptr_t merged_table,
@@ -174,10 +175,10 @@ void PagedIndexMerger::mergeValues(const std::vector<c_atable_ptr_t > &input_tab
   auto main = input_tables[0];
 
   // Prepare type handling
-  IndexMergeDictFunctor fun(_index_name, _delta_name, _column); //MF
+  IndexMergeDictFunctorPaged fun;
   type_switch<hyrise_basic_types> ts;
 
-  std::vector<IndexMergeDictFunctor::result> mergedDictionaries(column_mapping.size());
+  std::vector<IndexMergeDictFunctorPaged::result> mergedDictionaries(column_mapping.size());
 
   // Extract unique values for delta
   for(const auto& kv : column_mapping) {
@@ -197,16 +198,26 @@ void PagedIndexMerger::mergeValues(const std::vector<c_atable_ptr_t > &input_tab
     for( const auto& kv : column_mapping) {
       const auto& col = kv.first;
       const auto& dst = kv.second;
-      merged_table->setValueId(dst, row, ValueId{mergedDictionaries[col].mapping[main->getValueId(col, row).valueId], 0});
+      merged_table->setValueId(dst, row, ValueId{(*mergedDictionaries[col].mapping)[main->getValueId(col, row).valueId], 0});
     }
   }
 
+  //MF
+  // get main index
+  hyrise::io::StorageManager *sm = hyrise::io::StorageManager::getInstance();
+  auto idx = sm->getInvertedIndex(_index_name);
+  auto pagedIdx = std::dynamic_pointer_cast<hyrise::storage::PagedIndex>(idx);
+
   // Map the values for the values in the uncompressed delta
-  MapValueForValueId map;
+  MapValueForValueIdPaged map;
   for( const auto& kv : column_mapping) {
     const auto& col = kv.first;
     const auto& dst = kv.second;
     map.prepare(merged_table, dst, mergedDictionaries[col].dict, col, delta);
+    // MF check if this is the column of our index
+    if (pagedIdx->getColumn() == dst) {
+      map.prepareIndexMerge(pagedIdx, mergedDictionaries[col].mapping);
+    }
     ts(merged_table->typeOfColumn(dst), map);
   }
 }

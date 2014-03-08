@@ -16,6 +16,7 @@
 #include "storage/AbstractTable.h"
 #include "storage/DeltaIndex.h"
 #include "storage/OrderPreservingDictionary.h"
+#include "storage/OrderIndifferentDictionary.h"
 
 #include <memory>
 #include <boost/dynamic_bitset.hpp>
@@ -88,29 +89,28 @@ public:
    * use aux. structure from merge process to efficiently rebuild the index
    */ 
 template<typename T>
-  void mergeIndex(size_t newTableSize,
-                  const std::set<T>& deltaDict,
-                  std::shared_ptr<hyrise::storage::DeltaIndex<T>> deltaIdx,
-                  std::shared_ptr<hyrise::storage::OrderPreservingDictionary<T>> resultDict,
-                  const std::vector<value_id_t>& mapping) {
+  void mergeIndex(size_t oldTableSize,
+                  size_t deltaTableSize,
+                  const std::shared_ptr<hyrise::storage::OrderPreservingDictionary<T>>&   resultDict,
+                  const std::vector<value_id_t>& mapping,
+                  const std::vector<value_id_t>& deltaMapping) {
 
-    size_t num_of_pages = std::ceil(newTableSize / (double)_pageSize);
+    size_t num_of_pages = std::ceil((oldTableSize + deltaTableSize) / (double)_pageSize);
     paged_index_t _newIndex(resultDict->size(), boost::dynamic_bitset<>(num_of_pages, 0));
        
+    // transfer pages from old index
     for (size_t i=0; i<mapping.size(); i++) {
       _newIndex[mapping[i]] = _index[i];
       _newIndex[mapping[i]].resize(num_of_pages, 0);
     }
 
-    for (auto d : deltaDict) {
-      hyrise::storage::PositionRange positions = deltaIdx->getPositionsForKey(d);
-      value_id_t valueId = resultDict->getValueIdForValue(d); //TODO
-      for (auto j : positions) {
-        _newIndex[valueId][std::floor(j / (double) _pageSize)] = 1;
-      }
-    }
+    // set page bits for additional entries
+    for (size_t i=0; i<deltaMapping.size(); i++) {
+      _newIndex[deltaMapping[i]][std::floor((oldTableSize + i) / (double) _pageSize)] = 1;
+    } 
 
     _index = _newIndex;
+    
     if (_debug)
       debugPrintWithValues<T>(resultDict);
   }
@@ -166,11 +166,18 @@ template<typename T>
   }
 
   /**
+   * returns the column the index was created on
+   */
+  field_t getColumn() {
+    return _column;
+  }
+
+  /**
    * prints the index
    */
   void debugPrint() {
         std::cout << "page_size: " << _pageSize << std::endl;
-        std::cout << "num_of_pages: " << _index.size() << std::endl;
+        std::cout << "num_of_pages: " << ((_index.size() > 0) ? _index[0].size() : 0) << std::endl;
         for (size_t i=0; i<_index.size(); ++i) {
           for (size_t o=0; o<_index[i].size(); ++o) 
             std::cout << _index[i][o];
@@ -183,7 +190,7 @@ template<typename T>
 template <typename T>
   void debugPrintWithValues(std::shared_ptr<hyrise::storage::OrderPreservingDictionary<T>> resultDict) {
         std::cout << "page_size: " << _pageSize << std::endl;
-        std::cout << "num_of_pages: " << _index.size() << std::endl;
+        std::cout << "num_of_pages: " << ((_index.size() > 0) ? _index[0].size() : 0) << std::endl;
         for (size_t i=0; i<_index.size(); ++i) {
           for (size_t o=0; o<_index[i].size(); ++o) 
             std::cout << _index[i][o];

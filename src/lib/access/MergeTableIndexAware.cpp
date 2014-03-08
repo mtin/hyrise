@@ -30,20 +30,26 @@ void MergeTableIndexAware::executePlanOperation() {
     if (auto store = std::dynamic_pointer_cast<const storage::Store>(table)) {
       tables.push_back(store->getMainTable());
       tables.push_back(store->getDeltaTable());
+      //store->getMainTable()->print();
+      //store->getDeltaTable()->print();
     } else {
       tables.push_back(table);
+      //table->print();
     }
   }
+
 
   // Call the Merge
   storage::TableMerger merger(new storage::DefaultMergeStrategy(), 
                               // add our own merger (which then calls PagedIndex->mergeIndex)
-                              new storage::PagedIndexMerger(_index_name, _delta_name, _field_definition[0]));
+                              new storage::PagedIndexMerger(_index_name));
   auto new_table = input.getTable(0)->copy_structure();
 
   // Switch the tables
   auto merged_tables = merger.mergeToTable(new_table, tables);
   const auto &result = std::make_shared<storage::Store>(new_table);
+
+  //result->print();
 
   output.add(result);
 }

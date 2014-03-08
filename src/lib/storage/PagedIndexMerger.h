@@ -9,7 +9,7 @@ namespace hyrise { namespace storage {
 class PagedIndexMerger : public hyrise::storage::AbstractMerger {
 
 public:
-	PagedIndexMerger(const std::string index_name, const std::string delta_name, field_t column);
+	PagedIndexMerger(std::string index_name);
 
  	virtual ~PagedIndexMerger(){}
 
@@ -23,9 +23,7 @@ public:
 	AbstractMerger* copy() { return nullptr; }
 
 private:
-  	std::string _index_name;
-  	std::string _delta_name;
-  	field_t		_column;
+  	const std::string _index_name;
 
 };
 
