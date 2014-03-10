@@ -190,7 +190,6 @@ void PagedIndexMerger::mergeValues(const std::vector<c_atable_ptr_t > &input_tab
     mergedDictionaries[col] = result;
   }
 
-
   // Update the values of the new Table
   merged_table->resize(newSize);
   size_t tabSize = main->size();
@@ -201,9 +200,8 @@ void PagedIndexMerger::mergeValues(const std::vector<c_atable_ptr_t > &input_tab
       merged_table->setValueId(dst, row, ValueId{(*mergedDictionaries[col].mapping)[main->getValueId(col, row).valueId], 0});
     }
   }
-
-  //MF
-  // get main index
+  
+  //MF get main index
   hyrise::io::StorageManager *sm = hyrise::io::StorageManager::getInstance();
   auto idx = sm->getInvertedIndex(_index_name);
   auto pagedIdx = std::dynamic_pointer_cast<hyrise::storage::PagedIndex>(idx);

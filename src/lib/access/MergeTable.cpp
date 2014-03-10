@@ -2,6 +2,7 @@
 #include "access/MergeTable.h"
 
 #include "access/system/QueryParser.h"
+#include "storage/SimpleStoreMerger.h"
 
 
 #include "helper/checked_cast.h"
@@ -30,7 +31,7 @@ void MergeTable::executePlanOperation() {
   }
 
   // Call the Merge
-  storage::TableMerger merger(new storage::DefaultMergeStrategy(), new storage::SequentialHeapMerger());
+  storage::TableMerger merger(new storage::DefaultMergeStrategy(), new storage::SimpleStoreMerger());
   auto new_table = input.getTable(0)->copy_structure();
 
   // Switch the tables

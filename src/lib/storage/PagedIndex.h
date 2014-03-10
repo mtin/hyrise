@@ -46,7 +46,7 @@ public:
 
   void unlock() {}
 
-  explicit PagedIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column, size_t pageSize = 512, bool debug = true): 
+  explicit PagedIndex(const hyrise::storage::c_atable_ptr_t& in, field_t column, size_t pageSize = 512, bool debug = false): 
     _pageSize(pageSize), 
     _column(column),
     _debug(debug) {
@@ -110,7 +110,7 @@ template<typename T>
     } 
 
     _index = _newIndex;
-    
+
     if (_debug)
       debugPrintWithValues<T>(resultDict);
   }

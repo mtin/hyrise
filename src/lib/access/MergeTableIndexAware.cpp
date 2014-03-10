@@ -57,19 +57,12 @@ void MergeTableIndexAware::executePlanOperation() {
 std::shared_ptr<PlanOperation> MergeTableIndexAware::parse(const Json::Value& data) {
   auto i = BasicParser<MergeTableIndexAware>::parse(data);
   i->setIndexName(data["index_name"].asString());
-  i->setDeltaName(data["delta_index_name"].asString());
-
   return i;
 }
 
 void MergeTableIndexAware::setIndexName(const std::string &t) {
   _index_name = t;
 }
-
-void MergeTableIndexAware::setDeltaName(const std::string &t) {
-  _delta_name = t;
-}
-
 
 
 namespace {

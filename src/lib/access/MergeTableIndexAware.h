@@ -10,14 +10,12 @@ namespace access {
 class MergeTableIndexAware : public PlanOperation {
 private:
   std::string _index_name;
-  std::string _delta_name;
 public:
   virtual ~MergeTableIndexAware();
   void executePlanOperation();
   static std::shared_ptr<PlanOperation> parse(const Json::Value& data);
 
   void setIndexName(const std::string &t);
-  void setDeltaName(const std::string &t);
 };
 
 class MergeTableIndexAwareBaseline : public PlanOperation {
