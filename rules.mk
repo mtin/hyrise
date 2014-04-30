@@ -190,6 +190,10 @@ endif
 
 COMMON_FLAGS += -D PERSISTENCY_$(PERSISTENCY)
 
+ifeq ($(OSNAME),Darwin)
+COMMON_FLAGS += -D NO_PREFETCHING
+endif
+
 ifeq ($(WITH_PROFILER),1)
 PLUGINS += profiler
 endif
@@ -247,11 +251,19 @@ ci_build: ci_steps
 	@mkdir -p $(@D)
 	@touch $@
 
+WHOLE_ARCHIVE := -whole-archive
+NO_WHOLE_ARCHIVE := -no-whole-archive
+
+ifeq ($(OSNAME),Darwin)
+WHOLE_ARCHIVE := -all_load
+NO_WHOLE_ARCHIVE := -noall_load
+endif
+
 $(RESULT_DIR)/%.a: $(TOOLING)
 	$(call echo_cmd,AR $(AR) $@) $(AR) crs $@ $(filter %.o,$?)
 
 $(RESULT_DIR)/%: $(TOOLING)
-	$(call echo_cmd,LINK $(CXX) $(BLD) $@) $(CXX) $(CXXFLAGS) -o $@ $(filter %.o,$^) -Wl,-whole-archive $(addprefix -l,$(LIBS)) -Wl,-no-whole-archive $(addprefix -L,$(LINK_DIRS)) $(LDFLAGS)
+	$(call echo_cmd,LINK $(CXX) $(BLD) $@) $(CXX) $(CXXFLAGS) -o $@ $(filter %.o,$^) -Wl,$(WHOLE_ARCHIVE) $(addprefix -l,$(LIBS)) -Wl,$(NO_WHOLE_ARCHIVE) $(addprefix -L,$(LINK_DIRS)) $(LDFLAGS)
 
 # Necessary to allow for a second expansion to create dirs
 .SECONDEXPANSION:

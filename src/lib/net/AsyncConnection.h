@@ -5,6 +5,11 @@
 #include <arpa/inet.h>
 #include <sys/time.h>
 #include <cstdlib>
+
+//fix for EV_ERROR from ev.h beeing already defined
+#ifdef __APPLE__
+  #undef EV_ERROR
+#endif
 #include <ev.h>
 
 #include <string>

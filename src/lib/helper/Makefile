@@ -4,7 +4,7 @@ hyr-helper := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 
 hyr-helper.libname := hyr-helper
 
-hyr-helper.libs := hwloc rt
+hyr-helper.libs := hwloc
 ifeq ($(strip $(WITH_PAPI)),1)
 hyr-helper.libs += papi
 hyr-helper.CPPFLAGS := -DUSE_PAPI_TRACE

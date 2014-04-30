@@ -55,7 +55,7 @@ class FixedLengthVector final : public AbstractFixedLengthVector<T> {
 
   virtual std::uint64_t capacity() override { return _values.capacity() / _columns; }
 
-  virtual std::uint64_t size() override { return _values.size() / _columns; }
+  virtual size_t size() override { return _values.size() / _columns; }
 
   size_t getColumns() const override { return _columns; }
 

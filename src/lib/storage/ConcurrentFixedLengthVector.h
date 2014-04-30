@@ -44,9 +44,9 @@ class ConcurrentFixedLengthVector final : public AbstractFixedLengthVector<T> {
     _size = rows;
   }
 
-  virtual std::uint64_t capacity() override { return _values.capacity() / _columns; }
+  virtual uint64_t capacity() override { return _values.capacity() / _columns; }
 
-  virtual std::uint64_t size() override { return _size; }
+  virtual size_t size() override { return _size; }
 
   size_t getColumns() const override { return _columns; }
 
